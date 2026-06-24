@@ -1,0 +1,48 @@
+version: "3.7"
+
+services:
+  caddy:
+    image: caddy:latest
+    restart: unless-stopped
+    ports:
+    #  - "80:80"
+    #   - "443:443"
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - pb_network
+    depends_on:
+      - pb_client_a
+      - pb_client_b
+
+  # Instance for Client A
+  pb_client_a:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./pb_data_client_a:/pb/pb_data  # Client A's unique database
+      # - ./pb_migrations:/pb/pb_migrations # Shared schema/migrations if applicable
+    networks:
+      - pb_network
+    # Not exposing ports to host because Caddy handles it inside the docker network
+
+  # Instance for Client B
+  pb_client_b:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./pb_data_client_b:/pb/pb_data  # Client B's unique database
+    networks:
+      - pb_network
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  pb_network:
+    driver: bridge

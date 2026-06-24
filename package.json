@@ -1,0 +1,16 @@
+{
+  "name": "gamez-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=Admin\" \"npm run dev --workspace=Website\"",
+    "install:all": "npm install"
+  },
+  "workspaces": [
+    "Admin",
+    "Website"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "url": "http://127.0.0.1:8090/api/collections/rooms/records?page=1&perPage=1",
+  "options": {
+    "method": "GET",
+    "headers": {
+      "Content-Type": "application/json",
+      "Accept-Language": "en-US",
+      "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb2xsZWN0aW9uSWQiOiJfcGJfdXNlcnNfYXV0aF8iLCJleHAiOjE3NzQyMTQ2MTcsImlkIjoiNjB5MHJ2eGh3dGkzbjNtIiwicmVmcmVzaGFibGUiOnRydWUsInR5cGUiOiJhdXRoIn0.WP2hsN3RHVDc1l6Cvo6ztkMuuz0j35HuE-licNtlhns"
+    },
+    "signal": {}
+  }
+}

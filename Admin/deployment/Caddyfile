@@ -1,0 +1,16 @@
+# Replace these domains with your actual client subdomains
+#client-a.yourdomain.com {
+#    reverse_proxy pb_client_a:8090
+#}
+
+#client-b.yourdomain.com {
+#    reverse_proxy pb_client_b:8090
+#}
+
+# Example of a local test configuration if you don't have a domain yet:
+:8080 {
+     reverse_proxy pb_client_a:8090
+ }
+ :8081 {
+     reverse_proxy pb_client_b:8090
+ }

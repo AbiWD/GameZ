@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Apple Light Mode Variables from Palette provided */
+    --background: 0 0% 100%; /* White #FFFFFF */
+    --foreground: 240 3% 12%; /* Near Black #1D1D1F */
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 3% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 3% 12%;
+
+    /* Apple Blue #0071E3 */
+    --primary: 210 100% 45%; 
+    --primary-foreground: 0 0% 100%;
+
+    /* Light Gray #F5F5F7 */
+    --secondary: 240 11% 96%; 
+    --secondary-foreground: 240 3% 12%;
+
+    /* Light Gray #F5F5F7 */
+    --muted: 240 11% 96%; 
+    --muted-foreground: 240 2% 48%; /* Black 48% */
+
+    /* Button Active #EDEDF2 */
+    --accent: 240 14% 94%; 
+    --accent-foreground: 240 3% 12%;
+
+    /* Standard Apple Destructive Red */
+    --destructive: 349 100% 58%; /* #FF3B30 */
+    --destructive-foreground: 0 0% 100%;
+
+    /* Filter BG #FAFAFC for borders and inputs */
+    --border: 240 14% 90%; 
+    --input: 240 14% 98%; /* #FAFAFC */
+    --ring: 210 100% 45%; /* #0071E3 */
+
+    /* Sleek, standard Apple rounding */
+    --radius: 0.75rem; /* 12px */
+
+    /* Custom Pastel colors replaced with subtle monochrome or soft transparent fills if needed */
+    --pastel-mint: 142 71% 45%; 
+    --pastel-blue: 211 100% 50%; 
+    --pastel-peach: 35 100% 60%; 
+    --pastel-lavender: 260 100% 65%; 
+
+    /* Sidebar config - Light Mode */
+    --sidebar-background: 0 0% 100%; /* Pure White frame */
+    --sidebar-foreground: 240 3% 12%; /* Near Black #1D1D1F */
+    --sidebar-primary: 210 100% 45%; /* Apple Blue */
+    --sidebar-primary-foreground: 0 0% 100%; /* White */
+    --sidebar-accent: 240 14% 94%; /* Button Active #EDEDF2 */
+    --sidebar-accent-foreground: 228 5% 12%;
+    --sidebar-border: 220 15% 90%; /* #E5E5EA */
+    --sidebar-ring: 211 100% 50%;
+  }
+
+  .dark {
+    /* Apple Dark Mode Variables from Palette provided */
+    --background: 0 0% 0%; /* Pure Black #000000 */
+    --foreground: 240 11% 96%; /* Light Gray #F5F5F7 */
+
+    /* Surface 1 #272729 */
+    --card: 240 3% 16%; 
+    --card-foreground: 240 11% 96%;
+
+    --popover: 240 3% 16%;
+    --popover-foreground: 240 11% 96%;
+
+    /* Bright Blue #2997FF */
+    --primary: 209 100% 58%; 
+    --primary-foreground: 0 0% 100%;
+
+    /* Surface 2 #28282A */
+    --secondary: 240 3% 16%; 
+    --secondary-foreground: 240 11% 96%;
+
+    /* Surface 4 Deepest #242426 */
+    --muted: 240 3% 15%; 
+    --muted-foreground: 240 2% 64%; /* Muted text */
+
+    /* Surface 3 Highest #2A2A2D */
+    --accent: 240 3% 17%; 
+    --accent-foreground: 240 11% 96%;
+
+    /* Apple Destructive Red - Dark */
+    --destructive: 355 100% 64%; /* #FF453A */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 4% 23%; /* #38383A */
+    --input: 240 3% 15%; /* #242426 */
+    --ring: 209 100% 58%; /* #2997FF */
+
+    /* Sidebar config - Dark Mode */
+    --sidebar-background: 0 0% 0%; /* Pure Black */
+    --sidebar-foreground: 240 11% 96%; /* #F5F5F7 */
+    --sidebar-primary: 209 100% 58%; /* Bright Blue */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4% 11%; /* #1C1C1E hover background */
+    --sidebar-accent-foreground: 0 0% 96%; /* #F5F5F7 hover text */
+    --sidebar-border: 240 4% 23%; /* #38383A */
+    --sidebar-ring: 211 100% 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+  }
+}

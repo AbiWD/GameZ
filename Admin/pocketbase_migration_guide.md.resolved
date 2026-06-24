@@ -1,0 +1,134 @@
+# PocketBase Schema Migration
+
+This guide translates your Supabase schema (Tables, Triggers, and Functions) into the PocketBase equivalent.
+
+## 1. Collections (Tables)
+
+PocketBase collections correspond to your Supabase tables. You will need to create these manually via the PocketBase Admin UI (`https://supremesoul.pockethost.io/_/`).
+
+### Collection: `rooms`
+- **Type**: Base
+- **Name**: `rooms`
+- **Fields**:
+  - `room_number` (Text, Required, Unique)
+  - `room_type` (Select, Required, Values: `Single Bed Non AC`, `Single Bed AC`, `Double Bed Non AC`, `Double Bed AC`)
+  - `status` (Select, Required, Values: `available`, `occupied`, `maintenance`) - *Default: `available`*
+  - `price_per_night` (Number, Required)
+  - `max_occupancy` (Number, Required) - *Default: 2*
+  - `amenities` (JSON) - *Default: `[]`*
+
+> [!NOTE]
+> `id`, `created`, and `updated` fields are built-in for every PocketBase collection. The `updated_at` trigger is handled automatically by PocketBase.
+
+### Collection: `bookings`
+- **Type**: Base
+- **Name**: `bookings`
+- **Fields**:
+  - `name` (Text, Required)
+  - `email` (Email, Required)
+  - `phone` (Text, Required)
+  - `guests` (Number, Required)
+  - `check_in` (Date, Required)
+  - `check_out` (Date, Required)
+  - `message` (Text)
+  - `room_type` (Select, Required, Values: `Single Bed Non AC`, `Single Bed AC`, `Double Bed Non AC`, `Double Bed AC`) - *Default: `Single Bed Non AC`*
+  - `price` (Number, Required) - *Default: 1500*
+  - `status` (Select, Values: `pending`, `confirmed`, `checked_in`, `checked_out`, `cancelled`) - *Default: `pending`*
+  - `actual_check_in` (Date)
+  - `actual_check_out` (Date)
+  - `assigned_room_id` (Relation, Max select: 1, Collection: `rooms`)
+  - `id_type` (Text)
+  - `id_number` (Text)
+  - `payment_status` (Select, Values: `pending`, `partial`, `paid`) - *Default: `pending`*
+  - `amount_paid` (Number) - *Default: 0*
+  - `payment_mode` (Text)
+  - `booking_reference` (Text, Unique)
+  - `phonepe_order_id` (Text)
+  - `merchant_order_id` (Text)
+  - `phonepe_transaction_id` (Text)
+  - `payment_completed_at` (Date)
+  - `guest_name` (Text)
+
+### Collection: `user_roles`
+If you choose to keep a separate table for roles instead of adding a `role` field directly to the `users` collection:
+- **Type**: Base
+- **Name**: `user_roles`
+- **Fields**:
+  - `user_id` (Relation, Required, Max select: 1, Collection: `users`, Unique)
+  - `role` (Select, Required, Values: `admin`, `user`) - *Default: `user`*
+
+---
+
+## 2. Functions & Triggers
+
+PocketBase handles custom logic (like Supabase Triggers/Functions) using **Record Hooks**. Since you are using PocketHost (a managed service), you cannot easily write custom Go or JS files to the server. You have two main options:
+
+### Option A: Handle Logic on the Frontend (Recommended for PocketHost)
+The easiest way to replicate this logic without a custom backend server is to handle it in your React application before saving the record.
+
+**1. `set_booking_reference` Trigger / `generate_booking_reference` Function**
+Instead of a database trigger, generate the reference on the client-side right before calling `pb.collection('bookings').create()`.
+```typescript
+async function createBooking(data) {
+  // 1. Fetch the latest booking to get the number
+  const latestBookings = await pb.collection('bookings').getList(1, 1, {
+    sort: '-created',
+    filter: 'booking_reference != ""'
+  });
+  
+  let nextNum = 1;
+  if (latestBookings.items.length > 0) {
+    const lastRef = latestBookings.items[0].booking_reference;
+    // Extract number from 'DH-0001'
+    const match = lastRef.match(/DH-(\d+)/);
+    if (match) {
+      nextNum = parseInt(match[1], 10) + 1;
+    }
+  }
+  
+  data.booking_reference = \`DH-\${String(nextNum).padStart(4, '0')}\`;
+  
+  // 2. Create the booking
+  return await pb.collection('bookings').create(data);
+}
+```
+
+**2. `update_rooms_updated_at` Trigger**
+PocketBase automatically manages `created` and `updated` fields for every record. You do **not** need to implement this; it works exactly like the Supabase trigger out of the box.
+
+**3. `has_role` Function**
+In PocketBase, you can handle role-based access control directly in the **API Rules** of each collection.
+If you use a `role` field directly on the `users` collection, your API rule for admins looks like this:
+```
+@request.auth.role = "admin"
+```
+If you use a separate `user_roles` collection, an API rule for updating rooms would be:
+```
+@request.auth.id != "" && @collection.user_roles.user_id ?= @request.auth.id && @collection.user_roles.role ?= "admin"
+```
+
+### Option B: Use PocketBase JS Hooks (Requires self-hosting, not PocketHost)
+If you move away from PocketHost to a self-hosted PocketBase instance (like on a VPS), you can write custom server-side hooks in JavaScript (saving a `pb_hooks/main.pb.js` file next to the PocketBase executable):
+
+```javascript
+// pb_hooks/main.pb.js
+
+// Trigger before inserting a new booking
+onRecordBeforeCreateRequest((e) => {
+    if (!e.record.get("booking_reference")) {
+       const result = new DynamicModel({
+           max_ref: ""
+       });
+       
+       // Query the DB to find the highest booking reference
+       $app.dao().db()
+           .newQuery("SELECT MAX(CAST(SUBSTR(booking_reference, 4) AS INTEGER)) as max_ref FROM bookings WHERE booking_reference != ''")
+           .one(result);
+           
+       const nextNum = (parseInt(result.max_ref) || 0) + 1;
+       const refString = "DH-" + String(nextNum).padStart(4, '0');
+       
+       e.record.set("booking_reference", refString);
+    }
+}, "bookings");
+```
