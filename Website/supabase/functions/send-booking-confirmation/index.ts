@@ -75,20 +75,20 @@ const handler = async (req: Request): Promise<Response> => {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Booking Confirmation - Dream House Homestay</title>
+  <title>Booking Confirmation - GameZ</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
   <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
     <!-- Header -->
     <div style="background: linear-gradient(135deg, #2d5a27 0%, #4a7c59 100%); padding: 40px 30px; text-align: center;">
-      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">🏡 Dream House Homestay</h1>
+      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">🏡 GameZ</h1>
       <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Your Tropical Retreat Awaits</p>
     </div>
     
     <!-- Success Banner -->
     <div style="background-color: #d4edda; border-left: 4px solid #28a745; padding: 20px 30px; margin: 0;">
       <h2 style="color: #155724; margin: 0; font-size: 22px;">✅ Booking Confirmed!</h2>
-     <p style="color: #155724; margin: 10px 0 0 0;">Thank you for choosing Dream House Homestay, ${guestName}!</p>
+     <p style="color: #155724; margin: 10px 0 0 0;">Thank you for choosing GameZ, ${guestName}!</p>
     </div>
     
     <!-- Booking Reference -->
@@ -162,19 +162,19 @@ const handler = async (req: Request): Promise<Response> => {
     
     <!-- Check Booking Button -->
     <div style="padding: 30px; text-align: center;">
-      <a href="https://dreamhousehomestay.in/check-booking" style="display: inline-block; background: linear-gradient(135deg, #2d5a27 0%, #4a7c59 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 8px; font-weight: bold; font-size: 16px;">Check Your Booking Status</a>
+      <a href="https://gamez.in/check-booking" style="display: inline-block; background: linear-gradient(135deg, #2d5a27 0%, #4a7c59 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 8px; font-weight: bold; font-size: 16px;">Check Your Booking Status</a>
     </div>
     
     <!-- Contact Information -->
     <div style="background-color: #f8f9fa; padding: 25px 30px; text-align: center;">
       <h4 style="color: #2d5a27; margin: 0 0 15px 0;">Need Assistance?</h4>
       <p style="margin: 5px 0; color: #495057;">📞 Phone: <a href="tel:+918317309867" style="color: #2d5a27; text-decoration: none;">+91 83173 09867</a></p>
-      <p style="margin: 5px 0; color: #495057;">✉️ Email: <a href="mailto:admin@dreamhousehomestay.in" style="color: #2d5a27; text-decoration: none;">admin@dreamhousehomestay.in</a></p>
+      <p style="margin: 5px 0; color: #495057;">✉️ Email: <a href="mailto:admin@gamez.in" style="color: #2d5a27; text-decoration: none;">admin@gamez.in</a></p>
     </div>
     
     <!-- Footer -->
     <div style="background-color: #2d5a27; padding: 20px 30px; text-align: center;">
-      <p style="margin: 0; color: rgba(255,255,255,0.8); font-size: 13px;">© ${new Date().getFullYear()} Dream House Homestay. All rights reserved.</p>
+      <p style="margin: 0; color: rgba(255,255,255,0.8); font-size: 13px;">© ${new Date().getFullYear()} GameZ. All rights reserved.</p>
       <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.6); font-size: 12px;">Karkala, Karnataka, India</p>
     </div>
   </div>
@@ -191,7 +191,7 @@ const handler = async (req: Request): Promise<Response> => {
       body: JSON.stringify({
         from: "Dhanush Homestay <onboarding@resend.dev>",
         to: [email],
-        subject: `Booking Confirmed - ${bookingReference} | Dream House Homestay`,
+        subject: `Booking Confirmed - ${bookingReference} | GameZ`,
         html: emailHtml,
       }),
     });

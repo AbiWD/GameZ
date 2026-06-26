@@ -6,7 +6,7 @@ async function testUserQuery() {
     console.log("Authenticating as a user record...");
     // Let's create a user if one doesn't exist, or just try to auth using the same creds if they exist.
     // If we don't know the user password, we can create one using admin token first, then auth as it.
-    await pb.admins.authWithPassword('admin@dreamhousehomestay.in', 'Admin@123');
+    await pb.collection('_superusers').authWithPassword('admin@gamez.in', 'Admin@123');
     
     // Create a temporary user
     let user;

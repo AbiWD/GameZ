@@ -285,7 +285,7 @@ const Bookings = () => {
                       </TableCell>
                       <TableCell className="py-3 px-2 sm:px-3 md:px-6 text-muted-foreground text-[10px] sm:text-sm">
                         <span className="sm:hidden">{safeFormatDate(booking.start_time, 'MMM dd')}</span>
-                        <span className="hidden sm:inline">{safeFormatDate(booking.start_time, 'MMM dd, yyyy')}</span>
+                        <span className="hidden sm:inline">{safeFormatDate(booking.start_time, 'MMM dd, h:mm a')}</span>
                       </TableCell>
                       <TableCell className="py-3 px-4 text-muted-foreground hidden md:table-cell">{safeFormatDate(booking.end_time, 'MMM dd, yyyy')}</TableCell>
                       <TableCell className="py-3 px-4 hidden lg:table-cell">

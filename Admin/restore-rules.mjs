@@ -3,7 +3,7 @@ const pb = new PocketBase('http://127.0.0.1:8090');
 
 async function restoreRules() {
   try {
-    await pb.admins.authWithPassword('admin@dreamhousehomestay.in', 'Admin@123');
+    await pb.collection('_superusers').authWithPassword('admin@gamez.in', 'Admin@123');
     const collections = await pb.collections.getFullList();
     
     for (let coll of collections) {

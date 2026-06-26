@@ -4,7 +4,7 @@ const pb = new PocketBase('http://127.0.0.1:8090');
 
 async function test() {
   try {
-    await pb.admins.authWithPassword('admin@dreamhousehomestay.in', 'Admin@123');
+    await pb.collection('_superusers').authWithPassword('admin@gamez.in', 'Admin@123');
     const properties = await pb.collection('properties').getFullList();
     
     // In node, FormData isn't natively available in this exact PB version unless polyfilled or using node-fetch's

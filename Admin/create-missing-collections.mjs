@@ -5,7 +5,7 @@ const pb = new PocketBase('http://127.0.0.1:8090');
 async function createMissingCollections() {
   try {
     console.log("Authenticating as admin...");
-    await pb.admins.authWithPassword('admin@gamez.in', 'Admin123');
+    await pb.collection('_superusers').authWithPassword('admin@gamez.in', 'Admin123');
 
     // CREATE properties collection
     console.log("Creating 'properties' collection...");

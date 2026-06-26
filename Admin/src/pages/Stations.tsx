@@ -15,8 +15,9 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import * as LucideIcons from 'lucide-react';
 import { Gamepad2 } from 'lucide-react';
-import { Plus, Edit, Trash2, Bed, DoorOpen, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X } from 'lucide-react';
-import { Gamepad2 } from 'lucide-react';
+
+import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X } from 'lucide-react';
+
 import { useProperty } from '@/contexts/PropertyContext';
 
 interface Station {
@@ -35,7 +36,7 @@ interface StationType {
   id: string;
   name: string;
   base_price: number;
-  default_occupancy: number;
+  max_players: number;
   specs?: string;
   features?: string[];
   amenities?: string[];
@@ -44,8 +45,8 @@ interface StationType {
   description?: string;
 }
 
-const ROOM_STATUS = ['available', 'occupied', 'maintenance'];
-const AVAILABLE_ICONS = ['AirVent', 'Wifi', 'Coffee', 'Tv', 'Wind', 'Bath', 'Sofa', 'Monitor'];
+const STATION_STATUS = ['available', 'occupied', 'maintenance'];
+const AVAILABLE_ICONS = ['Gamepad2', 'Monitor', 'Headphones', 'Mouse', 'Keyboard', 'Tv', 'Sofa', 'Coffee', 'Wifi', 'Cpu', 'Speaker'];
 
 const Stations = () => {
   const { activeProperty } = useProperty();
@@ -84,7 +85,7 @@ const Stations = () => {
   const [typeFormData, setTypeFormData] = useState({
     name: '',
     base_price: 1500,
-    default_occupancy: 2,
+    max_players: 2,
     specs: 'PS5 Console',
     features: ['Air Conditioning'] as string[],
     amenities: ['Wifi'] as string[],
@@ -217,7 +218,7 @@ const Stations = () => {
       const formData = new FormData();
       formData.append('name', typeFormData.name);
       formData.append('base_price', typeFormData.base_price.toString());
-      formData.append('default_occupancy', typeFormData.default_occupancy.toString());
+      formData.append('default_occupancy', typeFormData.max_players.toString());
       formData.append('specs', typeFormData.specs);
       formData.append('is_popular', typeFormData.is_popular ? 'true' : 'false');
       formData.append('description', typeFormData.description);
@@ -262,7 +263,7 @@ const Stations = () => {
     setTypeFormData({ 
       name: '', 
       base_price: 1500, 
-      default_occupancy: 2,
+      max_players: 2,
       specs: 'PS5 Console',
       features: ['Air Conditioning'],
       amenities: ['Wifi'],
@@ -279,7 +280,7 @@ const Stations = () => {
     setTypeFormData({
       name: type.name,
       base_price: type.base_price,
-      default_occupancy: type.default_occupancy,
+      max_players: type.default_occupancy,
       specs: type.specs || 'PS5 Console',
       features: Array.isArray(type.features) ? type.features : ['Air Conditioning'],
       amenities: Array.isArray(type.amenities) ? type.amenities : ['Wifi'],
@@ -330,7 +331,7 @@ const Stations = () => {
         <Tabs defaultValue="inventory" className="w-full space-y-6">
           <TabsList className="bg-secondary/50 border border-border flex w-full overflow-x-auto whitespace-nowrap scrollbar-hide justify-start h-auto rounded-2xl p-1">
             <TabsTrigger value="inventory" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-xl py-2 px-4">
-              <Bed className="w-4 h-4 mr-2" />
+              <ConsoleIcon className="w-4 h-4 mr-2" />
               Station Inventory
             </TabsTrigger>
             <TabsTrigger value="types" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-xl py-2 px-4">
@@ -411,7 +412,7 @@ const Stations = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-border shadow-lg">
-                          {ROOM_STATUS.map(status => (
+                          {STATION_STATUS.map(status => (
                             <SelectItem key={status} value={status}>
                               {status.charAt(0).toUpperCase() + status.slice(1)}
                             </SelectItem>
@@ -536,7 +537,7 @@ const Stations = () => {
             <div>
               <h2 className="text-xl font-bold mb-4 text-foreground mt-8">Overall Status</h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {ROOM_STATUS.map(status => {
+                {STATION_STATUS.map(status => {
                   const count = allStations.filter(r => r.status === status).length;
                   return (
                     <div key={status} className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center justify-between">
@@ -722,7 +723,7 @@ const Stations = () => {
 
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                              <Label htmlFor="base_price" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Base Price (₹)</Label>
+                              <Label htmlFor="base_price" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Price per Hour (₹)</Label>
                               <Input
                                 id="base_price"
                                 type="number"
@@ -737,8 +738,8 @@ const Stations = () => {
                               <Input
                                 id="default_occupancy"
                                 type="number"
-                                value={typeFormData.default_occupancy}
-                                onChange={(e) => setTypeFormData({ ...typeFormData, default_occupancy: parseInt(e.target.value) || 0 })}
+                                value={typeFormData.max_players}
+                                onChange={(e) => setTypeFormData({ ...typeFormData, max_players: parseInt(e.target.value) || 0 })}
                                 required
                                 className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
                               />
@@ -930,7 +931,7 @@ const Stations = () => {
                     <TableHeader className="bg-secondary/50 border-b border-border">
                       <TableRow className="border-b-0 hover:bg-transparent">
                         <TableHead className="h-10 px-3 sm:px-4 md:px-6 text-xs sm:text-sm font-semibold text-muted-foreground whitespace-nowrap">Type Name</TableHead>
-                        <TableHead className="h-10 px-3 sm:px-4 md:px-6 text-xs sm:text-sm font-semibold text-muted-foreground whitespace-nowrap">Base Price</TableHead>
+                        <TableHead className="h-10 px-3 sm:px-4 md:px-6 text-xs sm:text-sm font-semibold text-muted-foreground whitespace-nowrap">Price per Hour</TableHead>
                         <TableHead className="h-10 px-3 sm:px-4 md:px-6 text-xs sm:text-sm font-semibold text-muted-foreground whitespace-nowrap hidden md:table-cell">Max Players</TableHead>
                         <TableHead className="h-10 px-1 sm:px-4 md:px-6 text-xs sm:text-sm font-semibold text-muted-foreground text-right whitespace-nowrap">
                           <span className="md:hidden">Details</span>

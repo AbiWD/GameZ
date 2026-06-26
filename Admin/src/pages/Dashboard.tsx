@@ -3,7 +3,9 @@ import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import pb from '@/lib/pocketbase';
-import { DollarSign, Users, Calendar, Gamepad2, Play, Clock, ArrowRight, LayoutGrid, LayoutTemplate, Activity } from 'lucide-react';
+import { DollarSign, Users, Calendar, Gamepad2, Play, Clock, ArrowRight, LayoutGrid, LayoutTemplate, Activity, CreditCard, Banknote, Smartphone } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
 import { useProperty } from '@/contexts/PropertyContext';
 import { formatDistanceToNowStrict } from 'date-fns';
@@ -59,6 +61,10 @@ const Dashboard = () => {
   const [activeBookings, setActiveBookings] = useState<Record<string, Booking>>({});
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  
+  // POS State
+  const [selectedSession, setSelectedSession] = useState<{station: Station, booking: Booking} | null>(null);
+  const [paymentMode, setPaymentMode] = useState<string>('upi');
 
   // Auto-refresh the dashboard every minute to update remaining times
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -205,12 +211,19 @@ const Dashboard = () => {
         const b = activeBookings[bookingId];
         const newEnd = new Date(new Date(b.end_time).getTime() + minutes * 60000).toISOString();
         setActiveBookings({...activeBookings, [bookingId]: {...b, end_time: newEnd}});
+        if (selectedSession && selectedSession.booking.id === bookingId) {
+            setSelectedSession({...selectedSession, booking: {...selectedSession.booking, end_time: newEnd}});
+        }
         return;
       }
       
       const record = await pb.collection('bookings').getOne(bookingId);
       const newEnd = new Date(new Date(record.end_time).getTime() + minutes * 60000).toISOString();
       await pb.collection('bookings').update(bookingId, { end_time: newEnd });
+      
+      if (selectedSession && selectedSession.booking.id === bookingId) {
+          setSelectedSession({...selectedSession, booking: {...selectedSession.booking, end_time: newEnd}});
+      }
       fetchDashboardData();
     } catch(e) {
       console.error(e);
@@ -218,28 +231,43 @@ const Dashboard = () => {
     }
   };
 
-  const endSession = async (bookingId: string) => {
-    if (!window.confirm("Are you sure you want to end this session now?")) return;
+  const endSession = async (bookingId: string, mode: string) => {
+    if (!window.confirm("Are you sure you want to collect payment and end this session?")) return;
     try {
       if (bookingId.startsWith('mock_')) {
         const newMap = {...activeBookings};
         delete newMap[bookingId];
         setActiveBookings(newMap);
+        setSelectedSession(null);
         return;
       }
       
       const record = await pb.collection('bookings').getOne(bookingId);
-      const updateData: any = { status: 'completed', end_time: new Date().toISOString() };
       
+      let finalPrice = record.price || 0;
       if (record.booking_reference?.startsWith('OT-')) {
          const station = stations.find(s => s.id === record.assigned_station_id);
          if (station) {
             const elapsedMins = Math.floor((new Date().getTime() - new Date(record.start_time).getTime()) / 60000);
-            updateData.price = (elapsedMins / 60) * station.price_per_hour;
+            finalPrice = (elapsedMins / 60) * station.price_per_hour;
          }
       }
 
+      const updateData: any = { 
+        status: 'completed', 
+        end_time: new Date().toISOString(),
+        payment_mode: mode,
+        payment_status: 'paid',
+        amount_paid: finalPrice,
+        price: finalPrice
+      };
+
       await pb.collection('bookings').update(bookingId, updateData);
+      
+      // Update station status to available
+      await pb.collection('stations').update(record.assigned_station_id, { status: 'available' });
+
+      setSelectedSession(null);
       fetchDashboardData();
     } catch(e) {
       console.error(e);
@@ -251,7 +279,8 @@ const Dashboard = () => {
     if (station.status === 'maintenance') return;
     
     if (activeBooking) {
-      navigate(`/admin/session-management?station=${station.id}`);
+      setSelectedSession({ station, booking: activeBooking });
+      setPaymentMode('upi');
     } else {
       navigate(`/admin/create-booking?station=${station.id}&type=walk-in`);
     }
@@ -313,9 +342,7 @@ const Dashboard = () => {
     return (
       <div 
         key={station.id}
-        onClick={() => {
-           if (!activeBooking) handleStationClick(station, activeBooking);
-        }}
+        onClick={() => handleStationClick(station, activeBooking)}
         className={`group relative rounded-2xl p-4 sm:p-5 border ${cardStyle} transition-colors`}
       >
         <div className="flex justify-between items-center mb-4 gap-2">
@@ -397,15 +424,9 @@ const Dashboard = () => {
                 ></div>
               </div>
               
-              <div className={`grid grid-cols-3 gap-2 mt-4 pt-4 border-t ${borderColor}`}>
-                 {!isOpenTimer && remainingMins < 10 && (
-                    <div className="col-span-3 -mt-2 mb-1">
-                      <p className="text-[10px] text-red-500 font-bold tracking-wider">Extend or end session now</p>
-                    </div>
-                 )}
-                 {!isOpenTimer && <Button size="sm" variant="outline" className={`h-8 text-xs bg-white/50 border-black/10 hover:bg-white shadow-sm ${textColor}`} onClick={(e) => { e.stopPropagation(); extendSession(activeBooking.id, 30); }}>+30m</Button>}
-                 {!isOpenTimer && <Button size="sm" variant="outline" className={`h-8 text-xs bg-white/50 border-black/10 hover:bg-white shadow-sm ${textColor}`} onClick={(e) => { e.stopPropagation(); extendSession(activeBooking.id, 60); }}>+1h</Button>}
-                 <Button size="sm" variant="outline" className={`h-8 text-xs ${isOpenTimer ? 'col-span-3 bg-red-50 border-red-200 text-red-600 hover:bg-red-100' : ''} ${!isOpenTimer && remainingMins < 10 ? 'bg-red-600 text-white border-red-600 hover:bg-red-700' : !isOpenTimer ? 'bg-white/50 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300' : ''} shadow-sm`} onClick={(e) => { e.stopPropagation(); endSession(activeBooking.id); }}>End {isOpenTimer && 'Timer'}</Button>
+              <div className="mt-3 pt-3 border-t border-black/5 opacity-70 group-hover:opacity-100 flex items-center justify-between transition-opacity">
+                 <span className="text-xs font-bold uppercase tracking-wider">Manage Session</span>
+                 <ArrowRight className="w-3.5 h-3.5" />
               </div>
             </div>
           ) : station.status !== 'maintenance' ? (
@@ -592,6 +613,123 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+
+      {/* POS Active Session Panel */}
+      <Sheet open={!!selectedSession} onOpenChange={(open) => !open && setSelectedSession(null)}>
+        <SheetContent className="sm:max-w-md w-full bg-card border-border p-0 flex flex-col h-full overflow-hidden">
+          {selectedSession && (() => {
+            const { station, booking } = selectedSession;
+            const isOpenTimer = booking.booking_reference?.startsWith('OT-') || false;
+            
+            const elapsedMins = Math.floor((currentTime.getTime() - new Date(booking.start_time).getTime()) / 60000);
+            let runningCost = booking.price || 0;
+            if (isOpenTimer) {
+                runningCost = (elapsedMins / 60) * (station.price_per_hour || 0);
+            }
+
+            const remainingMins = Math.floor((new Date(booking.end_time).getTime() - currentTime.getTime()) / 60000);
+
+            return (
+              <>
+                <SheetHeader className="p-6 bg-secondary/30 border-b border-border">
+                  <SheetTitle className="text-2xl font-bold flex items-center justify-between">
+                    Station {station.station_number}
+                    {isOpenTimer ? (
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 font-bold tracking-wider uppercase animate-pulse">Open Timer</span>
+                    ) : (
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 font-bold tracking-wider uppercase">Fixed Duration</span>
+                    )}
+                  </SheetTitle>
+                  <SheetDescription className="text-base text-foreground font-medium">
+                    {booking.name || 'Walk-in Player'} • {booking.players} Guests
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="p-6 flex-1 overflow-y-auto space-y-8">
+                  {/* Timer Display */}
+                  <div className="flex flex-col items-center justify-center p-6 bg-secondary rounded-[32px] border border-border shadow-sm">
+                    {isOpenTimer ? (
+                      <>
+                        <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Elapsed Time</span>
+                        <span className="text-5xl font-black text-foreground tabular-nums tracking-tight">
+                          {Math.floor(elapsedMins / 60)}h {elapsedMins % 60}m
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Time Remaining</span>
+                        <span className={`text-5xl font-black tabular-nums tracking-tight ${remainingMins < 10 ? 'text-red-500' : 'text-foreground'}`}>
+                          {remainingMins > 0 ? `${Math.floor(remainingMins / 60)}h ${remainingMins % 60}m` : 'TIME UP'}
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Extend Actions (Fixed only) */}
+                  {!isOpenTimer && (
+                    <div className="space-y-3">
+                      <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Quick Extend</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button variant="outline" className="h-14 rounded-2xl text-base font-bold bg-background shadow-sm hover:border-primary hover:text-primary transition-colors" onClick={() => extendSession(booking.id, 30)}>
+                          + 30 Minutes
+                        </Button>
+                        <Button variant="outline" className="h-14 rounded-2xl text-base font-bold bg-background shadow-sm hover:border-primary hover:text-primary transition-colors" onClick={() => extendSession(booking.id, 60)}>
+                          + 1 Hour
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Payment Section */}
+                  <div className="space-y-4 pt-4 border-t border-border">
+                     <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Checkout & Payment</Label>
+                     
+                     <div className="flex items-center justify-between p-5 bg-primary/10 rounded-2xl border border-primary/20">
+                        <span className="font-bold text-primary text-lg">Total Due</span>
+                        <span className="text-3xl font-black text-primary">₹{Math.round(runningCost)}</span>
+                     </div>
+
+                     <div className="grid grid-cols-3 gap-3 mt-4">
+                        <button 
+                          className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all ${paymentMode === 'upi' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:bg-secondary'}`}
+                          onClick={() => setPaymentMode('upi')}
+                        >
+                          <Smartphone className="w-6 h-6" />
+                          <span className="text-sm font-bold">UPI</span>
+                        </button>
+                        <button 
+                          className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all ${paymentMode === 'cash' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:bg-secondary'}`}
+                          onClick={() => setPaymentMode('cash')}
+                        >
+                          <Banknote className="w-6 h-6" />
+                          <span className="text-sm font-bold">Cash</span>
+                        </button>
+                        <button 
+                          className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all ${paymentMode === 'card' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:bg-secondary'}`}
+                          onClick={() => setPaymentMode('card')}
+                        >
+                          <CreditCard className="w-6 h-6" />
+                          <span className="text-sm font-bold">Card</span>
+                        </button>
+                     </div>
+                  </div>
+                </div>
+
+                <div className="p-6 border-t border-border bg-background">
+                  <Button 
+                    className="w-full h-16 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-xl shadow-lg"
+                    onClick={() => endSession(booking.id, paymentMode)}
+                  >
+                    Collect ₹{Math.round(runningCost)} & End Session
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
+
     </AdminLayout>
   );
 };

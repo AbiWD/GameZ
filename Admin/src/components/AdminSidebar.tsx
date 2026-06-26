@@ -28,7 +28,6 @@ const navigationSections = [
     label: 'Front Desk',
     items: [
       { title: 'Create Booking', url: '/admin/create-booking', icon: PlusCircle },
-      { title: 'Session Management', url: '/admin/session-management', icon: UserCheck },
       { title: 'All Bookings', url: '/admin/bookings', icon: Calendar },
     ]
   },
@@ -44,6 +43,7 @@ const navigationSections = [
     items: [
       { title: 'Brand Settings', url: '/admin/brand-settings', icon: Settings },
       { title: 'Website Content', url: '/admin/website-content', icon: Globe },
+      { title: 'Staff Accounts', url: '/admin/staff', icon: UserCheck },
     ]
   }
 ];
@@ -52,7 +52,7 @@ export function AdminSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, userRole } = useAuth();
   const { toast } = useToast();
 
   const handleLogout = async () => {
@@ -77,7 +77,26 @@ export function AdminSidebar() {
       <div className="bg-sidebar flex-1 flex flex-col h-full">
         <SidebarContent className="p-2 md:p-3">
           <div className="flex-1 overflow-y-auto mt-2 custom-scrollbar">
-            {navigationSections.map((section, index) => (
+            {navigationSections.map((section, index) => {
+              // Staff accounts can only see "Front Desk" and "Overview" -> Dashboard
+              if (userRole === 'staff') {
+                if (section.label !== 'Front Desk' && section.label !== 'Overview') return null;
+              }
+
+              // Filter out items within sections if needed
+              const visibleItems = section.items.filter(item => {
+                if (userRole === 'staff') {
+                  // Staff can see Dashboard and Front Desk items, but NOT Analytics
+                  if (item.title === 'Analytics') return false;
+                  // If we add Staff Accounts later, hide from staff
+                  if (item.title === 'Staff Accounts') return false;
+                }
+                return true;
+              });
+
+              if (visibleItems.length === 0) return null;
+
+              return (
               <SidebarGroup key={section.label} className={index > 0 ? "mt-4 pt-4 border-t border-border" : ""}>
                 {state !== 'collapsed' && (
                   <SidebarGroupLabel className="px-3 text-[10px] font-bold tracking-wider uppercase text-muted-foreground/60 mb-2">
@@ -86,7 +105,7 @@ export function AdminSidebar() {
                 )}
                 <SidebarGroupContent>
                   <SidebarMenu className="gap-1">
-                    {section.items.map((item) => (
+                    {visibleItems.map((item) => (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton asChild tooltip={item.title}>
                           <NavLink
@@ -104,7 +123,8 @@ export function AdminSidebar() {
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>
-            ))}
+              );
+            })}
           </div>
 
         <div className={`mt-auto ${state === 'collapsed' ? 'p-1 flex justify-center' : 'p-2'}`}>

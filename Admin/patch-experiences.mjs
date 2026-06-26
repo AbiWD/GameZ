@@ -5,7 +5,7 @@ const pb = new PocketBase('http://127.0.0.1:8090');
 async function fixSchema() {
   try {
     console.log("Authenticating as admin...");
-    await pb.admins.authWithPassword('admin@dreamhousehomestay.in', 'Admin@123');
+    await pb.collection('_superusers').authWithPassword('admin@gamez.in', 'Admin@123');
     
     console.log("Fetching website_content collection...");
     const collection = await pb.collections.getOne('website_content');

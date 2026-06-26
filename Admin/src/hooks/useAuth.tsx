@@ -7,6 +7,7 @@ export const useAuth = () => {
   const [session, setSession] = useState<AuthModel | null>(pb.authStore.model);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<'admin' | 'staff' | null>(null);
 
   useEffect(() => {
     // Initial state setup
@@ -22,12 +23,14 @@ export const useAuth = () => {
         if (!err.isAbort && err.status !== 0) {
           pb.authStore.clear();
           setIsAdmin(false);
+          setUserRole(null);
           setUser(null);
           setSession(null);
         }
       });
     } else {
       setIsAdmin(false);
+      setUserRole(null);
       setLoading(false);
     }
 
@@ -40,6 +43,7 @@ export const useAuth = () => {
         checkAdminStatus(model);
       } else {
         setIsAdmin(false);
+        setUserRole(null);
         setLoading(false);
       }
     });
@@ -52,15 +56,25 @@ export const useAuth = () => {
 
   const checkAdminStatus = (model: AuthModel) => {
     try {
-      // Support both the old 'role' field and the new 'admin' field schema, or fallback to the primary email
-      if (model && (model.role === 'admin' || model.admin || model.email === 'admin@gamez.in' || model.email === 'admin@dreamhousehomestay.in')) {
-        setIsAdmin(true);
+      if (model) {
+        if (model.role === 'admin' || model.admin || model.email === 'admin@gamez.in' || model.email === 'admin@gamez.in') {
+          setIsAdmin(true);
+          setUserRole('admin');
+        } else if (model.role === 'staff') {
+          setIsAdmin(true); // Staff still needs access to the admin panel
+          setUserRole('staff');
+        } else {
+          setIsAdmin(false);
+          setUserRole(null);
+        }
       } else {
         setIsAdmin(false);
+        setUserRole(null);
       }
     } catch (error) {
       console.error('Error checking admin status:', error);
       setIsAdmin(false);
+      setUserRole(null);
     } finally {
       setLoading(false);
     }
@@ -81,7 +95,7 @@ export const useAuth = () => {
         email,
         password,
         passwordConfirm: password,
-        role: 'admin'
+        role: 'admin' // Default to admin for initial setups, real app would restrict this
       });
 
       // Log the user in immediately after sign up
@@ -127,6 +141,7 @@ export const useAuth = () => {
     session,
     loading,
     isAdmin,
+    userRole,
     signIn,
     signUp,
     signOut,

@@ -6,7 +6,7 @@ async function fixSchema() {
   try {
     console.log("Authenticating as superuser...");
     // For PocketBase v0.23+
-    await pb.collection('_superusers').authWithPassword('admin@dreamhousehomestay.in', 'Admin@123');
+    await pb.collection('_superusers').authWithPassword('admin@gamez.in', 'Admin@123');
     
     console.log("Fetching room_types collection...");
     const collection = await pb.collections.getOne('room_types');

@@ -846,7 +846,7 @@ export default function WebsiteContent() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="grid gap-2">
                           <Label>Map Pin Title</Label>
-                          <AutoResizingTextarea value={locationMapTitle} onChange={(e) => setLocationMapTitle(e.target.value)} placeholder="e.g. Dream House Homestay Someshwar" />
+                          <AutoResizingTextarea value={locationMapTitle} onChange={(e) => setLocationMapTitle(e.target.value)} placeholder="e.g. GameZ Someshwar" />
                         </div>
                         <div className="grid gap-2">
                           <Label>Property Full Address</Label>
@@ -1306,7 +1306,7 @@ export default function WebsiteContent() {
 
                       <div className="grid gap-2">
                         <Label>Alternative Text / Caption (Optional)</Label>
-                        <AutoResizingTextarea value={galleryFormData.title} onChange={e => setGalleryFormData({...galleryFormData, title: e.target.value})} placeholder="e.g. Dream House Homestay exterior" />
+                        <AutoResizingTextarea value={galleryFormData.title} onChange={e => setGalleryFormData({...galleryFormData, title: e.target.value})} placeholder="e.g. GameZ exterior" />
                         <p className="text-xs text-muted-foreground">This helps with accessibility and SEO.</p>
                       </div>
 
@@ -1569,7 +1569,7 @@ export default function WebsiteContent() {
                              <Input 
                                value={contactEmail} 
                                onChange={e => setContactEmail(e.target.value)} 
-                               placeholder="e.g. admin@dreamhousehomestay.in" 
+                               placeholder="e.g. admin@gamez.in" 
                                className="bg-secondary border-border"
                              />
                           </div>

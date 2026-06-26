@@ -59,7 +59,7 @@ serve(async (req) => {
     const merchantOrderId = `DH-${bookingId}-${Date.now()}`;
 
     // Build redirect URL with merchantOrderId for booking lookup after payment
-    const baseRedirectUrl = redirectUrl || 'https://www.dreamhousehomestay.in/payment-status';
+    const baseRedirectUrl = redirectUrl || 'https://www.gamez.in/payment-status';
     const finalRedirectUrl = `${baseRedirectUrl}${baseRedirectUrl.includes('?') ? '&' : '?'}orderId=${encodeURIComponent(merchantOrderId)}`;
     
     const paymentPayload = {
@@ -72,7 +72,7 @@ serve(async (req) => {
       },
       paymentFlow: {
         type: "PG_CHECKOUT",
-        message: `Payment for Dream House Homestay booking`,
+        message: `Payment for GameZ booking`,
         merchantUrls: {
           redirectUrl: finalRedirectUrl,
         },

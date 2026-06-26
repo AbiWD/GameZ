@@ -5,7 +5,7 @@ const pb = new PocketBase('http://127.0.0.1:8090');
 async function fixDatabase() {
   try {
     console.log("Authenticating as superuser...");
-    await pb.admins.authWithPassword('admin@gamez.in', 'Admin123');
+    await pb.collection('_superusers').authWithPassword('admin@gamez.in', 'Admin123');
 
     // 1. Create the regular user for the Admin Panel login
     console.log("Checking 'users' collection for the admin user...");

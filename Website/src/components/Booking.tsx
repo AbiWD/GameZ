@@ -384,7 +384,7 @@ const Booking = () => {
           <div className="mt-12 text-center text-primary-foreground/90">
             <p className="mb-2"><strong>Contact Information:</strong></p>
             <p>Phone: +91 83173 09867</p>
-            <p>Email: admin@dreamhousehomestay.in</p>
+            <p>Email: admin@gamez.in</p>
           </div>
         </div>
       </div>

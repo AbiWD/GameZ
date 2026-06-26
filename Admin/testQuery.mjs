@@ -3,7 +3,7 @@ const pb = new PocketBase('http://127.0.0.1:8090');
 
 async function run() {
   try {
-    await pb.admins.authWithPassword('admin@gamez.in', 'Admin123');
+    await pb.collection('_superusers').authWithPassword('admin@gamez.in', 'Admin123');
     const propertyFilter = 'property_id = "properties12345"';
     const now = new Date();
     const todayStartStr = new Date(now.setHours(0,0,0,0)).toISOString().replace('T', ' ').substring(0, 19) + 'Z';

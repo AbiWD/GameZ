@@ -104,7 +104,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4 font-sans">
       <div className="w-full max-w-md bg-card rounded-3xl p-10 shadow-xl border border-border">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">Dream House</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">GameZ</h1>
           <p className="text-muted-foreground font-medium">
             {isResetting ? "Reset Temporary Password" : "Admin Dashboard Access"}
           </p>
@@ -188,7 +188,7 @@ const Auth = () => {
               <Input
                 id="signin-email"
                 type="email"
-                placeholder="admin@dreamhousehomestay.in"
+                placeholder="admin@gamez.in"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

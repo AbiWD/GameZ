@@ -2,10 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import pb from '@/lib/pocketbase';
 import { useProperty } from '@/contexts/PropertyContext';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, BarChart, Bar } from 'recharts';
 import { AlertCircle, TrendingUp, Info, CheckCircle2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, subDays, startOfYear, differenceInDays, parseISO as dateFnsParseISO, isAfter, startOfMonth, formatDistanceToNow } from 'date-fns';
+import { format, subDays, startOfYear, differenceInDays, differenceInMinutes, parseISO as dateFnsParseISO, getHours } from 'date-fns';
 
 type InsightCardProps = {
   icon: 'info' | 'positive' | 'warning';
@@ -57,7 +57,7 @@ const formatCurrency = (val: number) => {
 };
 
 const COLORS = ['#2563eb', '#16a34a', '#d97706', '#dc2626', '#9333ea'];
-const PIE_COLORS = ['#3b82f6', '#f59e0b', '#10b981'];
+const PIE_COLORS = ['#3b82f6', '#f59e0b'];
 
 const parseISO = (dateStr: any) => {
   if (!dateStr || typeof dateStr !== 'string') return new Date();
@@ -70,7 +70,7 @@ const parseISO = (dateStr: any) => {
 
 export default function Analytics() {
   const { properties, activeProperty, loading: propLoading } = useProperty();
-  const [dateRange, setDateRange] = useState('all_time');
+  const [dateRange, setDateRange] = useState('30_days');
   const [selectedPropId, setSelectedPropId] = useState<string>('all');
   const [loading, setLoading] = useState(true);
 
@@ -80,16 +80,12 @@ export default function Analytics() {
   
   useEffect(() => {
     if (!propLoading && activeProperty && selectedPropId === 'all') {
-      // By default when mounted, if we want default to active property, we can set it:
-      // setSelectedPropId(activeProperty.id); 
-      // But user requested "all" or specific. We default to 'all' as per standard dashboards.
     }
   }, [propLoading, activeProperty]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Calculate start date
       let startDateStr = '';
       const now = new Date();
       if (dateRange === '30_days') startDateStr = format(subDays(now, 30), 'yyyy-MM-dd');
@@ -109,16 +105,11 @@ export default function Analytics() {
         stationFilter = `property_id = "${selectedPropId}"`;
       }
 
-      console.log("Analytics Fetching with filter:", bookingFilter);
-
       const [bRes, rRes] = await Promise.all([
         pb.collection('bookings').getFullList({ filter: bookingFilter, requestKey: 'analytics_bookings' }),
         pb.collection('stations').getFullList({ filter: stationFilter, requestKey: 'analytics_stations' })
       ]);
       
-      console.log("Analytics fetched bookings:", bRes.length);
-      console.log("Analytics fetched stations:", rRes.length);
-
       setBookings(bRes);
       setStations(rRes);
     } catch (e) {
@@ -135,34 +126,35 @@ export default function Analytics() {
   }, [dateRange, selectedPropId, propLoading]);
 
   // Derived metrics
-  const totalRevenue = useMemo(() => bookings.reduce((sum, b) => sum + (b.price || b.total_amount || 0), 0), [bookings]);
+  const totalRevenue = useMemo(() => bookings.reduce((sum, b) => sum + (b.total_price || 0), 0), [bookings]);
   const totalBookings = bookings.length;
   
-  const avgStayLength = useMemo(() => {
+  const avgSessionLength = useMemo(() => {
     if (bookings.length === 0) return 0;
-    const totalDays = bookings.reduce((sum, b) => {
-      const start = parseISO(b.check_in_date || b.created);
-      const end = parseISO(b.check_out_date || b.created);
-      return sum + Math.max(1, differenceInDays(end, start));
+    const totalMinutes = bookings.reduce((sum, b) => {
+      const start = parseISO(b.start_time || b.created);
+      const end = b.end_time ? parseISO(b.end_time) : new Date();
+      return sum + Math.max(0, differenceInMinutes(end, start));
     }, 0);
-    return Math.round((totalDays / bookings.length) * 10) / 10;
+    return Math.round((totalMinutes / 60 / bookings.length) * 10) / 10;
   }, [bookings]);
 
-  // Occupancy is tricky without historical station counts, we'll estimate: (booked station hours / available station hours in period)
-  const avgOccupancy = useMemo(() => {
+  // Utilization: (booked station hours / available station hours in period) -> Assume 12 hours available per day
+  const avgUtilization = useMemo(() => {
     if (stations.length === 0 || bookings.length === 0) return 0;
     let daysInPeriod = 30;
     if (dateRange === '90_days') daysInPeriod = 90;
     else if (dateRange === 'this_year') daysInPeriod = differenceInDays(new Date(), startOfYear(new Date())) || 1;
+    else if (dateRange === 'all_time') daysInPeriod = 365;
 
-    const availableNights = stations.length * daysInPeriod;
-    const bookedNights = bookings.reduce((sum, b) => {
-      const start = parseISO(b.check_in_date || b.created);
-      const end = parseISO(b.check_out_date || b.created);
-      return sum + Math.max(1, differenceInDays(end, start));
+    const availableHours = stations.length * daysInPeriod * 12; // 12 hours per day operational
+    const bookedHours = bookings.reduce((sum, b) => {
+      const start = parseISO(b.start_time || b.created);
+      const end = b.end_time ? parseISO(b.end_time) : new Date();
+      return sum + Math.max(0, differenceInMinutes(end, start) / 60);
     }, 0);
 
-    return Math.min(100, Math.round((bookedNights / availableNights) * 100));
+    return Math.min(100, Math.round((bookedHours / availableHours) * 100));
   }, [bookings, stations, dateRange]);
 
   // Insights generation Engine
@@ -170,86 +162,84 @@ export default function Analytics() {
     const list: InsightCardProps[] = [];
     if (bookings.length === 0) return list;
 
-    // 1. Mid-week dip
-    const weekdayBookings = bookings.filter(b => {
-      const d = parseISO(b.check_in_date || b.created).getDay();
-      return d >= 1 && d <= 3; // Mon-Wed
-    }).length;
-    const weekendBookings = bookings.filter(b => {
-      const d = parseISO(b.check_in_date || b.created).getDay();
-      return d === 5 || d === 6 || d === 0; // Fri-Sun
-    }).length;
+    // 1. Peak Booking Hours
+    const hourCounts: Record<number, number> = {};
+    bookings.forEach(b => {
+      const h = getHours(parseISO(b.start_time || b.created));
+      hourCounts[h] = (hourCounts[h] || 0) + 1;
+    });
+    let peakHour = 0;
+    let maxCount = 0;
+    Object.keys(hourCounts).forEach(h => {
+      if (hourCounts[parseInt(h)] > maxCount) {
+        maxCount = hourCounts[parseInt(h)];
+        peakHour = parseInt(h);
+      }
+    });
 
-    // Normalizing by days (3 weekdays, 3 weekends roughly)
-    if (weekendBookings > 0 && weekdayBookings < weekendBookings * 0.5) {
+    const formatHour = (h: number) => {
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const formatted = h % 12 || 12;
+        return `${formatted} ${ampm}`;
+    };
+
+    if (maxCount > totalBookings * 0.15) { // If a single hour has > 15% of all bookings
       list.push({
-        icon: 'warning',
-        title: 'Mid-week dip detected',
-        body: `Your Mon-Wed check-ins are significantly lower than weekends. A mid-week discount could recover estimated revenue.`,
-        actionLabel: 'Explore promotion strategy'
+        icon: 'info',
+        title: 'Peak hour identified',
+        body: `Your busiest time is around ${formatHour(peakHour)} with ${maxCount} sessions. Ensure adequate staff coverage during this rush.`,
       });
     }
 
-    // 4. Low usage station alert
-    if (stations.length > 0) {
-      const bookingCountsByStation: Record<string, number> = {};
-      bookings.forEach(b => {
-        if (b.station_id) bookingCountsByStation[b.station_id] = (bookingCountsByStation[b.station_id] || 0) + 1;
+    // 2. High Walk-in Dependency
+    const walkInBookings = bookings.filter(b => b.booking_reference?.startsWith('OT-'));
+    const walkInRevenue = walkInBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+    const walkInRevPercent = totalRevenue > 0 ? (walkInRevenue / totalRevenue) * 100 : 0;
+
+    if (walkInRevPercent > 80) {
+      list.push({
+        icon: 'warning',
+        title: 'High walk-in dependency',
+        body: `${Math.round(walkInRevPercent)}% of your revenue comes from walk-ins. Consider incentivizing advance bookings to secure guaranteed revenue.`,
       });
-      const avgStationBookings = totalBookings / stations.length;
+    } else if (walkInRevPercent < 40) {
+       list.push({
+        icon: 'positive',
+        title: 'Strong advance pipeline',
+        body: `Over ${100 - Math.round(walkInRevPercent)}% of revenue is from advance bookings, giving you excellent revenue predictability.`,
+      });
+    }
+
+    // 3. Low usage station alert
+    if (stations.length > 0) {
+      const bookingHoursByStation: Record<string, number> = {};
+      bookings.forEach(b => {
+        if (b.assigned_station_id) {
+            const start = parseISO(b.start_time || b.created);
+            const end = b.end_time ? parseISO(b.end_time) : new Date();
+            const hours = differenceInMinutes(end, start) / 60;
+            bookingHoursByStation[b.assigned_station_id] = (bookingHoursByStation[b.assigned_station_id] || 0) + hours;
+        }
+      });
+      const avgStationHours = Object.values(bookingHoursByStation).reduce((a,b)=>a+b, 0) / stations.length;
       
-      const slowStations = stations.filter(r => (bookingCountsByStation[r.id] || 0) < avgStationBookings * 0.5);
-      if (slowStations.length > 0) {
+      const slowStations = stations.filter(r => (bookingHoursByStation[r.id] || 0) < avgStationHours * 0.4);
+      if (slowStations.length > 0 && avgStationHours > 5) {
         list.push({
           icon: 'warning',
-          title: 'Low usage station alert',
-          body: `${slowStations[0].name || slowStations[0].station_number} has only ${bookingCountsByStation[slowStations[0].id] || 0} bookings this period — well below property average. Consider repricing.`,
+          title: 'Low utilization station',
+          body: `${slowStations[0].name || slowStations[0].station_number} is significantly underperforming the average by hours booked. Consider checking hardware or running a promotion.`,
           actionLabel: 'View station settings'
         });
       }
     }
 
-    // 5. Booking lead time
-    let totalLeadTime = 0;
-    let validLeadTimes = 0;
-    bookings.forEach(b => {
-      if (b.check_in_date && b.created) {
-        const lead = differenceInDays(parseISO(b.check_in_date), parseISO(b.created));
-        if (lead >= 0) {
-          totalLeadTime += lead;
-          validLeadTimes++;
-        }
-      }
-    });
-
-    const avgLead = validLeadTimes > 0 ? Math.round(totalLeadTime / validLeadTimes) : 0;
-    if (avgLead < 3) {
-      list.push({
-        icon: 'info',
-        title: 'Last-minute dominating',
-        body: `Guests book just ${avgLead} days in advance on average. Ensure real-time availability is always synced.`,
-      });
-    } else if (avgLead > 14) {
-      list.push({
-        icon: 'positive',
-        title: 'Strong advance bookings',
-        body: `Guests book ${avgLead} days in advance on average. A non-refundable early-bird discount could lock in more revenue.`,
-      });
-    } else {
-       list.push({
-        icon: 'info',
-        title: 'Steady booking window',
-        body: `Guests are booking ${avgLead} days in advance on average, providing a healthy predictive pipeline.`,
-       });
-    }
-
-    // 6. Revenue Momentum (Trend Analysis)
+    // 4. Revenue Momentum (Trend Analysis)
     if (bookings.length > 10) {
-       // Sort bookings by creation date
        const sorted = [...bookings].sort((a,b) => new Date(a.created).getTime() - new Date(b.created).getTime());
        const halfIndex = Math.floor(sorted.length / 2);
-       const firstHalf = sorted.slice(0, halfIndex).reduce((sum, b) => sum + (b.price || b.total_amount || 0), 0);
-       const secondHalf = sorted.slice(halfIndex).reduce((sum, b) => sum + (b.price || b.total_amount || 0), 0);
+       const firstHalf = sorted.slice(0, halfIndex).reduce((sum, b) => sum + (b.total_price || 0), 0);
+       const secondHalf = sorted.slice(halfIndex).reduce((sum, b) => sum + (b.total_price || 0), 0);
        
        if (firstHalf > 0) {
          const growth = ((secondHalf - firstHalf) / firstHalf) * 100;
@@ -258,7 +248,6 @@ export default function Analytics() {
                icon: 'positive',
                title: 'Revenue momentum growing',
                body: `Recent bookings are generating ${Math.round(growth)}% more revenue than the earlier half of this period. Trend is upward.`,
-               actionLabel: 'View pricing strategy'
             });
          } else if (growth < -15) {
             list.push({
@@ -270,21 +259,8 @@ export default function Analytics() {
        }
     }
 
-    // 7. Top Source
-    const sources: Record<string, number> = {};
-    bookings.forEach(b => {
-      if (b.source) sources[b.source] = (sources[b.source] || 0) + 1;
-    });
-    if (sources['direct'] && sources['direct'] > totalBookings * 0.5) {
-       list.push({
-         icon: 'positive',
-         title: 'Direct channels dominating',
-         body: `Over ${Math.round((sources['direct'] / totalBookings) * 100)}% of your bookings are direct, saving you significant OTA commissions. Keep pushing your direct booking engine.`,
-       });
-    }
-
     return list.slice(0, 3); // Max 3 insights
-  }, [bookings, stations, totalBookings]);
+  }, [bookings, stations, totalBookings, totalRevenue]);
 
   // Chart Data preparation
   
@@ -293,53 +269,48 @@ export default function Analytics() {
     const dataMap: Record<string, any> = {};
     bookings.forEach(b => {
       if (b.status !== 'cancelled') {
-        const date = parseISO(b.created);
+        const date = parseISO(b.start_time || b.created);
         const key = dateRange === '30_days' ? format(date, 'MMM dd') : format(date, 'MMM yyyy');
         if (!dataMap[key]) {
           dataMap[key] = { name: key };
           properties.forEach(p => dataMap[key][p.id] = 0);
         }
         if (b.property_id && dataMap[key][b.property_id] !== undefined) {
-          dataMap[key][b.property_id] += (b.price || b.total_amount || 0);
+          dataMap[key][b.property_id] += (b.total_price || 0);
         }
       }
     });
-    // Sort keys chronologically (simple sort assuming standard formats)
     return Object.values(dataMap);
   }, [bookings, properties, dateRange]);
 
-  // Right: Source Donut
+  // Right: Source Donut (Walk-in vs Advance)
   const sourceData = useMemo(() => {
-    const counts = { direct: 0, walk_in: 0, ota: 0 };
+    const counts = { walk_in: 0, advance: 0 };
     bookings.forEach(b => {
-      if (b.source === 'ota') counts.ota++;
-      else if (b.source === 'walk_in') counts.walk_in++;
-      else counts.direct++;
+      if (b.booking_reference?.startsWith('OT-')) counts.walk_in++;
+      else counts.advance++;
     });
     return [
-      { name: 'Direct', value: counts.direct },
-      { name: 'OTA', value: counts.ota },
-      { name: 'Walk-in', value: counts.walk_in }
+      { name: 'Walk-in', value: counts.walk_in },
+      { name: 'Advance', value: counts.advance }
     ].filter(d => d.value > 0);
   }, [bookings]);
   const sourceTotal = sourceData.reduce((sum, d) => sum + d.value, 0);
 
-  // Daily Check-ins Line chart
+  // Daily Sessions Line chart
   const dailyCheckinsData = useMemo(() => {
     const dataMap: Record<string, number> = {};
     bookings.forEach(b => {
-      if (b.check_in_date) {
-        const key = format(parseISO(b.check_in_date), 'MMM dd');
+      if (b.start_time) {
+        const key = format(parseISO(b.start_time), 'MMM dd');
         dataMap[key] = (dataMap[key] || 0) + 1;
       }
     });
-    // Fill gaps
-    let days = dateRange === '30_days' ? 30 : dateRange === '90_days' ? 90 : 90; // default 90 max
+    let days = dateRange === '30_days' ? 30 : dateRange === '90_days' ? 90 : 90;
     if (days > 90) days = 90; 
     
-    // Reverse iterating arrays could be better but let's just use existing ones
     const sortedDates = Object.keys(dataMap).sort((a,b) => new Date(a).getTime() - new Date(b).getTime());
-    return sortedDates.map(k => ({ date: k, checkins: dataMap[k] }));
+    return sortedDates.map(k => ({ date: k, sessions: dataMap[k] }));
   }, [bookings, dateRange]);
 
   // Station performance stats
@@ -347,7 +318,7 @@ export default function Analytics() {
      const stats: any[] = [];
      const avgBkg = stations.length ? totalBookings / stations.length : 0;
      stations.forEach(r => {
-        const stationBkg = bookings.filter(b => b.station_id === r.id).length;
+        const stationBkg = bookings.filter(b => b.assigned_station_id === r.id).length;
         let status = 'Avg';
         if (stationBkg > avgBkg * 1.3) status = 'Hot';
         if (stationBkg < avgBkg * 0.7) status = 'Slow';
@@ -357,14 +328,15 @@ export default function Analytics() {
      return stats.sort((a,b) => b.bookings - a.bookings);
   }, [bookings, stations, totalBookings]);
 
-  // Player Insights
+  // Player Insights (New vs Returning)
   const guestInsights = useMemo(() => {
      let newG = 0, retG = 0;
-     const emailCounts: Record<string, number> = {};
+     const contactCounts: Record<string, number> = {};
      bookings.forEach(b => {
-       if (b.guest_email) emailCounts[b.guest_email] = (emailCounts[b.guest_email] || 0) + 1;
+       const key = b.phone || b.email || b.name; // Use whatever uniquely identifies player
+       if (key) contactCounts[key] = (contactCounts[key] || 0) + 1;
      });
-     Object.values(emailCounts).forEach(c => {
+     Object.values(contactCounts).forEach(c => {
        if (c > 1) retG++;
        else newG++;
      });
@@ -387,7 +359,7 @@ export default function Analytics() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-foreground tracking-tight">Analytics</h1>
-            <p className="text-sm text-muted-foreground mt-1">AI-powered intelligence and insights for your properties</p>
+            <p className="text-sm text-muted-foreground mt-1">AI-powered intelligence and insights for your stations</p>
           </div>
           <div className="flex gap-3 w-full sm:w-auto">
              <Select value={dateRange} onValueChange={setDateRange}>
@@ -419,8 +391,8 @@ export default function Analytics() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[{ label: 'Total revenue', val: formatCurrency(totalRevenue) },
             { label: 'Total bookings', val: totalBookings },
-            { label: 'Avg occupancy', val: `${avgOccupancy}%` },
-            { label: 'Avg stay length', val: `${avgStayLength} days` }
+            { label: 'Hourly utilization', val: `${avgUtilization}%` },
+            { label: 'Avg session length', val: `${avgSessionLength} hrs` }
            ].map((m, i) => (
              <div key={i} className="bg-secondary/30 border border-border p-5 rounded-3xl shadow-sm">
                <p className="text-sm text-muted-foreground font-medium">{m.label}</p>
@@ -527,7 +499,7 @@ export default function Analytics() {
            </div>
         </div>
 
-        {/* Section 4 & 5... combining the rest efficiently */}
+        {/* Section 4 & 5 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           <div className="border border-border bg-card rounded-3xl p-6 shadow-sm">
@@ -575,36 +547,26 @@ export default function Analytics() {
                     <p className="text-xl font-bold text-foreground">{guestInsights.retG}</p>
                   </div>
                   <div className="bg-secondary/30 border border-border p-4 rounded-2xl">
-                    <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-1">Avg Lead Time</p>
+                    <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider mb-1">Walk-in %</p>
                     <p className="text-xl font-bold text-foreground">
-                      {bookings.length > 0 ? (() => {
-                        let totalCount = 0;
-                        let valid = 0;
-                        bookings.forEach(b => {
-                          if (b.check_in_date && b.created) {
-                            const lead = differenceInDays(parseISO(b.check_in_date), parseISO(b.created));
-                            if (lead >= 0) { totalCount += lead; valid++; }
-                          }
-                        });
-                        return valid > 0 ? `${Math.round(totalCount/valid)}d` : '-';
-                      })() : '-'}
+                      {bookings.length > 0 ? `${Math.round((bookings.filter(b => b.booking_reference?.startsWith('OT-')).length / bookings.length) * 100)}%` : '0%'}
                     </p>
                   </div>
                </div>
              </div>
              <div>
-               <h3 className="text-sm font-semibold text-foreground mb-4">Daily Check-ins</h3>
+               <h3 className="text-sm font-semibold text-foreground mb-4">Daily Sessions</h3>
                <div className="h-[120px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={dailyCheckinsData}>
+                    <BarChart data={dailyCheckinsData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" opacity={0.2} />
                       <XAxis dataKey="date" hide />
-                      <YAxis hide domain={['dataMin', 'dataMax + 2']} />
+                      <YAxis hide domain={[0, 'dataMax + 2']} />
                       <Tooltip 
                         contentStyle={{ borderRadius: '12px', border: '1px solid rgba(0,0,0,0.1)', fontSize: '12px', backgroundColor: 'var(--card)' }}
                       />
-                      <Line type="monotone" dataKey="checkins" stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }} />
-                    </LineChart>
+                      <Bar dataKey="sessions" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                </div>
              </div>

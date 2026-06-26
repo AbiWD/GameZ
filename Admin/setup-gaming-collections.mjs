@@ -6,7 +6,7 @@ async function setupCollections() {
   try {
     console.log("Authenticating as admin...");
     // Update admin credentials if needed
-    await pb.admins.authWithPassword('admin@gamez.in', 'Admin123');
+    await pb.collection('_superusers').authWithPassword('admin@gamez.in', 'Admin123');
 
     // 1. CREATE station_types collection
     console.log("Creating/Updating 'station_types' collection...");
