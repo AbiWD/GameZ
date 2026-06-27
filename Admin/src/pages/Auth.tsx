@@ -17,17 +17,19 @@ const Auth = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, updateUserPassword, user, isAdmin } = useAuth();
+  const { signIn, updateUserPassword, user, isAdmin, isSetupRequired } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const isResetting = user?.force_password_reset === true;
 
   useEffect(() => {
-    if (user && isAdmin && !user.force_password_reset) {
+    if (isSetupRequired === true) {
+      navigate('/setup');
+    } else if (isSetupRequired === false && user && isAdmin && !user.force_password_reset) {
       navigate('/admin');
     }
-  }, [user, isAdmin, navigate]);
+  }, [user, isAdmin, navigate, isSetupRequired]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

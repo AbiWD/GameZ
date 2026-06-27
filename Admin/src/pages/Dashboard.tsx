@@ -118,55 +118,22 @@ const Dashboard = () => {
         }
       });
 
-      // MOCK DATA INJECTION FOR VISUALIZATION
-      const mockActiveMap: Record<string, Booking> = { ...activeMap };
-      
-      // Find IDs for PS-1, POOL-1, CARROM-1 to inject mock sessions
-      const ps1 = allStationsData.find(s => s.station_number === 'PS-1');
-      const pool1 = allStationsData.find(s => s.station_number === 'POOL-1');
-      const carrom1 = allStationsData.find(s => s.station_number === 'CARROM-1');
-
-      if (ps1) {
-        mockActiveMap[ps1.id] = {
-          id: 'mock_1', name: 'Alex M. (Walk-in)', email: '', phone: '',
-          start_time: new Date(Date.now() - 55 * 60000).toISOString(), // started 55 mins ago
-          end_time: new Date(Date.now() + 5 * 60000).toISOString(), // ends in 5 mins (RED)
-          price: 200, players: 2, status: 'checked_in', assigned_station_id: ps1.id, total_price: 200
-        };
-      }
-      if (pool1) {
-        mockActiveMap[pool1.id] = {
-          id: 'mock_2', name: 'Sarah T. (Online)', email: '', phone: '',
-          start_time: new Date(Date.now() - 40 * 60000).toISOString(), // started 40 mins ago
-          end_time: new Date(Date.now() + 20 * 60000).toISOString(), // ends in 20 mins (AMBER)
-          price: 300, players: 4, status: 'checked_in', assigned_station_id: pool1.id, total_price: 600
-        };
-      }
-      if (carrom1) {
-        mockActiveMap[carrom1.id] = {
-          id: 'mock_3', name: 'Local Tournament', email: '', phone: '',
-          start_time: new Date(Date.now() - 60 * 60000).toISOString(), // started 1 hr ago
-          end_time: new Date(Date.now() + 120 * 60000).toISOString(), // ends in 2 hrs (GREEN)
-          price: 100, players: 4, status: 'checked_in', assigned_station_id: carrom1.id, total_price: 500
-        };
-      }
-
-      const activeStationsCount = Object.keys(mockActiveMap).length;
+      const activeStationsCount = Object.keys(activeMap).length;
       const totalStations = allStationsData.length;
       const utilizationPercentage = totalStations > 0 ? Math.round((activeStationsCount / totalStations) * 100) : 0;
 
       setStats({
-        activePlayers: activePlayers + 10, // Add mock players
-        todayRevenue: todayRevenue + 1300, // Add mock revenue
-        todaySessions: todayBookingsData.length + 3,
-        upcomingReservations: upcomingData.totalItems + 5, // Mock upcoming
+        activePlayers: activePlayers,
+        todayRevenue: todayRevenue,
+        todaySessions: todayBookingsData.length,
+        upcomingReservations: upcomingData.totalItems,
         utilizationPercentage,
         activeStationsCount,
         totalStations,
       });
 
       setStations(allStationsData as unknown as Station[]);
-      setActiveBookings(mockActiveMap);
+      setActiveBookings(activeMap);
     } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
       setFetchError(error?.response?.message || error?.message || 'Unknown error occurred');
@@ -264,6 +231,19 @@ const Dashboard = () => {
 
       await pb.collection('bookings').update(bookingId, updateData);
       
+      // Update CRM Customer Stats
+      if (record.customer_id) {
+        try {
+          const customer = await pb.collection('customers').getOne(record.customer_id);
+          await pb.collection('customers').update(record.customer_id, {
+            total_visits: (customer.total_visits || 0) + 1,
+            total_spent: (customer.total_spent || 0) + finalPrice
+          });
+        } catch (err) {
+          console.error("Failed to update CRM customer stats:", err);
+        }
+      }
+
       // Update station status to available
       await pb.collection('stations').update(record.assigned_station_id, { status: 'available' });
 

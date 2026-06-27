@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import * as LucideIcons from 'lucide-react';
 import { Gamepad2 } from 'lucide-react';
 
-import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X, DoorOpen } from 'lucide-react';
 
 import { useProperty } from '@/contexts/PropertyContext';
 

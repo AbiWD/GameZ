@@ -8,6 +8,7 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'staff' | null>(null);
+  const [isSetupRequired, setIsSetupRequired] = useState<boolean | null>(null);
 
   useEffect(() => {
     // Initial state setup
@@ -34,6 +35,8 @@ export const useAuth = () => {
       setLoading(false);
     }
 
+    checkSetupStatus();
+
     // Subscribe to PocketBase auth state changes
     pb.authStore.onChange((token, model) => {
       setSession(model);
@@ -53,6 +56,16 @@ export const useAuth = () => {
       pb.authStore.onChange(() => {});
     };
   }, []);
+
+  const checkSetupStatus = async () => {
+    try {
+      const response = await fetch(`${pb.baseUrl}/api/gamez/setup-status`);
+      const data = await response.json();
+      setIsSetupRequired(data.isSetupRequired);
+    } catch (error) {
+      console.error("Failed to check setup status:", error);
+    }
+  };
 
   const checkAdminStatus = (model: AuthModel) => {
     try {
@@ -142,6 +155,8 @@ export const useAuth = () => {
     loading,
     isAdmin,
     userRole,
+    isSetupRequired,
+    checkSetupStatus,
     signIn,
     signUp,
     signOut,

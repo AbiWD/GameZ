@@ -17,8 +17,8 @@ interface Property {
   name: string;
   slug?: string;
   address: string;
-  contact_email: string;
-  contact_phone: string;
+  email: string;
+  phone: string;
   is_active: boolean;
 }
 
@@ -34,8 +34,8 @@ const Properties = () => {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
-    contact_email: '',
-    contact_phone: '',
+    email: '',
+    phone: '',
     is_active: true
   });
 
@@ -107,8 +107,8 @@ const Properties = () => {
     setFormData({
       name: '',
       address: '',
-      contact_email: '',
-      contact_phone: '',
+      email: '',
+      phone: '',
       is_active: true
     });
     setEditingItem(null);
@@ -119,8 +119,8 @@ const Properties = () => {
     setFormData({
       name: prop.name,
       address: prop.address || '',
-      contact_email: prop.contact_email || '',
-      contact_phone: prop.contact_phone || '',
+      email: prop.email || '',
+      phone: prop.phone || '',
       is_active: prop.is_active === undefined ? true : prop.is_active
     });
     setDialogOpen(true);
@@ -165,12 +165,12 @@ const Properties = () => {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <Label htmlFor="contact_email" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</Label>
-                    <Input id="contact_email" type="email" value={formData.contact_email} onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })} className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12" />
+                    <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email</Label>
+                    <Input id="email" type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12" />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="contact_phone" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Phone</Label>
-                    <Input id="contact_phone" value={formData.contact_phone} onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })} className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12" />
+                    <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Phone</Label>
+                    <Input id="phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12" />
                   </div>
                 </div>
                 <div className="flex items-center space-x-2 pt-2">
@@ -249,10 +249,10 @@ const Properties = () => {
                         </TableCell>
                         <TableCell className="p-3 sm:py-4 sm:px-6 align-middle text-muted-foreground text-xs sm:text-sm whitespace-nowrap hidden lg:table-cell">{prop.address || '-'}</TableCell>
                         <TableCell className="p-3 sm:py-4 sm:px-6 align-middle text-muted-foreground text-xs sm:text-sm hidden md:table-cell whitespace-nowrap">
-                          {prop.contact_phone || prop.contact_email ? (
+                          {prop.phone || prop.email ? (
                             <>
-                              <div>{prop.contact_phone || '-'}</div>
-                              <div className="text-[10px] opacity-70">{prop.contact_email}</div>
+                              <div>{prop.phone || '-'}</div>
+                              <div className="text-[10px] opacity-70">{prop.email}</div>
                             </>
                           ) : '-'}
                         </TableCell>

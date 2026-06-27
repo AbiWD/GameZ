@@ -1,4 +1,4 @@
-import { LayoutDashboard, Calendar, PlusCircle, LogOut, Bed, UserCheck, Building2, Globe, Settings, BarChart2, Gamepad2 } from 'lucide-react';
+import { LayoutDashboard, Calendar, PlusCircle, LogOut, Bed, UserCheck, Building2, Globe, Settings, BarChart2, Gamepad2, Contact } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,6 +29,7 @@ const navigationSections = [
     items: [
       { title: 'Create Booking', url: '/admin/create-booking', icon: PlusCircle },
       { title: 'All Bookings', url: '/admin/bookings', icon: Calendar },
+      { title: 'Customers', url: '/admin/customers', icon: Contact },
     ]
   },
   {
@@ -36,6 +37,7 @@ const navigationSections = [
     items: [
       { title: 'Stations', url: '/admin/stations', icon: Gamepad2 },
       { title: 'Branches', url: '/admin/properties', icon: Building2 },
+      { title: 'Staff Accounts', url: '/admin/staff', icon: UserCheck },
     ]
   },
   {
@@ -43,7 +45,6 @@ const navigationSections = [
     items: [
       { title: 'Brand Settings', url: '/admin/brand-settings', icon: Settings },
       { title: 'Website Content', url: '/admin/website-content', icon: Globe },
-      { title: 'Staff Accounts', url: '/admin/staff', icon: UserCheck },
     ]
   }
 ];

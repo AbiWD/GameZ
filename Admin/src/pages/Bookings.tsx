@@ -53,14 +53,7 @@ const Bookings = () => {
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-  // Emergency actions states
-  const [isEmergencyDialogOpen, setIsEmergencyDialogOpen] = useState(false);
-  const [emergencyStartDate, setEmergencyStartDate] = useState('');
-  const [emergencyEndDate, setEmergencyEndDate] = useState('');
-  const [emergencyStationType, setEmergencyStationType] = useState('all');
-  const [isProcessingCancel, setIsProcessingCancel] = useState(false);
   const [cancelTargetBooking, setCancelTargetBooking] = useState<Booking | null>(null);
-  const [isMassCancelConfirmOpen, setIsMassCancelConfirmOpen] = useState(false);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -152,59 +145,6 @@ const Bookings = () => {
     }
   };
 
-  const handleMassCancel = () => {
-    if (!emergencyStartDate || !emergencyEndDate) {
-      toast.error("Please explicitly select both Start and End dates.");
-      return;
-    }
-    setIsMassCancelConfirmOpen(true);
-  };
-
-  const executeMassCancel = async () => {
-    setIsMassCancelConfirmOpen(false);
-    setIsProcessingCancel(true);
-    
-    try {
-      // Find all overlapping bookings that are not already cancelled
-      let massFilter = `property_id = "${activeProperty?.id}" && status != 'cancelled' && start_time < "${emergencyEndDate} 00:00:00.000Z" && end_time > "${emergencyStartDate} 00:00:00.000Z"`;
-      
-      if (emergencyStationType !== 'all') {
-        massFilter += ` && station_type = "${emergencyStationType}"`;
-      }
-
-      const overlappingBookings = await pb.collection('bookings').getFullList({
-        filter: massFilter
-      });
-
-      if (overlappingBookings.length === 0) {
-        toast.info("No active bookings found in this date range.");
-        setIsProcessingCancel(false);
-        return;
-      }
-
-      let successCount = 0;
-
-      for (const b of overlappingBookings) {
-        try {
-          await pb.collection('bookings').update(b.id, {
-            status: 'cancelled'
-          });
-          successCount++;
-        } catch (err) {
-          console.error("Failed to cancel booking", b.id, err);
-        }
-      }
-      
-      toast.success(`Successfully cancelled ${successCount} bookings!`);
-      setIsEmergencyDialogOpen(false); // Auto close after success
-      fetchBookings(); // refresh list
-    } catch (error) {
-       console.error("Error fetching overlapping bookings", error);
-       toast.error("An error occurred trying to mass-cancel bookings.");
-    } finally {
-      setIsProcessingCancel(false);
-    }
-  };
 
   return (
     <AdminLayout>
@@ -214,14 +154,6 @@ const Bookings = () => {
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">All Bookings</h1>
             <p className="text-sm md:text-base text-muted-foreground mt-1">View and manage all reservations across your property</p>
           </div>
-          <Button 
-            onClick={() => setIsEmergencyDialogOpen(true)}
-            variant="destructive"
-            className="rounded-xl shadow-sm flex items-center gap-2 font-semibold"
-          >
-            <AlertTriangle className="w-4 h-4" />
-            Emergency Tools
-          </Button>
         </div>
 
         <div className="bg-card border border-border rounded-2xl md:rounded-3xl p-4 sm:p-5 md:p-8 shadow-sm overflow-x-hidden w-full">
@@ -418,66 +350,6 @@ const Bookings = () => {
           )}
         </DialogContent>
       </Dialog>
-      
-      {/* Emergency Tools Dialog */}
-      <Dialog open={isEmergencyDialogOpen} onOpenChange={setIsEmergencyDialogOpen}>
-        <DialogContent className="w-[95vw] sm:max-w-md bg-card border border-border rounded-3xl p-6 shadow-2xl">
-          <DialogHeader className="mb-2">
-            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-destructive">
-              <AlertTriangle className="w-6 h-6" />
-              Emergency Cancellation
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              This action will permanently block dates and set all overlapping bookings to <strong className="text-destructive font-bold">cancelled</strong>. Use this only for severe property emergencies.
-            </p>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Emergency Start Date</label>
-              <Input 
-                type="date" 
-                value={emergencyStartDate}
-                onChange={(e) => setEmergencyStartDate(e.target.value)}
-                className="w-full rounded-xl border border-border bg-secondary/50 px-4 py-6 focus-visible:bg-background"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Emergency End Date</label>
-              <Input 
-                type="date" 
-                value={emergencyEndDate}
-                onChange={(e) => setEmergencyEndDate(e.target.value)}
-                className="w-full rounded-xl border border-border bg-secondary/50 px-4 py-6 focus-visible:bg-background"
-              />
-            </div>
-            <div className="space-y-2">
-               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Target Stations</label>
-               <Select value={emergencyStationType} onValueChange={setEmergencyStationType}>
-                 <SelectTrigger className="w-full rounded-xl border border-border bg-secondary/50 px-4 py-6 focus:bg-background">
-                   <SelectValue placeholder="All Stations" />
-                 </SelectTrigger>
-                 <SelectContent className="rounded-xl border-border shadow-lg">
-                   <SelectItem value="all">All Stations (Entire Resort)</SelectItem>
-                   {availableStationTypes.map(type => (
-                     <SelectItem key={type} value={type}>{type}</SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-            </div>
-            
-            <div className="pt-4">
-              <Button 
-                onClick={handleMassCancel} 
-                disabled={isProcessingCancel || !emergencyStartDate || !emergencyEndDate}
-                variant="destructive"
-                className="w-full rounded-xl py-6 font-semibold"
-              >
-                {isProcessingCancel ? "Processing Cancellation..." : "Cancel Overlapping Bookings"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Confirm Single Cancel */}
       <AlertDialog open={!!cancelTargetBooking} onOpenChange={(open) => !open && setCancelTargetBooking(null)}>
@@ -495,24 +367,7 @@ const Bookings = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Confirm Mass Cancel */}
-      <AlertDialog open={isMassCancelConfirmOpen} onOpenChange={setIsMassCancelConfirmOpen}>
-        <AlertDialogContent className="rounded-3xl border border-border bg-card">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5"/>
-              EMERGENCY ACTION
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground">
-              Are you sure you want to cancel ALL bookings from {emergencyStartDate} to {emergencyEndDate}? This action cannot be reversed automatically and will completely clear availability.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl hover:bg-secondary border-border">Nevermind</AlertDialogCancel>
-            <AlertDialogAction onClick={executeMassCancel} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl">Yes, Cancel All Overlapping</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
     </AdminLayout>
   );
 };

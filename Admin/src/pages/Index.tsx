@@ -4,14 +4,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, loading, isSetupRequired } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user && isAdmin) {
-      navigate('/admin');
+    if (!loading && isSetupRequired !== null) {
+      if (isSetupRequired) {
+        navigate('/setup');
+      } else if (user && isAdmin) {
+        navigate('/admin');
+      }
     }
-  }, [user, isAdmin, loading, navigate]);
+  }, [user, isAdmin, loading, isSetupRequired, navigate]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">

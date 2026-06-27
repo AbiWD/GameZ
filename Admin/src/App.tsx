@@ -16,6 +16,8 @@ import WebsiteContent from "./pages/WebsiteContent";
 import BrandSettings from "./pages/BrandSettings";
 import Analytics from "./pages/Analytics";
 import StaffAccounts from "./pages/StaffAccounts";
+import Setup from "./pages/Setup";
+import Customers from "./pages/Customers";
 
 import { PropertyProvider } from "@/contexts/PropertyContext";
 
@@ -31,6 +33,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/setup" element={<Setup />} />
             <Route path="/admin" element={<Dashboard />} />
             <Route path="/admin/bookings" element={<Bookings />} />
             <Route path="/admin/create-booking" element={<CreateBooking />} />
@@ -40,6 +43,7 @@ const App = () => (
             <Route path="/admin/website-content" element={<WebsiteContent />} />
             <Route path="/admin/analytics" element={<Analytics />} />
             <Route path="/admin/staff" element={<StaffAccounts />} />
+            <Route path="/admin/customers" element={<Customers />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

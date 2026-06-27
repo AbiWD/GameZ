@@ -126,6 +126,34 @@ export default function CreateBooking() {
         endDateTime.setMinutes(endDateTime.getMinutes() + parseInt(formData.duration));
       }
 
+      let customerId = null;
+      if (formData.phone) {
+        try {
+          // Check if customer exists by phone
+          const existingCustomers = await pb.collection('customers').getList(1, 1, {
+            filter: `phone = "${formData.phone}"`
+          });
+          
+          if (existingCustomers.items.length > 0) {
+            customerId = existingCustomers.items[0].id;
+          } else {
+            // Create new customer
+            const newCustomer = await pb.collection('customers').create({
+              name: formData.name || 'Walk-in Guest',
+              phone: formData.phone,
+              email: formData.email,
+              total_visits: 0,
+              total_spent: 0,
+              status: 'regular'
+            });
+            customerId = newCustomer.id;
+          }
+        } catch (err) {
+          console.error("Failed to process customer CRM data", err);
+          // Non-blocking, continue with booking creation
+        }
+      }
+
       await pb.collection('bookings').create({
         name: formData.name || 'Walk-in Guest',
         email: formData.email,
@@ -140,7 +168,8 @@ export default function CreateBooking() {
         booking_reference,
         status: 'confirmed',
         property_id: activeProperty?.id,
-        source: bookingMode === 'walk-in' ? 'walk_in' : 'direct'
+        source: bookingMode === 'walk-in' ? 'walk_in' : 'direct',
+        customer_id: customerId
       });
 
       toast({
