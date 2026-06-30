@@ -5,6 +5,7 @@ import { useProperty } from '@/contexts/PropertyContext';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, BarChart, Bar } from 'recharts';
 import { AlertCircle, TrendingUp, Info, CheckCircle2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { format, subDays, startOfYear, differenceInDays, differenceInMinutes, parseISO as dateFnsParseISO, getHours } from 'date-fns';
 
 type InsightCardProps = {
@@ -344,11 +345,30 @@ export default function Analytics() {
   }, [bookings]);
 
   if (propLoading || loading) {
-    return <AdminLayout>
-      <div className="flex justify-center items-center h-[50vh]">
-         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    </AdminLayout>;
+    return (
+      <AdminLayout>
+        <div className="max-w-7xl mx-auto pb-12 space-y-8 animate-pulse">
+          <div className="flex justify-between items-center mt-4">
+            <div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+            <Skeleton className="h-10 w-32 rounded-xl" />
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full rounded-2xl" />
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Skeleton className="h-[400px] rounded-3xl lg:col-span-2" />
+            <Skeleton className="h-[400px] rounded-3xl" />
+          </div>
+        </div>
+      </AdminLayout>
+    );
   }
 
   return (

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import pb from '@/lib/pocketbase';
 import { DollarSign, Users, Calendar, Gamepad2, Play, Clock, ArrowRight, LayoutGrid, LayoutTemplate, Activity, CreditCard, Banknote, Smartphone } from 'lucide-react';
@@ -467,33 +468,52 @@ const Dashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-          {statCards.map((stat, index) => (
-            <Card 
-              key={stat.title} 
-              className="bg-card border-border shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md"
-              style={{ animationDelay: `${index * 50}ms` }}
-            >
-              <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-5">
-                <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground uppercase">
-                  {stat.title}
-                </CardTitle>
-                <div className="bg-primary/10 rounded-lg p-1.5 sm:p-2 text-primary hidden sm:block">
-                  <stat.icon className="h-4 w-4" />
-                </div>
-              </CardHeader>
-              <CardContent className="px-4 sm:px-5 pb-4 sm:px-5 pt-0">
-                <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-                  {stat.value}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="bg-card border-border shadow-sm rounded-2xl">
+                <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-5">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-8 rounded-lg hidden sm:block" />
+                </CardHeader>
+                <CardContent className="px-4 sm:px-5 pb-4 sm:px-5 pt-0">
+                  <Skeleton className="h-8 w-16" />
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            statCards.map((stat, index) => (
+              <Card 
+                key={stat.title} 
+                className="bg-card border-border shadow-sm rounded-2xl transition-all duration-300 hover:shadow-md"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-5">
+                  <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground uppercase">
+                    {stat.title}
+                  </CardTitle>
+                  <div className="bg-primary/10 rounded-lg p-1.5 sm:p-2 text-primary hidden sm:block">
+                    <stat.icon className="h-4 w-4" />
+                  </div>
+                </CardHeader>
+                <CardContent className="px-4 sm:px-5 pb-4 sm:px-5 pt-0">
+                  <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+                    {stat.value}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Dynamic Station Floor Plan */}
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary/20 border-t-primary"></div>
+          <div className="mt-8">
+            <Skeleton className="h-16 w-full rounded-2xl mb-6" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="h-48 w-full rounded-2xl" />
+              ))}
+            </div>
           </div>
         ) : fetchError ? (
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-start gap-3 shadow-sm">

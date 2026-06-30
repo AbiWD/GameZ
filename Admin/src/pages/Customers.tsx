@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
+import { TableSkeleton } from '@/components/TableSkeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -148,8 +149,8 @@ const Customers = () => {
             </div>
 
             {loading ? (
-              <div className="flex justify-center p-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="mt-4">
+                <TableSkeleton columns={5} rows={7} />
               </div>
             ) : filteredCustomers.length === 0 ? (
               <div className="p-12 text-center text-muted-foreground">

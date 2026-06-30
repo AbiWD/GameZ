@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -178,8 +179,36 @@ export default function BrandSettings() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="flex min-h-[50vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="space-y-6 animate-pulse">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <Skeleton className="h-8 w-64 mb-2" />
+              <Skeleton className="h-4 w-96" />
+            </div>
+            <Skeleton className="h-10 w-40 rounded-full" />
+          </div>
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card className="rounded-3xl border border-border shadow-sm bg-card">
+              <CardHeader>
+                <Skeleton className="h-6 w-48 mb-2" />
+                <Skeleton className="h-4 w-64" />
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-2"><Skeleton className="h-4 w-32" /><Skeleton className="h-10 w-full" /></div>
+                <div className="grid gap-2"><Skeleton className="h-4 w-32" /><div className="flex gap-4"><Skeleton className="w-24 h-24 rounded-md" /><Skeleton className="h-10 flex-1" /></div></div>
+              </CardContent>
+            </Card>
+            <Card className="rounded-3xl border border-border shadow-sm bg-card">
+              <CardHeader>
+                <Skeleton className="h-6 w-48 mb-2" />
+                <Skeleton className="h-4 w-64" />
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-2"><Skeleton className="h-4 w-32" /><Skeleton className="h-10 w-full" /></div>
+                <div className="grid gap-2"><Skeleton className="h-4 w-32" /><Skeleton className="h-10 w-full" /></div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </AdminLayout>
     );

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
+import { TableSkeleton } from '@/components/TableSkeleton';
 import pb from '@/lib/pocketbase';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -179,7 +180,9 @@ const Bookings = () => {
           </div>
 
         {loading ? (
-          <div className="text-center py-8 text-muted-foreground animate-pulse">Loading bookings...</div>
+          <div className="mt-2">
+            <TableSkeleton columns={8} rows={7} />
+          </div>
         ) : (
           <div className="overflow-hidden bg-card border border-border rounded-2xl mt-2 pb-0.5">
             <Table>
@@ -197,7 +200,7 @@ const Bookings = () => {
                   <TableHead className="py-4 px-1 md:px-6 font-semibold text-muted-foreground text-right lg:hidden text-xs sm:text-sm">Details</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className={loading ? 'opacity-50 pointer-events-none' : ''}>
+              <TableBody>
                 {bookings.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
