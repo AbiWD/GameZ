@@ -102,7 +102,7 @@ const Dashboard = () => {
         currentActiveData,
         upcomingData
       ] = await Promise.all([
-        pb.collection('stations').getFullList({ sort: '+station_number', filter: propertyFilter, requestKey: null }),
+        pb.collection('stations').getFullList({ sort: '+station_number', filter: propertyFilter, expand: 'station_type', requestKey: null }),
         pb.collection('bookings').getFullList({ filter: `${propertyFilter} && start_time >= "${todayStartStr}" && start_time <= "${todayEndStr}" && status != "cancelled"`, requestKey: null }),
         pb.collection('bookings').getFullList({ filter: `${propertyFilter} && start_time <= "${nowStr}" && end_time >= "${nowStr}" && status != "cancelled" && status != "completed"`, requestKey: null }),
         pb.collection('bookings').getList(1, 1, { filter: `${propertyFilter} && start_time > "${nowStr}" && start_time <= "${todayEndStr}" && status != "cancelled"`, requestKey: null })
@@ -579,7 +579,9 @@ const Dashboard = () => {
             
             {layoutPref === 'zones' ? (
               <div className="columns-1 md:columns-2 xl:columns-3 gap-6 space-y-6">
-                {Object.entries(stationsByType).map(([type, typeStations]) => (
+                {Object.entries(stationsByType)
+                  .sort(([, aStations], [, bStations]) => bStations.length - aStations.length)
+                  .map(([type, typeStations]) => (
                   <div key={type} className="break-inside-avoid bg-card border border-border/60 rounded-3xl p-5 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-center gap-3 mb-5">
                       <h2 className="text-xl font-bold text-foreground">{type}</h2>
