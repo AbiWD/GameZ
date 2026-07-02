@@ -4,13 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import pb from '@/lib/pocketbase';
-import { DollarSign, Users, Calendar, Gamepad2, Play, Clock, ArrowRight, LayoutGrid, LayoutTemplate, Activity, CreditCard, Banknote, Smartphone } from 'lucide-react';
+import { DollarSign, Users, Calendar, Gamepad2, Play, Clock, ArrowRight, LayoutGrid, LayoutTemplate, Activity, CreditCard, Banknote, Smartphone, Star, ArrowDownUp, GripHorizontal } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
 import { useProperty } from '@/contexts/PropertyContext';
 import { formatDistanceToNowStrict } from 'date-fns';
-
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 interface Booking {
   id: string;
   name: string;
@@ -36,6 +39,33 @@ interface Station {
   amenities: string[];
 }
 
+function SortableZone({ id, children, isReordering, isPinned, togglePin }: { id: string, children: React.ReactNode, isReordering: boolean, isPinned: boolean, togglePin: (id: string) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+    opacity: isDragging ? 0.8 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="break-inside-avoid bg-card border border-border/60 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all relative">
+      <div className="absolute top-5 right-5 flex items-center gap-1">
+        <button onClick={() => togglePin(id)} className={`p-1.5 rounded-full transition-colors ${isPinned ? 'text-amber-500 bg-amber-500/10 hover:bg-amber-500/20' : 'text-muted-foreground hover:bg-muted'}`} title="Pin to top">
+          <Star className="w-4 h-4" fill={isPinned ? "currentColor" : "none"} />
+        </button>
+        {isReordering && (
+          <button {...attributes} {...listeners} className="p-1.5 rounded-full text-muted-foreground hover:bg-muted cursor-grab active:cursor-grabbing">
+            <GripHorizontal className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { activeProperty } = useProperty();
@@ -58,6 +88,24 @@ const Dashboard = () => {
     localStorage.setItem('gamez_dashboard_layout', pref);
   };
   
+  const [sortMode, setSortMode] = useLocalStorage<'size' | 'busiest' | 'custom'>('gamez_dashboard_sort_mode', 'size');
+  const [pinnedZones, setPinnedZones] = useLocalStorage<string[]>('gamez_dashboard_pinned_zones', []);
+  const [customZoneOrder, setCustomZoneOrder] = useLocalStorage<string[]>('gamez_dashboard_custom_order', []);
+  const [isReordering, setIsReordering] = useState(false);
+  
+  // Grid View States
+  const [gridStatusFilter, setGridStatusFilter] = useLocalStorage<string>('gamez_dashboard_grid_status', 'all');
+  const [gridTypeFilter, setGridTypeFilter] = useLocalStorage<string>('gamez_dashboard_grid_type', 'all');
+  const [gridSort, setGridSort] = useLocalStorage<'number' | 'urgency' | 'status'>('gamez_dashboard_grid_sort', 'number');
+  const [manualCompactMode, setManualCompactMode] = useLocalStorage<'auto' | 'detailed' | 'compact'>('gamez_dashboard_grid_compact', 'auto');
+
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
   const [stations, setStations] = useState<Station[]>([]);
   const [activeBookings, setActiveBookings] = useState<Record<string, Booking>>({});
   const [loading, setLoading] = useState(true);
@@ -166,12 +214,149 @@ const Dashboard = () => {
     },
   ];
 
+  // Toggle pinning a zone
+  const togglePin = (type: string) => {
+    setPinnedZones(prev => prev.includes(type) ? prev.filter(p => p !== type) : [...prev, type]);
+  };
+
+  // Drag and drop end handler
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setCustomZoneOrder((items) => {
+        // If we don't have a custom order yet, initialize it from current sorted order
+        const currentOrder = items.length > 0 ? items : sortedZones.map(z => z[0]);
+        const oldIndex = currentOrder.indexOf(active.id as string);
+        const newIndex = currentOrder.indexOf(over.id as string);
+        return arrayMove(currentOrder, oldIndex, newIndex);
+      });
+      setSortMode('custom');
+    }
+  };
+
   // Group stations by type
   const stationsByType = stations.reduce((acc, station) => {
     if (!acc[station.station_type]) acc[station.station_type] = [];
     acc[station.station_type].push(station);
     return acc;
   }, {} as Record<string, Station[]>);
+
+  // Advanced Sorting Logic
+  const sortedZones = Object.entries(stationsByType).sort(([typeA, stationsA], [typeB, stationsB]) => {
+    const aPinned = pinnedZones.includes(typeA);
+    const bPinned = pinnedZones.includes(typeB);
+    
+    // 1. Pinned Zones ALWAYS go first
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+
+    // 2. Based on current Sort Mode
+    if (sortMode === 'custom' && customZoneOrder.length > 0) {
+      const idxA = customZoneOrder.indexOf(typeA);
+      const idxB = customZoneOrder.indexOf(typeB);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1; // A is custom, B is not
+      if (idxB !== -1) return 1;  // B is custom, A is not
+    } else if (sortMode === 'busiest') {
+      const aActive = stationsA.filter(s => activeBookings[s.id]).length;
+      const bActive = stationsB.filter(s => activeBookings[s.id]).length;
+      const aPct = stationsA.length > 0 ? aActive / stationsA.length : 0;
+      const bPct = stationsB.length > 0 ? bActive / stationsB.length : 0;
+      // Sort by highest occupancy percentage first
+      if (Math.abs(bPct - aPct) > 0.01) return bPct - aPct;
+    }
+    
+    // 3. Default Fallback: Sort by Size (Total stations descending)
+    return stationsB.length - stationsA.length;
+  });
+
+  // Grid View Logic
+  const filteredGridStations = stations.filter(station => {
+    if (gridTypeFilter !== 'all' && station.station_type !== gridTypeFilter) return false;
+    
+    if (gridStatusFilter !== 'all') {
+      const activeBooking = activeBookings[station.id];
+      const isMaintenance = station.status === 'maintenance';
+      
+      if (gridStatusFilter === 'available' && (activeBooking || isMaintenance)) return false;
+      if (gridStatusFilter === 'occupied' && !activeBooking) return false;
+      if (gridStatusFilter === 'maintenance' && !isMaintenance) return false;
+      if (gridStatusFilter === 'ending_soon') {
+        if (!activeBooking) return false;
+        const remain = Math.floor((new Date(activeBooking.end_time).getTime() - currentTime.getTime()) / 60000);
+        if (remain > 15) return false;
+      }
+    }
+    return true;
+  });
+
+  const sortedGridStations = [...filteredGridStations].sort((a, b) => {
+    if (gridSort === 'urgency') {
+      const aBooking = activeBookings[a.id];
+      const bBooking = activeBookings[b.id];
+      const aRemain = aBooking ? Math.floor((new Date(aBooking.end_time).getTime() - currentTime.getTime()) / 60000) : 9999;
+      const bRemain = bBooking ? Math.floor((new Date(bBooking.end_time).getTime() - currentTime.getTime()) / 60000) : 9999;
+      return aRemain - bRemain;
+    }
+    if (gridSort === 'status') {
+      const aScore = a.status === 'maintenance' ? 3 : (activeBookings[a.id] ? 2 : 1);
+      const bScore = b.status === 'maintenance' ? 3 : (activeBookings[b.id] ? 2 : 1);
+      if (aScore !== bScore) return aScore - bScore;
+    }
+    // Default fallback to number
+    const aNum = parseInt(a.station_number.replace(/\D/g, '')) || 0;
+    const bNum = parseInt(b.station_number.replace(/\D/g, '')) || 0;
+    return aNum - bNum;
+  });
+
+  const isCompactView = manualCompactMode === 'auto' ? stations.length > 12 : manualCompactMode === 'compact';
+
+  const renderCompactStationCard = (station: Station, activeBooking?: Booking) => {
+    const isMaintenance = station.status === 'maintenance';
+    
+    let colorClass = 'bg-zinc-100 dark:bg-zinc-900 border-border/50 text-muted-foreground';
+    let pulseClass = '';
+    
+    if (activeBooking) {
+       const isOpenTimer = activeBooking.booking_reference?.startsWith('OT-');
+       if (isOpenTimer) {
+         colorClass = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400';
+       } else {
+         const remain = Math.floor((new Date(activeBooking.end_time).getTime() - currentTime.getTime()) / 60000);
+         if (remain < 10) {
+           colorClass = 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400';
+           pulseClass = 'animate-pulse';
+         } else if (remain <= 30) {
+           colorClass = 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400';
+         } else {
+           colorClass = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400';
+         }
+       }
+    } else if (!isMaintenance) {
+       colorClass = 'bg-card border-border hover:border-primary/30 text-foreground';
+    }
+
+    return (
+      <div 
+        key={station.id} 
+        onClick={() => handleStationClick(station, activeBooking)}
+        className={`relative flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all hover:shadow-md ${colorClass} ${pulseClass}`}
+      >
+        <div className="flex items-center gap-2">
+          <Gamepad2 className="w-4 h-4 opacity-70" />
+          <div className="font-bold text-lg">{station.station_number}</div>
+        </div>
+        {activeBooking && (
+          <div className="text-xs font-bold bg-background/50 px-2 py-1 rounded-md">
+            {activeBooking.booking_reference?.startsWith('OT-') 
+              ? formatDistanceToNowStrict(new Date(activeBooking.start_time)) 
+              : `${Math.floor((new Date(activeBooking.end_time).getTime() - currentTime.getTime()) / 60000)}m left`}
+          </div>
+        )}
+        {isMaintenance && <div className="text-xs font-bold uppercase tracking-wider opacity-70">Maint</div>}
+      </div>
+    );
+  };
 
   const extendSession = async (bookingId: string, minutes: number) => {
     try {
@@ -433,8 +618,8 @@ const Dashboard = () => {
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Live floor</h1>
           <p className="text-muted-foreground mt-1">Real-time monitoring for {activeProperty?.name || 'your gaming cafe'}</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex bg-secondary p-1 rounded-xl border border-border/50">
+        <div className="flex flex-wrap items-center gap-4 mt-4 md:mt-0">
+          <div className="flex bg-secondary p-1 rounded-xl border border-border/50">
             <div className="flex gap-1">
               <Button 
                 variant="ghost" 
@@ -577,31 +762,92 @@ const Dashboard = () => {
                </div>
             </div>
             
+            {layoutPref === 'zones' && (
+              <div className="flex items-center justify-between mb-4 bg-card border border-border/50 rounded-xl px-4 py-2 shadow-sm flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5 hidden sm:flex"><ArrowDownUp className="w-4 h-4" /> Sort Zones</span>
+                  <div className="flex bg-secondary p-1 rounded-lg border border-border/50">
+                    <Button variant="ghost" size="sm" onClick={() => setSortMode('size')} className={`h-7 px-3 text-xs rounded-md ${sortMode === 'size' ? 'bg-background shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`}>Size</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setSortMode('busiest')} className={`h-7 px-3 text-xs rounded-md ${sortMode === 'busiest' ? 'bg-background shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`}>Busiest</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setSortMode('custom')} className={`h-7 px-3 text-xs rounded-md ${sortMode === 'custom' ? 'bg-background shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`}>Custom</Button>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setIsReordering(!isReordering)} className={`h-8 px-3 text-xs rounded-lg border transition-colors ${isReordering ? 'bg-primary/10 border-primary/20 text-primary hover:bg-primary/20' : 'bg-background border-border text-muted-foreground hover:bg-muted'}`}>
+                  <GripHorizontal className="w-4 h-4 mr-2" />
+                  {isReordering ? 'Save Layout' : 'Rearrange'}
+                </Button>
+              </div>
+            )}
+
             {layoutPref === 'zones' ? (
-              <div className="columns-1 md:columns-2 xl:columns-3 gap-6 space-y-6">
-                {Object.entries(stationsByType)
-                  .sort(([, aStations], [, bStations]) => bStations.length - aStations.length)
-                  .map(([type, typeStations]) => (
-                  <div key={type} className="break-inside-avoid bg-card border border-border/60 rounded-3xl p-5 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3 mb-5">
-                      <h2 className="text-xl font-bold text-foreground">{type}</h2>
-                      <div className="h-px bg-border flex-1 ml-2 rounded"></div>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={sortedZones.map(z => z[0])} strategy={rectSortingStrategy}>
+                  <div className="columns-1 md:columns-2 xl:columns-3 gap-6 space-y-6 pb-12">
+                    {sortedZones.map(([type, typeStations]) => (
+                      <SortableZone key={type} id={type} isReordering={isReordering} isPinned={pinnedZones.includes(type)} togglePin={togglePin}>
+                        <div className="flex items-center gap-3 mb-5 mt-1">
+                          <h2 className="text-xl font-bold text-foreground">{type}</h2>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4">
+                          {typeStations.map((station) => {
+                            const activeBooking = activeBookings[station.id];
+                            return renderStationCard(station, activeBooking, true);
+                          })}
+                        </div>
+                      </SortableZone>
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <div className="flex flex-col space-y-4">
+                {/* Grid Toolbar */}
+                <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-card border border-border/50 rounded-xl px-4 py-3 shadow-sm">
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Status Filters */}
+                    <div className="flex flex-wrap bg-secondary p-1 rounded-lg border border-border/50">
+                      <Button variant="ghost" size="sm" onClick={() => setGridStatusFilter('all')} className={`h-7 px-3 text-xs rounded-md ${gridStatusFilter === 'all' ? 'bg-background shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`}>All</Button>
+                      <Button variant="ghost" size="sm" onClick={() => setGridStatusFilter('available')} className={`h-7 px-3 text-xs rounded-md ${gridStatusFilter === 'available' ? 'bg-background shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`}>Available</Button>
+                      <Button variant="ghost" size="sm" onClick={() => setGridStatusFilter('occupied')} className={`h-7 px-3 text-xs rounded-md ${gridStatusFilter === 'occupied' ? 'bg-background shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`}>Occupied</Button>
+                      <Button variant="ghost" size="sm" onClick={() => setGridStatusFilter('ending_soon')} className={`h-7 px-3 text-xs rounded-md ${gridStatusFilter === 'ending_soon' ? 'bg-background shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`}>Ending Soon</Button>
                     </div>
-                    <div className="grid grid-cols-1 gap-4">
-                      {typeStations.map((station) => {
-                        const activeBooking = activeBookings[station.id];
-                        return renderStationCard(station, activeBooking, true);
-                      })}
+
+                    {/* Type Filters */}
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => setGridTypeFilter('all')} className={`h-7 px-3 text-xs rounded-full border ${gridTypeFilter === 'all' ? 'bg-primary/10 border-primary/30 text-primary font-bold' : 'bg-background border-border text-muted-foreground hover:text-foreground'}`}>Any Type</Button>
+                      {Object.keys(stationsByType).map(type => (
+                        <Button key={type} variant="ghost" size="sm" onClick={() => setGridTypeFilter(type)} className={`h-7 px-3 text-xs rounded-full border ${gridTypeFilter === type ? 'bg-primary/10 border-primary/30 text-primary font-bold' : 'bg-background border-border text-muted-foreground hover:text-foreground'}`}>
+                          {type}
+                        </Button>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                {stations.map(station => {
-                  const activeBooking = activeBookings[station.id];
-                  return renderStationCard(station, activeBooking, true);
-                })}
+
+                  <div className="flex items-center gap-3 ml-auto xl:ml-0">
+                     <div className="flex bg-secondary p-1 rounded-lg border border-border/50">
+                        <Button variant="ghost" size="sm" onClick={() => setGridSort('number')} className={`h-7 px-3 text-xs rounded-md ${gridSort === 'number' ? 'bg-background shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`}>Sort: #</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setGridSort('urgency')} className={`h-7 px-3 text-xs rounded-md ${gridSort === 'urgency' ? 'bg-background shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`}>Urgency</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setGridSort('status')} className={`h-7 px-3 text-xs rounded-md ${gridSort === 'status' ? 'bg-background shadow-sm text-foreground font-bold' : 'text-muted-foreground hover:text-foreground'}`}>Status</Button>
+                     </div>
+
+                     <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setManualCompactMode(prev => prev === 'compact' ? 'detailed' : 'compact')} 
+                        className={`h-8 px-3 text-xs rounded-lg border transition-colors ${isCompactView ? 'bg-primary/10 border-primary/20 text-primary hover:bg-primary/20' : 'bg-background border-border text-muted-foreground hover:bg-muted'}`}
+                     >
+                       <LayoutGrid className="w-4 h-4 mr-2" />
+                       Compact
+                     </Button>
+                  </div>
+                </div>
+
+                <div className={`grid gap-4 ${isCompactView ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'}`}>
+                  {sortedGridStations.map(station => {
+                    const activeBooking = activeBookings[station.id];
+                    return isCompactView ? renderCompactStationCard(station, activeBooking) : renderStationCard(station, activeBooking, true);
+                  })}
+                </div>
               </div>
             )}
             
