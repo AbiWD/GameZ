@@ -49,6 +49,7 @@ const Auth = () => {
           title: 'Success',
           description: 'Signed in successfully',
         });
+        setTimeout(() => navigate('/admin'), 500);
       } else {
         toast({
           title: 'Action Required',

@@ -303,9 +303,15 @@ const Dashboard = () => {
       const bScore = b.status === 'maintenance' ? 3 : (activeBookings[b.id] ? 2 : 1);
       if (aScore !== bScore) return aScore - bScore;
     }
-    // Default fallback to number
+    // Default fallback to prefix and number
     const aNum = parseInt(a.station_number.replace(/\D/g, '')) || 0;
     const bNum = parseInt(b.station_number.replace(/\D/g, '')) || 0;
+    const aPrefix = a.station_number.replace(/[^A-Za-z]/g, '');
+    const bPrefix = b.station_number.replace(/[^A-Za-z]/g, '');
+    
+    if (aPrefix !== bPrefix) {
+      return aPrefix.localeCompare(bPrefix);
+    }
     return aNum - bNum;
   });
 

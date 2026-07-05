@@ -161,11 +161,11 @@ const Customers = () => {
                 <Table>
                   <TableHeader className="bg-secondary/20">
                     <TableRow>
-                      <TableHead className="font-bold">Name</TableHead>
-                      <TableHead className="font-bold">Contact</TableHead>
-                      {userRole !== 'staff' && <TableHead className="font-bold text-right">Lifetime Value</TableHead>}
-                      <TableHead className="font-bold text-center">Visits</TableHead>
-                      <TableHead className="font-bold">Status</TableHead>
+                      <TableHead className="font-bold pl-12 py-6">Name</TableHead>
+                      <TableHead className="font-bold py-6">Contact</TableHead>
+                      {userRole !== 'staff' && <TableHead className="font-bold text-right py-6">Lifetime Value</TableHead>}
+                      <TableHead className="font-bold text-center py-6">Visits</TableHead>
+                      <TableHead className="font-bold text-right pr-10 py-6">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -175,19 +175,19 @@ const Customers = () => {
                         className="cursor-pointer hover:bg-secondary/40 transition-colors"
                         onClick={() => handleRowClick(customer)}
                       >
-                        <TableCell className="font-semibold text-foreground">
+                        <TableCell className="font-semibold text-foreground pl-12 py-6">
                           {customer.name || 'Unnamed Guest'}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
+                        <TableCell className="py-6">
+                          <div className="flex flex-col gap-1.5">
                             {customer.phone && (
-                              <span className="flex items-center text-sm gap-1.5 text-muted-foreground">
+                              <span className="flex items-center text-sm gap-2 text-muted-foreground">
                                 <Phone className="w-3.5 h-3.5" />
                                 {customer.phone}
                               </span>
                             )}
                             {customer.email && (
-                              <span className="flex items-center text-sm gap-1.5 text-muted-foreground">
+                              <span className="flex items-center text-sm gap-2 text-muted-foreground">
                                 <Mail className="w-3.5 h-3.5" />
                                 {customer.email}
                               </span>
@@ -195,24 +195,24 @@ const Customers = () => {
                           </div>
                         </TableCell>
                         {userRole !== 'staff' && (
-                          <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400">
+                          <TableCell className="text-right font-bold text-emerald-600 dark:text-emerald-400 py-6">
                             ₹{(customer.total_spent || 0).toLocaleString()}
                           </TableCell>
                         )}
-                        <TableCell className="text-center font-medium">
+                        <TableCell className="text-center font-medium py-6">
                           {customer.total_visits || 0}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right pr-10 py-6">
                           {customer.status === 'vip' ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-                              <Award className="w-3 h-3 mr-1" /> VIP
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                              <Award className="w-3.5 h-3.5 mr-1" /> VIP
                             </span>
                           ) : customer.status === 'banned' ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
                               Banned
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-400">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-400">
                               Regular
                             </span>
                           )}

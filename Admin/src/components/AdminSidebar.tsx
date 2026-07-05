@@ -45,8 +45,7 @@ const navigationSections = [
   {
     label: 'Configuration',
     items: [
-      { title: 'Brand Settings', url: '/admin/brand-settings', icon: Settings },
-      { title: 'Website Content', url: '/admin/website-content', icon: Globe },
+
     ]
   }
 ];

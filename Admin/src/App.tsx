@@ -12,8 +12,7 @@ import CreateBooking from "./pages/CreateBooking";
 import Stations from "./pages/Stations";
 import Properties from "./pages/Properties";
 import NotFound from "./pages/NotFound";
-import WebsiteContent from "./pages/WebsiteContent";
-import BrandSettings from "./pages/BrandSettings";
+
 import Analytics from "./pages/Analytics";
 import StaffAccounts from "./pages/StaffAccounts";
 import Setup from "./pages/Setup";
@@ -39,8 +38,7 @@ const App = () => (
             <Route path="/admin/create-booking" element={<CreateBooking />} />
             <Route path="/admin/stations" element={<Stations />} />
             <Route path="/admin/properties" element={<Properties />} />
-            <Route path="/admin/brand-settings" element={<BrandSettings />} />
-            <Route path="/admin/website-content" element={<WebsiteContent />} />
+
             <Route path="/admin/analytics" element={<Analytics />} />
             <Route path="/admin/staff" element={<StaffAccounts />} />
             <Route path="/admin/customers" element={<Customers />} />
