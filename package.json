@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"npm run dev --workspace=Admin\" \"npm run dev --workspace=Website\"",
-    "install:all": "npm install"
+    "dev": "concurrently -n \"PB,ADMIN,WEB\" -c \"magenta,blue,yellow\" \"cd Admin && .\\pocketbase.exe serve\" \"npm run dev --prefix Admin\" \"npm run dev --prefix Website\"",
+    "install:all": "npm install && npm install --prefix Admin && npm install --prefix Website"
   },
-  "workspaces": [
-    "Admin",
-    "Website"
-  ],
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "pocketbase": "^0.27.0",
+    "sqlite3": "^6.0.1"
   }
 }

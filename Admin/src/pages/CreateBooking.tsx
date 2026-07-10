@@ -14,6 +14,7 @@ import pb from '@/lib/pocketbase';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useProperty } from '@/contexts/PropertyContext';
+import { usePropertyFilter } from '@/hooks/usePropertyFilter';
 
 interface StationType {
   id?: string;
@@ -24,9 +25,9 @@ interface StationType {
 
 export default function CreateBooking() {
   const [searchParams] = useSearchParams();
-  const { toast } = useToast();
   const navigate = useNavigate();
   const { activeProperty } = useProperty();
+  const propertyFilter = usePropertyFilter();
 
   const [bookingMode, setBookingMode] = useState<'walk-in' | 'advance'>(
     searchParams.get('type') === 'online' ? 'advance' : 'walk-in'
@@ -54,8 +55,7 @@ export default function CreateBooking() {
 
     const initData = async () => {
       try {
-        const propertyFilter = `property_id = "${activeProperty.id}"`;
-        const pStations = await pb.collection("stations").getFullList({ filter: `status != 'maintenance' && ${propertyFilter}` });
+        const pStations = await pb.collection("stations").getFullList({ filter: propertyFilter ? `status != 'maintenance' && ${propertyFilter}` : `status != 'maintenance'` });
         setPhysicalStations(pStations);
 
         const typesResult = await pb.collection("station_types").getFullList({ filter: propertyFilter });
@@ -164,7 +164,7 @@ export default function CreateBooking() {
         end_time: endDateTime.toISOString(),
         message: formData.message,
         guests: formData.guests || 1,
-        price: totalPrice,
+        total_price: totalPrice,
         booking_reference,
         status: 'confirmed',
         property_id: activeProperty?.id,

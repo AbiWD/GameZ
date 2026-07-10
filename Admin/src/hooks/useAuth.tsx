@@ -59,8 +59,10 @@ export const useAuth = () => {
 
   const checkSetupStatus = async () => {
     try {
-      const response = await fetch(`${pb.baseUrl}/api/gamez/setup-status`);
-      const data = await response.json();
+      const data = await pb.send('/api/gamez/setup-status', { 
+        method: 'GET',
+        requestKey: null // Disable auto-cancellation during strict mode double-renders
+      });
       setIsSetupRequired(data.isSetupRequired);
     } catch (error) {
       console.error("Failed to check setup status:", error);
@@ -70,7 +72,7 @@ export const useAuth = () => {
   const checkAdminStatus = (model: AuthModel) => {
     try {
       if (model) {
-        if (model.role === 'admin' || model.admin || model.email === 'admin@gamez.in' || model.email === 'admin@gamez.in') {
+        if (model.role === 'admin' || model.admin || model.email === 'admin@gamez.in') {
           setIsAdmin(true);
           setUserRole('admin');
         } else if (model.role === 'staff') {

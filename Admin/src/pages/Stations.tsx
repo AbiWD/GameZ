@@ -19,6 +19,7 @@ import { Gamepad2 } from 'lucide-react';
 import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X, DoorOpen } from 'lucide-react';
 
 import { useProperty } from '@/contexts/PropertyContext';
+import { usePropertyFilter } from '@/hooks/usePropertyFilter';
 
 interface Station {
   id: string;
@@ -49,7 +50,9 @@ const STATION_STATUS = ['available', 'occupied', 'maintenance'];
 const AVAILABLE_ICONS = ['Gamepad2', 'Monitor', 'Headphones', 'Mouse', 'Keyboard', 'Tv', 'Sofa', 'Coffee', 'Wifi', 'Cpu', 'Speaker'];
 
 const Stations = () => {
-  const { activeProperty } = useProperty();
+  const { properties, activeProperty } = useProperty();
+  const propertyFilter = usePropertyFilter();
+  
   // Inventory State
   const [stations, setStations] = useState<Station[]>([]);
   const [allStations, setAllStations] = useState<Station[]>([]); // Raw dashboard stats data
@@ -98,7 +101,6 @@ const Stations = () => {
   const fetchStations = async () => {
     setLoading(true);
     try {
-      const propertyFilter = `property_id = "${activeProperty?.id}"`;
       // 1. POCKETBASE SERVER PAGINATION: Fetch specifically for current page
       const result = await pb.collection('stations').getList(page, perPage, {
         sort: '+station_number',
@@ -126,7 +128,7 @@ const Stations = () => {
     setLoadingTypes(true);
     try {
       const data = await pb.collection('station_types').getFullList({
-        filter: `property_id = "${activeProperty?.id}"`
+        filter: propertyFilter
       });
       const fetchedTypes = (data as unknown as StationType[]).sort((a, b) => a.name.localeCompare(b.name));
       setStationTypes(fetchedTypes);

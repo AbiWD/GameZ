@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ChevronRight, ChevronLeft, AlertTriangle, XCircle, Copy } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
+import { escapePbFilterValue } from '@/lib/utils';
 import { useProperty } from '@/contexts/PropertyContext';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -35,10 +36,16 @@ interface Booking {
   name: string;
   email: string;
   phone: string;
-  station_type: string;
+  station_type?: string;
+  expand?: {
+    assigned_station_id?: {
+      station_type: string;
+      name: string;
+    };
+  };
   start_time: string;
   end_time: string;
-  price: number;
+  total_price: number;
   guests: number;
   created: string;
   status: string;
@@ -99,18 +106,18 @@ const Bookings = () => {
       let filterStr = `property_id = "${activeProperty?.id}"`;
       
       if (debouncedSearch) {
-        // Sanitize search string to prevent PocketBase query injection crashes
-        const safeSearch = debouncedSearch.replace(/"/g, '\\"').replace(/'/g, "\\'");
-        filterStr += ` && (name ~ "${safeSearch}" || email ~ "${safeSearch}" || phone ~ "${safeSearch}")`;
+        const safeSearch = escapePbFilterValue(debouncedSearch);
+        filterStr += ` && (name ~ "${safeSearch}" || email ~ "${safeSearch}" || phone ~ "${safeSearch}" || booking_reference ~ "${safeSearch}")`;
       }
       
       if (stationFilter && stationFilter !== 'all') {
-        const safeStation = stationFilter.replace(/"/g, '\\"');
-        filterStr += ` && station_type = "${safeStation}"`;
+        const safeStation = escapePbFilterValue(stationFilter);
+        filterStr += ` && assigned_station_id.station_type = "${safeStation}"`;
       }
 
       const result = await pb.collection('bookings').getList(page, 10, {
         filter: filterStr,
+        expand: 'assigned_station_id',
         requestKey: null
       });
       
@@ -215,7 +222,7 @@ const Bookings = () => {
                       <TableCell className="py-3 px-4 text-muted-foreground hidden md:table-cell">{booking.phone}</TableCell>
                       <TableCell className="py-3 px-2 sm:px-3 md:px-6">
                         <span className="inline-block px-2 py-1 rounded-md border border-primary/20 text-[10px] sm:text-xs font-semibold bg-primary/5 text-primary leading-tight text-center truncate max-w-[70px] sm:max-w-[100px] lg:max-w-none hover:whitespace-normal">
-                          {booking.station_type}
+                          {booking.expand?.assigned_station_id?.station_type || booking.station_type || 'Unknown'}
                         </span>
                       </TableCell>
                       <TableCell className="py-3 px-2 sm:px-3 md:px-6 text-muted-foreground text-[10px] sm:text-sm">
@@ -232,7 +239,7 @@ const Bookings = () => {
                           <span className="inline-block px-2.5 py-1 bg-secondary border border-border text-secondary-foreground rounded-md text-xs font-semibold capitalize">{booking.status || 'Pending'}</span>
                         )}
                       </TableCell>
-                      <TableCell className="py-3 px-4 font-semibold text-foreground hidden lg:table-cell">₹{booking.price}</TableCell>
+                      <TableCell className="py-3 px-4 font-semibold text-foreground hidden lg:table-cell">₹{booking.total_price}</TableCell>
                       <TableCell className="py-3 px-4 text-muted-foreground hidden lg:table-cell">{booking.guests}</TableCell>
                       <TableCell className="py-3 px-1 md:px-6 text-right lg:hidden">
                         <button 
@@ -334,7 +341,7 @@ const Bookings = () => {
                  </div>
                  <div className="flex justify-between items-center pb-1 pt-1">
                    <span className="text-sm font-medium text-muted-foreground">Total Price</span>
-                   <span className="font-bold text-lg text-foreground">₹{selectedBooking.price}</span>
+                   <span className="font-bold text-lg text-foreground">₹{selectedBooking.total_price}</span>
                  </div>
               </div>
               {selectedBooking.status !== 'cancelled' && (

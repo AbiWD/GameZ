@@ -55,7 +55,7 @@ const Setup = () => {
     setLoading(true);
     try {
       // Direct API call to our custom pb_hook endpoint
-      const response = await fetch(`${pb.baseUrl}/api/gamez/setup-init`, {
+      const response = await fetch(`/api/gamez/setup-init`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

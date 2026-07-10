@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import pb from '@/lib/pocketbase';
 import { useProperty } from '@/contexts/PropertyContext';
+import { usePropertyFilter } from '@/hooks/usePropertyFilter';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, BarChart, Bar } from 'recharts';
 import { AlertCircle, TrendingUp, Info, CheckCircle2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -71,6 +72,7 @@ const parseISO = (dateStr: any) => {
 
 export default function Analytics() {
   const { properties, activeProperty, loading: propLoading } = useProperty();
+  const propertyFilter = usePropertyFilter();
   const [dateRange, setDateRange] = useState('30_days');
   const [selectedPropId, setSelectedPropId] = useState<string>('all');
   const [loading, setLoading] = useState(true);
@@ -79,10 +81,7 @@ export default function Analytics() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [stations, setStations] = useState<any[]>([]);
   
-  useEffect(() => {
-    if (!propLoading && activeProperty && selectedPropId === 'all') {
-    }
-  }, [propLoading, activeProperty]);
+
 
   const fetchData = async () => {
     setLoading(true);
@@ -97,13 +96,14 @@ export default function Analytics() {
       if (startDateStr) {
         bookingFilter = `created >= "${startDateStr} 00:00:00"`;
       }
-      if (selectedPropId !== 'all') {
-        bookingFilter += bookingFilter ? ` && property_id = "${selectedPropId}"` : `property_id = "${selectedPropId}"`;
-      }
-
+      
       let stationFilter = '';
       if (selectedPropId !== 'all') {
+        bookingFilter += bookingFilter ? ` && property_id = "${selectedPropId}"` : `property_id = "${selectedPropId}"`;
         stationFilter = `property_id = "${selectedPropId}"`;
+      } else if (propertyFilter) {
+        bookingFilter += bookingFilter ? ` && ${propertyFilter}` : propertyFilter;
+        stationFilter += stationFilter ? ` && ${propertyFilter}` : propertyFilter;
       }
 
       const [bRes, rRes] = await Promise.all([

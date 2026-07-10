@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import pb from '@/lib/pocketbase';
@@ -9,11 +10,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
 import { useProperty } from '@/contexts/PropertyContext';
+import { usePropertyFilter } from '@/hooks/usePropertyFilter';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { cn, calculateOpenTimerCost } from "../lib/utils";
+
 interface Booking {
   id: string;
   name: string;
@@ -21,7 +25,7 @@ interface Booking {
   phone: string;
   start_time: string;
   end_time: string;
-  price: number;
+
   players: number;
   status: string;
   assigned_station_id: string;
@@ -69,6 +73,7 @@ function SortableZone({ id, children, isReordering, isPinned, togglePin }: { id:
 const Dashboard = () => {
   const navigate = useNavigate();
   const { activeProperty } = useProperty();
+  const propertyFilter = usePropertyFilter();
   const [stats, setStats] = useState({
     activePlayers: 0,
     todayRevenue: 0,
@@ -92,6 +97,7 @@ const Dashboard = () => {
   const [pinnedZones, setPinnedZones] = useLocalStorage<string[]>('gamez_dashboard_pinned_zones', []);
   const [customZoneOrder, setCustomZoneOrder] = useLocalStorage<string[]>('gamez_dashboard_custom_order', []);
   const [isReordering, setIsReordering] = useState(false);
+  const [sessionToEnd, setSessionToEnd] = useState<{ bookingId: string, mode: string } | null>(null);
   
   // Grid View States
   const [gridStatusFilter, setGridStatusFilter] = useLocalStorage<string>('gamez_dashboard_grid_status', 'all');
@@ -151,9 +157,9 @@ const Dashboard = () => {
         upcomingData
       ] = await Promise.all([
         pb.collection('stations').getFullList({ sort: '+station_number', filter: propertyFilter, expand: 'station_type', requestKey: null }),
-        pb.collection('bookings').getFullList({ filter: `${propertyFilter} && start_time >= "${todayStartStr}" && start_time <= "${todayEndStr}" && status != "cancelled"`, requestKey: null }),
-        pb.collection('bookings').getFullList({ filter: `${propertyFilter} && start_time <= "${nowStr}" && end_time >= "${nowStr}" && status != "cancelled" && status != "completed"`, requestKey: null }),
-        pb.collection('bookings').getList(1, 1, { filter: `${propertyFilter} && start_time > "${nowStr}" && start_time <= "${todayEndStr}" && status != "cancelled"`, requestKey: null })
+        pb.collection('bookings').getFullList({ filter: propertyFilter ? `(${propertyFilter}) && start_time >= "${todayStartStr}" && start_time <= "${todayEndStr}" && status != "cancelled"` : `start_time >= "${todayStartStr}" && start_time <= "${todayEndStr}" && status != "cancelled"`, requestKey: null }),
+        pb.collection('bookings').getFullList({ filter: propertyFilter ? `(${propertyFilter}) && start_time <= "${nowStr}" && end_time >= "${nowStr}" && status != "cancelled" && status != "completed"` : `start_time <= "${nowStr}" && end_time >= "${nowStr}" && status != "cancelled" && status != "completed"`, requestKey: null }),
+        pb.collection('bookings').getList(1, 1, { filter: propertyFilter ? `(${propertyFilter}) && start_time > "${nowStr}" && start_time <= "${todayEndStr}" && status != "cancelled"` : `start_time > "${nowStr}" && start_time <= "${todayEndStr}" && status != "cancelled"`, requestKey: null })
       ]);
 
       const todayRevenue = todayBookingsData.reduce((sum, b) => sum + (b.total_price || 0), 0);
@@ -366,16 +372,6 @@ const Dashboard = () => {
 
   const extendSession = async (bookingId: string, minutes: number) => {
     try {
-      if (bookingId.startsWith('mock_')) {
-        const b = activeBookings[bookingId];
-        const newEnd = new Date(new Date(b.end_time).getTime() + minutes * 60000).toISOString();
-        setActiveBookings({...activeBookings, [bookingId]: {...b, end_time: newEnd}});
-        if (selectedSession && selectedSession.booking.id === bookingId) {
-            setSelectedSession({...selectedSession, booking: {...selectedSession.booking, end_time: newEnd}});
-        }
-        return;
-      }
-      
       const record = await pb.collection('bookings').getOne(bookingId);
       const newEnd = new Date(new Date(record.end_time).getTime() + minutes * 60000).toISOString();
       await pb.collection('bookings').update(bookingId, { end_time: newEnd });
@@ -390,25 +386,18 @@ const Dashboard = () => {
     }
   };
 
-  const endSession = async (bookingId: string, mode: string) => {
-    if (!window.confirm("Are you sure you want to collect payment and end this session?")) return;
+  const confirmEndSession = async () => {
+    if (!sessionToEnd) return;
+    const { bookingId, mode } = sessionToEnd;
     try {
-      if (bookingId.startsWith('mock_')) {
-        const newMap = {...activeBookings};
-        delete newMap[bookingId];
-        setActiveBookings(newMap);
-        setSelectedSession(null);
-        return;
-      }
       
       const record = await pb.collection('bookings').getOne(bookingId);
       
-      let finalPrice = record.price || 0;
+      let finalPrice = record.total_price || 0;
       if (record.booking_reference?.startsWith('OT-')) {
          const station = stations.find(s => s.id === record.assigned_station_id);
          if (station) {
-            const elapsedMins = Math.floor((new Date().getTime() - new Date(record.start_time).getTime()) / 60000);
-            finalPrice = (elapsedMins / 60) * station.price_per_hour;
+            finalPrice = calculateOpenTimerCost(record.start_time, station.price_per_hour, new Date());
          }
       }
 
@@ -418,7 +407,7 @@ const Dashboard = () => {
         payment_mode: mode,
         payment_status: 'paid',
         amount_paid: finalPrice,
-        price: finalPrice
+        total_price: finalPrice
       };
 
       await pb.collection('bookings').update(bookingId, updateData);
@@ -440,11 +429,17 @@ const Dashboard = () => {
       await pb.collection('stations').update(record.assigned_station_id, { status: 'available' });
 
       setSelectedSession(null);
+      setSessionToEnd(null);
       fetchDashboardData();
+      toast({ title: 'Session Ended', description: 'Payment collected successfully.' });
     } catch(e) {
       console.error(e);
-      alert("Failed to end session");
+      toast({ title: 'Error', description: 'Failed to end session', variant: 'destructive' });
     }
+  };
+
+  const endSession = (bookingId: string, mode: string) => {
+    setSessionToEnd({ bookingId, mode });
   };
 
   const handleStationClick = (station: Station, activeBooking?: Booking) => {
@@ -551,13 +546,18 @@ const Dashboard = () => {
           {activeBooking ? (
             <div className="space-y-3">
               <div>
-                <div className={`font-bold truncate text-sm ${textColor}`}>
-                  {activeBooking.name || 'Walk-in Player'}
+                <div className={`font-bold truncate text-sm flex items-center ${textColor}`}>
+                  {activeBooking.name || (activeBooking.source === 'website' ? 'Online Customer' : 'Walk-in Player')}
+                  {activeBooking.source === 'website' && (
+                    <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-purple-100 text-purple-700 border border-purple-200">
+                      Website
+                    </span>
+                  )}
                 </div>
                 <div className={`flex flex-wrap items-center text-xs mt-1 ${mutedColor}`}>
                   {isOpenTimer ? (() => {
                      const elapsedMins = Math.floor((currentTime.getTime() - new Date(activeBooking.start_time).getTime()) / 60000);
-                     const currentCost = (elapsedMins / 60) * (station.price_per_hour || 0);
+                     const currentCost = calculateOpenTimerCost(activeBooking.start_time, station.price_per_hour || 0, currentTime);
                      const hrs = Math.floor(elapsedMins / 60);
                      const mins = elapsedMins % 60;
                      const timeStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
@@ -618,8 +618,23 @@ const Dashboard = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-12">
+      <AlertDialog open={!!sessionToEnd} onOpenChange={(open) => !open && setSessionToEnd(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>End Session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to collect payment and end this session? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmEndSession} className="bg-primary text-primary-foreground">Confirm & End</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Live floor</h1>
           <p className="text-muted-foreground mt-1">Real-time monitoring for {activeProperty?.name || 'your gaming cafe'}</p>
@@ -876,10 +891,9 @@ const Dashboard = () => {
             const { station, booking } = selectedSession;
             const isOpenTimer = booking.booking_reference?.startsWith('OT-') || false;
             
-            const elapsedMins = Math.floor((currentTime.getTime() - new Date(booking.start_time).getTime()) / 60000);
-            let runningCost = booking.price || 0;
+            let runningCost = booking.total_price || 0;
             if (isOpenTimer) {
-                runningCost = (elapsedMins / 60) * (station.price_per_hour || 0);
+                runningCost = calculateOpenTimerCost(booking.start_time, station.price_per_hour || 0, currentTime);
             }
 
             const remainingMins = Math.floor((new Date(booking.end_time).getTime() - currentTime.getTime()) / 60000);
