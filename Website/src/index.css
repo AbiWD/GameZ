@@ -1,0 +1,163 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Premium Cyber Theme Palette */
+  --color-cyber-purple: #8b5cf6;
+  --color-cyber-dark: #08070d;
+  --color-cyber-gray: #12101e;
+  --color-cyber-lightgray: #1b182e;
+  --color-cyber-neon: #10b981;
+  --color-cyber-cyan: #06b6d4;
+  --color-cyber-pink: #f43f5e;
+}
+
+/* Custom global overrides for smooth scrolling and clean styling */
+html {
+  scroll-behavior: smooth;
+  background-color: var(--color-cyber-dark);
+  color: #f3f4f6;
+  font-family: var(--font-sans);
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar to match the futuristic theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-cyber-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-cyber-lightgray);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-cyber-purple);
+}
+
+/* Selection colors */
+::selection {
+  background-color: var(--color-cyber-purple);
+  color: #ffffff;
+}
+
+/* Premium gaming CTA animations */
+@keyframes borderPulse {
+  0% {
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15), 0 0 0 0px rgba(139, 92, 246, 0.7);
+  }
+  100% {
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15), 0 0 0 8px rgba(139, 92, 246, 0);
+  }
+}
+
+@keyframes borderPulseCompact {
+  0% {
+    box-shadow: 0 4px 10px rgba(139, 92, 246, 0.1), 0 0 0 0px rgba(139, 92, 246, 0.7);
+  }
+  100% {
+    box-shadow: 0 4px 10px rgba(139, 92, 246, 0.1), 0 0 0 6px rgba(139, 92, 246, 0);
+  }
+}
+
+@keyframes scrollLeft {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scrollRight {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.animate-scroll-left {
+  animation: scrollLeft 45s linear infinite;
+}
+
+.animate-scroll-right {
+  animation: scrollRight 45s linear infinite;
+}
+
+.pause-on-hover:hover .animate-scroll-left,
+.pause-on-hover:hover .animate-scroll-right {
+  animation-play-state: paused;
+}
+
+.animate-cta-glow {
+  animation: borderPulse 2s infinite ease-out;
+}
+
+.animate-cta-glow-compact {
+  animation: borderPulseCompact 2s infinite ease-out;
+}
+
+/* React Day Picker v10 Overrides for Cyberpunk Theme */
+.custom-rdp {
+  --rdp-accent-color: var(--color-cyber-purple);
+  --rdp-background-color: transparent;
+  --rdp-day_button-border-radius: 8px;
+  --rdp-selected-font: bold;
+}
+
+.custom-rdp .rdp-day_today:not(.rdp-day_selected) {
+  background-color: var(--color-cyber-cyan) !important;
+  color: var(--color-cyber-dark) !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 15px rgba(34, 211, 238, 0.6) !important;
+  border-radius: 8px !important;
+}
+
+.custom-rdp .rdp-day_selected {
+  background-color: var(--color-cyber-purple) !important;
+  color: white !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.6) !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.custom-rdp .rdp-day_button:hover:not(.rdp-day_disabled):not(.rdp-day_selected):not(.rdp-day_today) {
+  background-color: rgba(139, 92, 246, 0.2) !important;
+  border-radius: 8px !important;
+}
+
+.custom-rdp .rdp-day_disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+}
+
+.custom-rdp .rdp-nav_button {
+  border-radius: 8px !important;
+}
+
+.custom-rdp .rdp-nav_button:hover {
+  background-color: rgba(139, 92, 246, 0.2) !important;
+  color: var(--color-cyber-purple) !important;
+}
+
+.custom-rdp .rdp-caption_label {
+  color: var(--color-cyber-cyan);
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}

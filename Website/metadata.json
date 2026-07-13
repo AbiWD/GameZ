@@ -1,0 +1,6 @@
+{
+  "name": "GameZ Gaming Cafe",
+  "description": "Premium gaming cafe in Mangaluru featuring PS5, Carrom, and Snooker stations, with real-time online reservations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
