@@ -23,7 +23,6 @@ import {
   AlertTriangle,
   UserCheck
 } from 'lucide-react';
-import { STATIONS } from '../data';
 import { Station, Booking } from '../types';
 import { useAuthAndBooking } from '../context/AuthAndBookingContext';
 import { AuthModal } from '../components/AuthModal';
@@ -39,13 +38,13 @@ interface BookProps {
 }
 
 export default function Book({ setRoute }: BookProps) {
-  const { currentUser, createBooking, checkSlotConflict } = useAuthAndBooking();
+  const { currentUser, createBooking, checkSlotConflict, dynamicPricing, stationTypes } = useAuthAndBooking();
   
   // Wizard steps: 1 = Choose Station, 2 = Date & Time, 3 = Info / Auth, 4 = Held Countdown, 5 = Confirmed Receipt
   const [step, setStep] = useState<number>(1);
   
   // Form States
-  const [selectedStation, setSelectedStation] = useState<Station | null>(null);
+  const [selectedStation, setSelectedStation] = useState<any | null>(null);
   const [bookingDate, setBookingDate] = useState<string>('');
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
   const [startTime, setStartTime] = useState<string>('');
@@ -136,7 +135,7 @@ export default function Book({ setRoute }: BookProps) {
   };
 
   // Handle Action Click triggers
-  const handleStationSelect = (station: Station) => {
+  const handleStationSelect = (station: any) => {
     setSelectedStation(station);
     setStep(2);
   };
@@ -210,7 +209,7 @@ export default function Book({ setRoute }: BookProps) {
         bookingDate,
         startTime,
         durationHours,
-        totalPrice: selectedStation.ratePerHour * durationHours
+        totalPrice: (dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour) * durationHours
       };
 
       const res = await createBooking(bookingData);
@@ -294,7 +293,7 @@ export default function Book({ setRoute }: BookProps) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                  {STATIONS.map((station) => {
+                  {stationTypes.map((station) => {
                     const IconComp = ICON_COMPONENTS[station.iconName] || Gamepad2;
                     
                     return (
@@ -310,7 +309,7 @@ export default function Book({ setRoute }: BookProps) {
                               <IconComp className="h-5 w-5" />
                             </div>
                             <span className="font-mono text-lg font-extrabold text-cyber-neon">
-                              ₹{station.ratePerHour}<span className="text-[10px] text-gray-500 font-sans font-normal">/hr</span>
+                              ₹{dynamicPricing.hourlyRates[station.name] || station.ratePerHour}<span className="text-[10px] text-gray-500 font-sans font-normal">/hr</span>
                             </span>
                           </div>
                           <div>
@@ -362,7 +361,7 @@ export default function Book({ setRoute }: BookProps) {
                   </button>
                   <div>
                     <span className="font-mono text-xs text-cyber-purple uppercase font-bold tracking-widest block">
-                      {selectedStation.name} Rate: ₹{selectedStation.ratePerHour}/hr
+                      {selectedStation.name} Rate: ₹{dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour}/hr
                     </span>
                     <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-white">Choose Play Schedule</h1>
                   </div>
@@ -456,11 +455,11 @@ export default function Book({ setRoute }: BookProps) {
                         <span className="block text-[10px] font-mono uppercase text-gray-500 font-semibold">Rate Calculation</span>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-400">Station Rate ({durationHours}h)</span>
-                          <span className="text-white font-mono">₹{selectedStation.ratePerHour} × {durationHours}</span>
+                          <span className="text-white font-mono">₹{dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour} × {durationHours}</span>
                         </div>
                         <div className="border-t border-white/5 pt-3 flex items-center justify-between font-bold">
                           <span className="text-white font-display">Estimated Total</span>
-                          <span className="text-cyber-neon font-mono text-lg">₹{selectedStation.ratePerHour * durationHours}</span>
+                          <span className="text-cyber-neon font-mono text-lg">₹{(dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour) * durationHours}</span>
                         </div>
                       </div>
 
@@ -730,12 +729,12 @@ export default function Book({ setRoute }: BookProps) {
 
                           <div className="pt-4 border-t border-white/5 flex items-center justify-between text-xs">
                             <span className="text-gray-400">Session Rate</span>
-                            <span className="text-white font-mono">₹{selectedStation.ratePerHour}/hr</span>
+                            <span className="text-white font-mono">₹{dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour}/hr</span>
                           </div>
 
                           <div className="flex items-center justify-between text-sm font-bold text-cyber-neon border-t border-white/5 pt-2">
                             <span>Total Owed</span>
-                            <span className="font-mono text-lg">₹{selectedStation.ratePerHour * durationHours}</span>
+                            <span className="font-mono text-lg">₹{(dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour) * durationHours}</span>
                           </div>
                         </div>
 

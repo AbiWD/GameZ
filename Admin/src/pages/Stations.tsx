@@ -324,9 +324,9 @@ const Stations = () => {
         <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
-              Stations & Property Manager
+              Game Categories & Units
             </h1>
-            <p className="text-muted-foreground mt-1">Manage physical station inventory and pricing tiers</p>
+            <p className="text-muted-foreground mt-1">Manage your game categories, their pricing, and individual physical units.</p>
           </div>
         </div>
 
@@ -334,11 +334,11 @@ const Stations = () => {
           <TabsList className="bg-secondary/50 border border-border flex w-full overflow-x-auto whitespace-nowrap scrollbar-hide justify-start h-auto rounded-2xl p-1">
             <TabsTrigger value="inventory" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-xl py-2 px-4">
               <ConsoleIcon className="w-4 h-4 mr-2" />
-              Station Inventory
+              Individual Units
             </TabsTrigger>
             <TabsTrigger value="types" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-xl py-2 px-4">
               <Settings2 className="w-4 h-4 mr-2" />
-              Manage Station Types
+              Game Categories
             </TabsTrigger>
           </TabsList>
 
@@ -352,32 +352,32 @@ const Stations = () => {
                 <DialogTrigger asChild>
                   <Button className="rounded-xl px-6 font-semibold">
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Station
+                    Add Unit
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="w-[95vw] sm:max-w-md bg-card border border-border rounded-3xl p-6 shadow-2xl">
                   <DialogHeader className="mb-2">
-                    <DialogTitle className="text-xl font-bold text-foreground text-center">{editingStation ? 'Edit Station' : 'Add New Station'}</DialogTitle>
+                    <DialogTitle className="text-xl font-bold text-foreground text-center">{editingStation ? 'Edit Unit' : 'Add New Unit'}</DialogTitle>
                     <DialogDescription className="text-center text-muted-foreground">
-                      {editingStation ? 'Update station details' : 'Add a new station to your inventory'}
+                      {editingStation ? 'Update unit details' : 'Add a new unit to your inventory'}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="bg-secondary/30 border border-border rounded-2xl p-5 shadow-sm">
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-1">
-                      <Label htmlFor="station_number" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Station Number</Label>
+                      <Label htmlFor="station_number" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Unit Number / Name</Label>
                       <Input
                         id="station_number"
                         value={formData.station_number}
                         onChange={(e) => setFormData({ ...formData, station_number: e.target.value })}
-                        placeholder="e.g., 101"
+                        placeholder="e.g., PS5-101"
                         required
                         className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <Label htmlFor="station_type" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Station Type</Label>
+                      <Label htmlFor="station_type" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Game Category</Label>
                       <Select
                         value={formData.station_type}
                         onValueChange={(value) => {
@@ -391,7 +391,7 @@ const Stations = () => {
                         }}
                       >
                         <SelectTrigger className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12">
-                          <SelectValue placeholder="Select type" />
+                          <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl border-border shadow-lg">
                           {stationTypes.map(type => (
@@ -400,7 +400,7 @@ const Stations = () => {
                         </SelectContent>
                       </Select>
                       {stationTypes.length === 0 && (
-                        <p className="text-xs text-destructive mt-1">Please add a Station Type in the other tab first!</p>
+                        <p className="text-xs text-destructive mt-1">Please add a Game Category in the other tab first!</p>
                       )}
                     </div>
 
@@ -459,9 +459,9 @@ const Stations = () => {
                             </AlertDialogTrigger>
                             <AlertDialogContent className="rounded-3xl border border-border bg-card">
                               <AlertDialogHeader>
-                                <AlertDialogTitle className="text-foreground">Delete Station</AlertDialogTitle>
+                                <AlertDialogTitle className="text-foreground">Delete Unit</AlertDialogTitle>
                                 <AlertDialogDescription className="text-muted-foreground">
-                                  Are you sure you want to delete station {editingStation.station_number}? This action cannot be undone.
+                                  Are you sure you want to delete unit {editingStation.station_number}? This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -480,7 +480,7 @@ const Stations = () => {
                           Cancel
                         </Button>
                         <Button type="submit" className="rounded-xl font-semibold" disabled={stationTypes.length === 0}>
-                          {editingStation ? 'Update' : 'Add'} Station
+                          {editingStation ? 'Update' : 'Add'} Unit
                         </Button>
                       </div>
                     </div>
@@ -491,7 +491,7 @@ const Stations = () => {
             </div>
             
             <div>
-              <h2 className="text-xl font-bold mb-4 text-foreground">Station Type Inventory</h2>
+              <h2 className="text-xl font-bold mb-4 text-foreground">Category Inventory Summary</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {getStationTypeSummary().map((summary, index) => {
                   return (
@@ -503,7 +503,7 @@ const Stations = () => {
                       </div>
                       <div className="space-y-4 relative z-10">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-foreground font-medium">Total Stations</span>
+                          <span className="text-sm text-foreground font-medium">Total Units</span>
                           <span className="text-3xl font-bold tracking-tight text-foreground">
                             {summary.total}
                           </span>
@@ -530,14 +530,14 @@ const Stations = () => {
                 })}
                 {stationTypes.length === 0 && !loadingTypes && (
                   <div className="col-span-full p-8 border-2 border-dashed border-border rounded-2xl text-center text-muted-foreground">
-                    No Station Types Found. Please go to the "Manage Station Types" tab to set some up.
+                    No Game Categories Found. Please go to the "Game Categories" tab to set some up.
                   </div>
                 )}
               </div>
             </div>
 
             <div>
-              <h2 className="text-xl font-bold mb-4 text-foreground mt-8">Overall Status</h2>
+              <h2 className="text-xl font-bold mb-4 text-foreground mt-8">Overall Unit Status</h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {STATION_STATUS.map(status => {
                   const count = allStations.filter(r => r.status === status).length;
@@ -555,7 +555,7 @@ const Stations = () => {
 
             <div className="bg-card border border-border rounded-2xl md:rounded-3xl p-4 lg:p-8 shadow-sm w-full mx-auto overflow-hidden">
               <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-foreground">All Stations</h2>
+                <h2 className="text-2xl font-bold text-foreground">All Units</h2>
                 <div className="flex items-center gap-4">
                   {/* Pagination Controls */}
                   {totalPages > 1 && (
@@ -583,7 +583,7 @@ const Stations = () => {
                       </Button>
                     </div>
                   )}
-                  <p className="text-sm text-muted-foreground hidden md:block">Manage station inventory</p>
+                  <p className="text-sm text-muted-foreground hidden md:block">Manage unit inventory</p>
                 </div>
               </div>
               
@@ -593,15 +593,15 @@ const Stations = () => {
                 ) : stations.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <DoorOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>{allStations.length > 0 ? 'No stations on this page' : 'No stations added yet'}</p>
+                    <p>{allStations.length > 0 ? 'No units on this page' : 'No units added yet'}</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto w-full">
                     <Table className="w-full min-w-max">
                     <TableHeader className="bg-secondary/50 border-b border-border">
                       <TableRow className="border-b-0 hover:bg-transparent">
-                        <TableHead className="h-10 px-3 sm:px-4 md:px-6 text-xs sm:text-sm font-semibold text-muted-foreground whitespace-nowrap">Station No.</TableHead>
-                        <TableHead className="h-10 px-2 sm:px-3 md:px-6 text-xs sm:text-sm font-semibold text-muted-foreground whitespace-nowrap">Station Type</TableHead>
+                        <TableHead className="h-10 px-3 sm:px-4 md:px-6 text-xs sm:text-sm font-semibold text-muted-foreground whitespace-nowrap">Unit No.</TableHead>
+                        <TableHead className="h-10 px-2 sm:px-3 md:px-6 text-xs sm:text-sm font-semibold text-muted-foreground whitespace-nowrap">Category</TableHead>
                         <TableHead className="h-10 px-2 sm:px-3 md:px-6 text-xs sm:text-sm font-semibold text-muted-foreground whitespace-nowrap">Status</TableHead>
                         <TableHead className="h-10 px-3 sm:px-4 md:px-6 text-xs sm:text-sm font-semibold text-muted-foreground whitespace-nowrap hidden md:table-cell">Price/Hour</TableHead>
                         <TableHead className="h-10 px-3 sm:px-4 md:px-6 text-xs sm:text-sm font-semibold text-muted-foreground whitespace-nowrap hidden md:table-cell">Players</TableHead>
@@ -657,9 +657,9 @@ const Stations = () => {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent className="rounded-3xl border border-border bg-card">
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle className="text-foreground">Delete Station</AlertDialogTitle>
+                                    <AlertDialogTitle className="text-foreground">Delete Unit</AlertDialogTitle>
                                     <AlertDialogDescription className="text-muted-foreground">
-                                      Are you sure you want to delete station {station.station_number}? This action cannot be undone.
+                                      Are you sure you want to delete unit {station.station_number}? This action cannot be undone.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
@@ -687,8 +687,8 @@ const Stations = () => {
              <div className="bg-card border border-border rounded-2xl md:rounded-3xl p-4 lg:p-8 shadow-sm">
               <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground">Station Categories</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Configure your station types, base pricing, and maximum occupancy limits</p>
+                  <h2 className="text-2xl font-bold text-foreground">Game Categories</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Configure your game categories, set their hourly rates, and define player limits.</p>
                 </div>
                 <Dialog open={typeDialogOpen} onOpenChange={(open) => {
                   setTypeDialogOpen(open);
@@ -697,181 +697,53 @@ const Stations = () => {
                   <DialogTrigger asChild>
                     <Button className="rounded-xl px-6 font-semibold">
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Station Type
+                      Add Game Category
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-card border border-border rounded-3xl p-6 shadow-2xl">
                     <DialogHeader className="mb-2">
-                      <DialogTitle className="text-xl font-bold text-foreground text-center">{editingType ? 'Edit Station Type' : 'Add New Station Type'}</DialogTitle>
+                      <DialogTitle className="text-xl font-bold text-foreground text-center">{editingType ? 'Edit Game Category' : 'Add New Game Category'}</DialogTitle>
                       <DialogDescription className="text-center text-muted-foreground">
-                        {editingType ? 'Update base configuration' : 'Create a new category for physical stations'}
+                        {editingType ? 'Update base pricing and capacity' : 'Create a new pricing category for physical units'}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="bg-secondary/30 rounded-2xl p-5 border border-border">
                     <form onSubmit={handleTypeSubmit} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-4">
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <Label htmlFor="type_name" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Category Name</Label>
+                          <Input
+                            id="type_name"
+                            value={typeFormData.name}
+                            onChange={(e) => setTypeFormData({ ...typeFormData, name: e.target.value })}
+                            placeholder="e.g. PS5 Lounge, 8 Balls Pool, Snooker"
+                            required
+                            className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1">
-                            <Label htmlFor="type_name" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Type Name</Label>
+                            <Label htmlFor="base_price" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Price per Hour (₹)</Label>
                             <Input
-                              id="type_name"
-                              value={typeFormData.name}
-                              onChange={(e) => setTypeFormData({ ...typeFormData, name: e.target.value })}
-                              placeholder="e.g. PS5 Console AC Station"
+                              id="base_price"
+                              type="number"
+                              value={typeFormData.base_price}
+                              onChange={(e) => setTypeFormData({ ...typeFormData, base_price: parseInt(e.target.value) || 0 })}
                               required
                               className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
                             />
                           </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                              <Label htmlFor="base_price" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Price per Hour (₹)</Label>
-                              <Input
-                                id="base_price"
-                                type="number"
-                                value={typeFormData.base_price}
-                                onChange={(e) => setTypeFormData({ ...typeFormData, base_price: parseInt(e.target.value) || 0 })}
-                                required
-                                className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label htmlFor="default_occupancy" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Default Players</Label>
-                              <Input
-                                id="default_occupancy"
-                                type="number"
-                                value={typeFormData.max_players}
-                                onChange={(e) => setTypeFormData({ ...typeFormData, max_players: parseInt(e.target.value) || 0 })}
-                                required
-                                className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
-                              />
-                            </div>
-                          </div>
-
                           <div className="space-y-1">
-                            <Label htmlFor="specs" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Equipment Specs</Label>
+                            <Label htmlFor="default_occupancy" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Default Players</Label>
                             <Input
-                              id="specs"
-                              value={typeFormData.specs}
-                              onChange={(e) => setTypeFormData({ ...typeFormData, specs: e.target.value })}
-                              placeholder="e.g. Standard PC"
+                              id="default_occupancy"
+                              type="number"
+                              value={typeFormData.max_players}
+                              onChange={(e) => setTypeFormData({ ...typeFormData, max_players: parseInt(e.target.value) || 0 })}
+                              required
                               className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
                             />
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <Label htmlFor="description" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Short Description</Label>
-                            <textarea
-                              id="description"
-                              className="flex min-h-[80px] w-full rounded-xl border border-border bg-secondary/50 px-3 py-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:bg-background disabled:cursor-not-allowed disabled:opacity-50 transition-all font-medium text-foreground"
-                              value={typeFormData.description}
-                              onChange={(e) => setTypeFormData({ ...typeFormData, description: e.target.value })}
-                              placeholder="e.g. Cozy single station with natural ventilation and peaceful ambiance."
-                            />
-                          </div>
-
-                          <div className="flex items-center gap-2 pt-2">
-                            <Switch id="is_popular" checked={typeFormData.is_popular} onCheckedChange={(c) => setTypeFormData({...typeFormData, is_popular: c})} />
-                            <Label htmlFor="is_popular" className="cursor-pointer text-sm font-medium">Mark as "Popular" (Shows Badge)</Label>
-                          </div>
-                        </div>
-
-                        <div className="space-y-6">
-                          <div>
-                            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Station Image</Label>
-                            <div className="mt-2 flex flex-col items-center gap-2 border-2 border-dashed border-border rounded-xl p-4 bg-secondary/30 relative overflow-hidden group">
-                              {typeFormData.imagePreview && !typeFormData.imageFile ? (
-                                <img src={typeFormData.imagePreview} alt="Preview" className="w-full h-32 object-cover rounded-md" />
-                              ) : (
-                                <ImageIcon className="w-12 h-12 text-muted-foreground opacity-30 mt-2" />
-                              )}
-                              <Input 
-                                type="file" 
-                                accept="image/*" 
-                                className="w-full text-xs absolute inset-0 opacity-0 cursor-pointer"
-                                onChange={(e) => {
-                                  if (e.target.files && e.target.files.length > 0) {
-                                    setTypeFormData({ ...typeFormData, imageFile: e.target.files[0] });
-                                  }
-                                }}
-                              />
-                               <span className="text-xs font-semibold text-muted-foreground bg-background/80 px-2 py-1 rounded-md z-10 pointer-events-none group-hover:text-foreground transition-colors mt-2">{typeFormData.imageFile ? typeFormData.imageFile.name : 'Click or drop to upload'}</span>
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="flex justify-between items-center mb-2 border-b border-border pb-2">
-                              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Features</Label>
-                              <Button type="button" variant="outline" size="sm" className="h-6 text-xs px-2 rounded-md" onClick={() => setTypeFormData({...typeFormData, features: [...typeFormData.features, 'New Feature']})}>
-                                <Plus className="w-3 h-3 mr-1" /> Add
-                              </Button>
-                            </div>
-                            <div className="space-y-2 max-h-28 overflow-y-auto pr-1">
-                              {typeFormData.features.map((feat, idx) => (
-                                <div key={idx} className="flex gap-2">
-                                  <Input 
-                                    value={feat}
-                                    className="h-8 text-xs rounded-md border-border bg-secondary/50 focus-visible:bg-background"
-                                    onChange={(e) => {
-                                      const newF = [...typeFormData.features];
-                                      newF[idx] = e.target.value;
-                                      setTypeFormData({...typeFormData, features: newF});
-                                    }}
-                                  />
-                                  <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => {
-                                    const newF = [...typeFormData.features];
-                                    newF.splice(idx, 1);
-                                    setTypeFormData({...typeFormData, features: newF});
-                                  }}>
-                                    <X className="w-3 h-3" />
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="flex justify-between items-center mb-2 border-b border-border pb-2">
-                              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Amenities (Icons)</Label>
-                              <Button type="button" variant="outline" size="sm" className="h-6 text-xs px-2 rounded-md" onClick={() => setTypeFormData({...typeFormData, amenities: [...typeFormData.amenities, 'Wifi']})}>
-                                <Plus className="w-3 h-3 mr-1" /> Add
-                              </Button>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {typeFormData.amenities.map((amenity, idx) => {
-                                const IconComp = (LucideIcons as any)[amenity] || LucideIcons.Star;
-                                return (
-                                  <div key={idx} className="flex items-center gap-1 bg-secondary border border-border px-2 py-1.5 rounded-full text-xs shadow-sm">
-                                    <Select 
-                                      value={amenity}
-                                      onValueChange={(val) => {
-                                        const newA = [...typeFormData.amenities];
-                                        newA[idx] = val;
-                                        setTypeFormData({...typeFormData, amenities: newA});
-                                      }}
-                                    >
-                                      <SelectTrigger className="h-5 w-5 p-0 border-none bg-transparent shadow-none [&>svg]:hidden text-foreground">
-                                        <SelectValue>
-                                          <IconComp className="w-3.5 h-3.5" />
-                                        </SelectValue>
-                                      </SelectTrigger>
-                                      <SelectContent className="rounded-xl border-border shadow-lg min-w-[120px]">
-                                        {AVAILABLE_ICONS.map(i => (
-                                          <SelectItem key={i} value={i} className="text-xs">{i}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <button type="button" className="text-destructive opacity-70 hover:opacity-100 ml-1 transition-opacity" onClick={() => {
-                                      const newA = [...typeFormData.amenities];
-                                      newA.splice(idx, 1);
-                                      setTypeFormData({...typeFormData, amenities: newA});
-                                    }}>
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                );
-                              })}
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -887,9 +759,9 @@ const Stations = () => {
                               </AlertDialogTrigger>
                               <AlertDialogContent className="rounded-3xl border border-border bg-card">
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle className="text-foreground">Delete Station Type</AlertDialogTitle>
+                                  <AlertDialogTitle className="text-foreground">Delete Game Category</AlertDialogTitle>
                                   <AlertDialogDescription className="text-muted-foreground">
-                                    Are you sure you want to delete the "{editingType.name}" type? Physical stations assigned to this type will not be deleted, but it may cause display issues.
+                                    Are you sure you want to delete the "{editingType.name}" category? Physical units assigned to this category will not be deleted, but it may cause display issues.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>

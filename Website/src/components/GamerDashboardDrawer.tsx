@@ -19,7 +19,7 @@ import {
   Zap
 } from 'lucide-react';
 import { useAuthAndBooking, parseTimeToDecimal, formatDecimalToTime } from '../context/AuthAndBookingContext';
-import { STATIONS } from '../data';
+
 
 interface GamerDashboardDrawerProps {
   isOpen: boolean;
@@ -32,7 +32,7 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
   onClose,
   setRoute
 }) => {
-  const { currentUser, bookings, logout, cancelBooking, extendBooking, checkSlotConflict } = useAuthAndBooking();
+  const { currentUser, bookings, logout, cancelBooking, extendBooking, checkSlotConflict, stationTypes } = useAuthAndBooking();
   const [activeTab, setActiveTab] = useState<'reservations' | 'profile'>('reservations');
   
   // Extension sub-states
@@ -52,12 +52,12 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
 
   // Helper to find the station info from its ID
   const getStationName = (stationId: string) => {
-    const s = STATIONS.find(x => x.id === stationId);
+    const s = stationTypes.find(x => x.id === stationId);
     return s ? s.name : 'Gaming Console';
   };
 
   const getStationRate = (stationId: string) => {
-    const s = STATIONS.find(x => x.id === stationId);
+    const s = stationTypes.find(x => x.id === stationId);
     return s ? s.ratePerHour : 100;
   };
 

@@ -5,14 +5,12 @@ import { Station, GameGenre, PricingTier, GalleryItem, Review } from './types';
  * V1 Implementation for Mangaluru Gaming Cafe
  */
 
-// 1. Live Station Types & Rates from Admin System
-// PocketBase Data Binding Note: These static objects match the active admin schema 
-// and will bind to pocketbase collection 'stations' in production V2.
+// 1. Static Presentation Data (Prices will be overridden by DB)
 export const STATIONS: Station[] = [
   {
     id: 'ps5-lounge',
     name: 'PlayStation 5 Lounge',
-    ratePerHour: 200,
+    ratePerHour: 200, // Fallback base price
     iconName: 'Gamepad2',
     description: 'Immersive next-gen gaming with DualSense controllers on 55" 4K 120Hz gaming screens and high-fidelity headsets.',
     features: [

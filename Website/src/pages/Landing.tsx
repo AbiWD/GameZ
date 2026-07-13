@@ -32,8 +32,9 @@ import {
   Plus,
   MessageSquare
 } from 'lucide-react';
-import { STATIONS, GAME_GENRES, PRICING_TIERS, GALLERY_ITEMS, SAMPLE_REVIEWS, VENUE_INFO } from '../data';
+import { GAME_GENRES, PRICING_TIERS, GALLERY_ITEMS, SAMPLE_REVIEWS, VENUE_INFO } from '../data';
 import { ExpandableGallery } from '../components/ExpandableGallery';
+import { useAuthAndBooking } from '../context/AuthAndBookingContext';
 
 // Dynamic Icon Mapper to keep imports safe and prevent runtime failures
 const ICON_COMPONENTS: Record<string, React.ComponentType<any>> = {
@@ -57,6 +58,7 @@ interface LandingProps {
 }
 
 export default function Landing({ setRoute }: LandingProps) {
+  const { dynamicPricing, stationTypes } = useAuthAndBooking();
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
@@ -381,7 +383,7 @@ export default function Landing({ setRoute }: LandingProps) {
           viewport={{ once: true, margin: '-100px' }}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
         >
-          {STATIONS.map((station) => {
+          {stationTypes.map((station) => {
             const IconComponent = ICON_COMPONENTS[station.iconName] || Gamepad2;
             
             return (
@@ -439,7 +441,7 @@ export default function Landing({ setRoute }: LandingProps) {
                     </h3>
                     <div className="text-right">
                       <span className="block font-mono text-xl font-bold text-cyber-neon">
-                        ₹{station.ratePerHour}
+                        ₹{dynamicPricing.hourlyRates[station.name] || station.ratePerHour}
                       </span>
                       <span className="block text-[10px] uppercase font-mono tracking-wider text-gray-500">
                         per hour
@@ -743,7 +745,7 @@ export default function Landing({ setRoute }: LandingProps) {
                     <div className="space-y-4">
                       <div className="flex items-baseline gap-1">
                         <span className="font-mono text-2xl sm:text-3xl font-black text-white">
-                          ₹{tier.price.toLocaleString('en-IN')}
+                          ₹{(dynamicPricing.tierPrices[tier.id] || tier.price).toLocaleString('en-IN')}
                         </span>
                         <span className="text-xs text-gray-400">
                           / {tier.period}

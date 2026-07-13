@@ -36,6 +36,8 @@ interface AuthAndBookingContextType {
   checkSlotConflict: (stationId: string, date: string, time: string, duration: number, ignoreBookingId?: string) => Promise<{ conflict: boolean; details?: string }>;
   dismissNotification: () => void;
   clearAllEmails: () => void;
+  dynamicPricing: { hourlyRates: Record<string, number>; tierPrices: Record<string, number> };
+  stationTypes: any[];
 }
 
 const AuthAndBookingContext = createContext<AuthAndBookingContextType | undefined>(undefined);
@@ -92,6 +94,10 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [emails, setEmails] = useState<SimulatedEmail[]>([]);
   const [activeNotification, setActiveNotification] = useState<SimulatedEmail | null>(null);
+  const [dynamicPricing, setDynamicPricing] = useState<{ hourlyRates: Record<string, number>; tierPrices: Record<string, number> }>({ hourlyRates: {}, tierPrices: {} });
+  const [stationTypes, setStationTypes] = useState<any[]>([]);
+  const [stTypesRaw, setStTypesRaw] = useState<any[]>([]);
+  const [pStationsRaw, setPStationsRaw] = useState<any[]>([]);
 
   const fetchBookings = async () => {
     try {
@@ -101,6 +107,61 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
       console.error('Failed to fetch bookings', e);
     }
   };
+
+  const fetchPricing = async () => {
+    try {
+      const pStations = await pb.collection('stations').getFullList({ filter: "status = 'active'" });
+      const tPrices = await pb.collection('tier_prices').getFullList();
+      const stTypes = await pb.collection('station_types').getFullList();
+      
+      setPStationsRaw(pStations);
+      setStTypesRaw(stTypes);
+      
+      const hourlyRates: Record<string, number> = {};
+      stTypes.forEach(st => {
+        hourlyRates[st.name] = st.base_price;
+      });
+      
+      const tierPrices: Record<string, number> = {};
+      tPrices.forEach(t => {
+        tierPrices[t.tier_id] = t.price;
+      });
+      
+      setDynamicPricing({ hourlyRates, tierPrices });
+    } catch (e) {
+      console.error('Failed to fetch pricing', e);
+    }
+  };
+
+  useEffect(() => {
+    if (stTypesRaw.length === 0) return;
+    
+    const now = new Date();
+    const currentBookings = bookings.filter(b => {
+      if (b.status !== 'confirmed') return false;
+      const bStart = new Date(b.bookingDate);
+      const bStartHour = parseTimeToDecimal(b.startTime);
+      bStart.setHours(Math.floor(bStartHour), (bStartHour % 1) * 60, 0, 0);
+      const bEnd = new Date(bStart.getTime() + b.durationHours * 3600000);
+      return bStart <= now && now < bEnd;
+    });
+
+    const enriched = STATIONS.map(staticStation => {
+      // Find dynamic type by matching name
+      const dynamicType = stTypesRaw.find(st => st.name === staticStation.name);
+      
+      const physical = pStationsRaw.filter(ps => ps.station_type === staticStation.name);
+      const bookedCount = currentBookings.filter(b => physical.some(ps => ps.id === b.stationId)).length;
+      
+      return {
+        ...staticStation,
+        ratePerHour: dynamicType ? dynamicType.base_price : staticStation.ratePerHour,
+        totalSlots: physical.length > 0 ? physical.length : staticStation.totalSlots,
+        availableNow: physical.length > 0 ? Math.max(0, physical.length - bookedCount) : staticStation.availableNow,
+      };
+    });
+    setStationTypes(enriched);
+  }, [bookings, stTypesRaw, pStationsRaw]);
 
   useEffect(() => {
     const storedEmails = localStorage.getItem('gz_emails');
@@ -117,6 +178,7 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
     }
 
     fetchBookings();
+    fetchPricing();
 
     const unsubscribeAuth = pb.authStore.onChange((token, model) => {
       if (model) {
@@ -229,8 +291,25 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
     const startHour1 = parseTimeToDecimal(time);
     const endHour1 = startHour1 + duration;
     
-    // Find category name from local static data
-    const categoryName = STATIONS.find(s => s.id === categoryId)?.name;
+    const reqStart = new Date(date);
+    reqStart.setHours(Math.floor(startHour1), (startHour1 % 1) * 60, 0, 0);
+    const reqEnd = new Date(reqStart.getTime() + duration * 3600000);
+
+    try {
+      const blackouts = await pb.collection('blackout_periods').getFullList();
+      for (const b of blackouts) {
+        const bStart = new Date(b.start_time);
+        const bEnd = new Date(b.end_time);
+        if (reqStart < bEnd && bStart < reqEnd) {
+          return { conflict: true, details: `Store is closed during this time: ${b.reason}` };
+        }
+      }
+    } catch(err) {
+      console.error('Failed to fetch blackouts', err);
+    }
+    
+    // Find category name from db
+    const categoryName = stTypesRaw.find(s => s.id === categoryId)?.name || categoryId;
     if (!categoryName) return { conflict: true, details: 'Invalid station category.' };
 
     // Fetch all physical stations of this type from the DB
@@ -384,6 +463,19 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
     const newEndDate = new Date(startDate.getTime() + newDuration * 3600000);
 
     try {
+      const blackouts = await pb.collection('blackout_periods').getFullList();
+      for (const b of blackouts) {
+        const bStart = new Date(b.start_time);
+        const bEnd = new Date(b.end_time);
+        if (startDate < bEnd && bStart < newEndDate) {
+          return { success: false, error: `Cannot extend. Store is closed during this time: ${b.reason}` };
+        }
+      }
+    } catch(err) {
+      console.error('Failed to fetch blackouts', err);
+    }
+
+    try {
       await pb.collection('bookings').update(bookingId, {
          end_time: newEndDate.toISOString(),
          total_price: newPrice
@@ -410,7 +502,7 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
         currentUser, users, bookings, emails, activeNotification,
         login, register, resetPassword, logout,
         createBooking, cancelBooking, extendBooking, checkSlotConflict,
-        dismissNotification, clearAllEmails
+        dismissNotification, clearAllEmails, dynamicPricing, stationTypes
       }}
     >
       {children}
