@@ -296,10 +296,10 @@ const Stations = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'available': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
-      case 'occupied': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20';
-      case 'maintenance': return 'bg-destructive/10 text-destructive border border-destructive/20';
-      default: return 'bg-secondary text-secondary-foreground border border-border';
+      case 'available': return 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20';
+      case 'occupied': return 'bg-amber-500 text-white shadow-md shadow-amber-500/20';
+      case 'maintenance': return 'bg-destructive text-white shadow-md shadow-destructive/20';
+      default: return 'bg-secondary text-secondary-foreground shadow-md';
     }
   };
 
@@ -311,7 +311,7 @@ const Stations = () => {
         type: type.name,
         base_price: type.base_price,
         total: typeStations.length,
-        available: typeStations.filter(r => r.status === 'available').length,
+        available: typeStations.filter(r => r.status === 'available' || r.status === 'active').length,
         occupied: typeStations.filter(r => r.status === 'occupied').length,
         maintenance: typeStations.filter(r => r.status === 'maintenance').length
       };
@@ -321,15 +321,32 @@ const Stations = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between mb-6">
+        <div className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-foreground">
               Game Categories & Units
             </h1>
             <p className="text-muted-foreground mt-1">Manage your game categories, their pricing, and individual physical units.</p>
           </div>
+          
+          <div className="bg-card border border-border rounded-xl p-4 shadow-sm w-full lg:w-auto">
+            <h3 className="text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">Overall Occupancy</h3>
+            <div className="flex items-center gap-4 sm:gap-6 text-sm font-semibold text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-sm bg-emerald-500"></div>
+                Available <strong className="text-foreground ml-1">{allStations.filter(r => r.status === 'available' || r.status === 'active').length}</strong>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-sm bg-amber-500"></div>
+                Occupied <strong className="text-foreground ml-1">{allStations.filter(r => r.status === 'occupied').length}</strong>
+              </span>
+              <span className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-sm bg-destructive"></div>
+                Maintenance <strong className="text-foreground ml-1">{allStations.filter(r => r.status === 'maintenance').length}</strong>
+              </span>
+            </div>
+          </div>
         </div>
-
         <Tabs defaultValue="inventory" className="w-full space-y-6">
           <TabsList className="bg-secondary/50 border border-border flex w-full overflow-x-auto whitespace-nowrap scrollbar-hide justify-start h-auto rounded-2xl p-1">
             <TabsTrigger value="inventory" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-xl py-2 px-4">
@@ -344,219 +361,76 @@ const Stations = () => {
 
           {/* INVENTORY TAB */}
           <TabsContent value="inventory" className="outline-none space-y-6 animate-in fade-in duration-500 fill-mode-forwards">
-             <div className="flex justify-end">
-              <Dialog open={dialogOpen} onOpenChange={(open) => {
-                setDialogOpen(open);
-                if (!open) resetForm();
-              }}>
-                <DialogTrigger asChild>
-                  <Button className="rounded-xl px-6 font-semibold">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Unit
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="w-[95vw] sm:max-w-md bg-card border border-border rounded-3xl p-6 shadow-2xl">
-                  <DialogHeader className="mb-2">
-                    <DialogTitle className="text-xl font-bold text-foreground text-center">{editingStation ? 'Edit Unit' : 'Add New Unit'}</DialogTitle>
-                    <DialogDescription className="text-center text-muted-foreground">
-                      {editingStation ? 'Update unit details' : 'Add a new unit to your inventory'}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="bg-secondary/30 border border-border rounded-2xl p-5 shadow-sm">
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-1">
-                      <Label htmlFor="station_number" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Unit Number / Name</Label>
-                      <Input
-                        id="station_number"
-                        value={formData.station_number}
-                        onChange={(e) => setFormData({ ...formData, station_number: e.target.value })}
-                        placeholder="e.g., PS5-101"
-                        required
-                        className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="station_type" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Game Category</Label>
-                      <Select
-                        value={formData.station_type}
-                        onValueChange={(value) => {
-                          const selectedType = stationTypes.find(t => t.name === value);
-                          setFormData({
-                            ...formData,
-                            station_type: value,
-                            price_per_hour: selectedType?.base_price || 1500,
-                            max_players: selectedType?.default_occupancy || 2
-                          });
-                        }}
-                      >
-                        <SelectTrigger className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12">
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl border-border shadow-lg">
-                          {stationTypes.map(type => (
-                            <SelectItem key={type.name} value={type.name}>{type.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {stationTypes.length === 0 && (
-                        <p className="text-xs text-destructive mt-1">Please add a Game Category in the other tab first!</p>
-                      )}
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</Label>
-                      <Select
-                        value={formData.status}
-                        onValueChange={(value) => setFormData({ ...formData, status: value })}
-                      >
-                        <SelectTrigger className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl border-border shadow-lg">
-                          {STATION_STATUS.map(status => (
-                            <SelectItem key={status} value={status}>
-                              {status.charAt(0).toUpperCase() + status.slice(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <Label htmlFor="price_per_hour" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Price per Hour (₹)</Label>
-                        <Input
-                          id="price_per_hour"
-                          type="number"
-                          value={formData.price_per_hour}
-                          onChange={(e) => setFormData({ ...formData, price_per_hour: parseInt(e.target.value) || 0 })}
-                          required
-                          className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label htmlFor="max_players" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Max Players</Label>
-                        <Input
-                          id="max_players"
-                          type="number"
-                          value={formData.max_players}
-                          onChange={(e) => setFormData({ ...formData, max_players: parseInt(e.target.value) || 0 })}
-                          required
-                          className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center pt-4 border-t border-border mt-2">
-                      {editingStation ? (
-                        <div className="md:hidden">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive h-10 w-10 rounded-xl">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="rounded-3xl border border-border bg-card">
-                              <AlertDialogHeader>
-                                <AlertDialogTitle className="text-foreground">Delete Unit</AlertDialogTitle>
-                                <AlertDialogDescription className="text-muted-foreground">
-                                  Are you sure you want to delete unit {editingStation.station_number}? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel className="rounded-xl hover:bg-secondary border-border">Cancel</AlertDialogCancel>
-                                <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => { handleDelete(editingStation.id); setDialogOpen(false); }}>
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      ) : <div />}
-                      
-                      <div className="flex justify-end gap-2">
-                        <Button type="button" variant="outline" className="rounded-xl border-border" onClick={() => setDialogOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button type="submit" className="rounded-xl font-semibold" disabled={stationTypes.length === 0}>
-                          {editingStation ? 'Update' : 'Add'} Unit
-                        </Button>
-                      </div>
-                    </div>
-                  </form>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-            
+  
             <div>
               <h2 className="text-xl font-bold mb-4 text-foreground">Category Inventory Summary</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
                 {getStationTypeSummary().map((summary, index) => {
                   return (
-                    <div key={summary.type} className={`rounded-2xl p-6 border border-border bg-card hover:-translate-y-1 transition-transform duration-300 shadow-sm relative overflow-hidden group`}>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                      <div className="mb-4">
-                        <h3 className="text-base font-semibold text-foreground tracking-tight">{summary.type}</h3>
-                        <p className="text-sm font-medium text-muted-foreground mt-1">₹{summary.base_price}/hour</p>
-                      </div>
-                      <div className="space-y-4 relative z-10">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-foreground font-medium">Total Units</span>
-                          <span className="text-3xl font-bold tracking-tight text-foreground">
+                    <div key={summary.type} className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border border-border rounded-2xl bg-card shadow-sm hover:border-primary/50 transition-colors group gap-5 sm:gap-4">
+                      {/* Name & Total Container (Side-by-side on mobile) */}
+                      <div className="flex flex-row items-center justify-between flex-1 gap-4">
+                        {/* Category Name & Price */}
+                        <div className="flex-1 min-w-[120px]">
+                          <h3 className="text-base font-bold text-foreground tracking-tight group-hover:text-primary transition-colors">{summary.type}</h3>
+                          <p className="text-xs font-medium text-muted-foreground mt-1">₹{summary.base_price} <span className="opacity-50">/ hour</span></p>
+                        </div>
+                        
+                        {/* Total Units */}
+                        <div className="flex flex-col items-center justify-center px-4 sm:border-l sm:border-r border-border/50">
+                          <span className="text-xl font-bold tracking-tight text-foreground">
                             {summary.total}
                           </span>
+                          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mt-0.5">Total</span>
                         </div>
-                        <div className="pt-4 border-t border-border space-y-3">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="flex items-center gap-2 text-muted-foreground font-medium">
-                              <div className="w-2 h-2 rounded-full bg-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></div>
-                              Available
-                            </span>
-                            <span className="font-bold text-foreground">{summary.available}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="flex items-center gap-2 text-muted-foreground font-medium">
-                              <div className="w-2 h-2 rounded-full bg-amber-500/80 shadow-[0_0_8px_rgba(245,158,11,0.4)]"></div>
-                              Occupied
-                            </span>
-                            <span className="font-bold text-foreground">{summary.occupied}</span>
-                          </div>
+                      </div>
+
+                      {/* Progress Bar & Legend */}
+                      <div className="flex-[2] min-w-[200px] flex flex-col justify-center">
+                        {/* Progress Bar Container */}
+                        <div className="flex w-full h-2 rounded-full overflow-hidden bg-secondary mb-2.5">
+                          {summary.total > 0 ? (
+                            <>
+                              <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${(summary.available / summary.total) * 100}%` }}></div>
+                              <div className="bg-amber-500 h-full transition-all duration-500" style={{ width: `${(summary.occupied / summary.total) * 100}%` }}></div>
+                              <div className="bg-destructive h-full transition-all duration-500" style={{ width: `${(summary.maintenance / summary.total) * 100}%` }}></div>
+                            </>
+                          ) : (
+                             <div className="bg-secondary h-full w-full"></div>
+                          )}
+                        </div>
+                        {/* Legend */}
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                          <span className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-sm bg-emerald-500"></div>
+                            Available <strong className="text-foreground">{summary.available}</strong>
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-sm bg-amber-500"></div>
+                            Occupied <strong className="text-foreground">{summary.occupied}</strong>
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-sm bg-destructive"></div>
+                            Maintenance <strong className="text-foreground">{summary.maintenance}</strong>
+                          </span>
                         </div>
                       </div>
                     </div>
                   );
                 })}
                 {stationTypes.length === 0 && !loadingTypes && (
-                  <div className="col-span-full p-8 border-2 border-dashed border-border rounded-2xl text-center text-muted-foreground">
+                  <div className="col-span-full p-8 text-center text-muted-foreground border border-dashed border-border rounded-2xl bg-card">
                     No Game Categories Found. Please go to the "Game Categories" tab to set some up.
                   </div>
                 )}
               </div>
             </div>
 
-            <div>
-              <h2 className="text-xl font-bold mb-4 text-foreground mt-8">Overall Unit Status</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {STATION_STATUS.map(status => {
-                  const count = allStations.filter(r => r.status === status).length;
-                  return (
-                    <div key={status} className="bg-card border border-border rounded-2xl p-6 shadow-sm flex items-center justify-between">
-                      <span className="text-sm tracking-wide uppercase font-semibold text-muted-foreground">{status}</span>
-                      <span className="text-3xl font-bold text-foreground tracking-tight">
-                        {count}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
 
             <div className="bg-card border border-border rounded-2xl md:rounded-3xl p-4 lg:p-8 shadow-sm w-full mx-auto overflow-hidden">
               <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-foreground">All Units</h2>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
                   {/* Pagination Controls */}
                   {totalPages > 1 && (
                     <div className="flex items-center gap-2 bg-secondary/50 px-3 py-1.5 rounded-full mr-4 border border-border">
@@ -583,7 +457,125 @@ const Stations = () => {
                       </Button>
                     </div>
                   )}
-                  <p className="text-sm text-muted-foreground hidden md:block">Manage unit inventory</p>
+                  
+                  <Dialog open={dialogOpen} onOpenChange={(open) => {
+                    setDialogOpen(open);
+                    if (!open) resetForm();
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button className="rounded-xl px-8 h-12 text-base font-bold w-full sm:w-auto shadow-md">
+                        <Plus className="w-5 h-5 mr-2" />
+                        Add Unit
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="w-[95vw] sm:max-w-md bg-card border border-border rounded-3xl p-6 shadow-2xl">
+                      <DialogHeader className="mb-2">
+                        <DialogTitle className="text-xl font-bold text-foreground text-center">{editingStation ? 'Edit Unit' : 'Add New Unit'}</DialogTitle>
+                        <DialogDescription className="text-center text-muted-foreground">
+                          {editingStation ? 'Update unit details' : 'Add a new unit to your inventory'}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="bg-secondary/30 border border-border rounded-2xl p-5 shadow-sm">
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="space-y-1">
+                          <Label htmlFor="station_number" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Unit Number / Name</Label>
+                          <Input
+                            id="station_number"
+                            value={formData.station_number}
+                            onChange={(e) => setFormData({ ...formData, station_number: e.target.value })}
+                            placeholder="e.g., PS5-101"
+                            required
+                            className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="station_type" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Game Category</Label>
+                          <Select
+                            value={formData.station_type}
+                            onValueChange={(value) => {
+                              const selectedType = stationTypes.find(t => t.name === value);
+                              setFormData({
+                                ...formData,
+                                station_type: value,
+                                price_per_hour: selectedType?.base_price || 1500,
+                                max_players: selectedType?.default_occupancy || 2
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12">
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-border shadow-lg">
+                              {stationTypes.map(type => (
+                                <SelectItem key={type.name} value={type.name}>{type.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {stationTypes.length === 0 && (
+                            <p className="text-xs text-destructive mt-1">Please add a Game Category in the other tab first!</p>
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</Label>
+                          <Select
+                            value={formData.status}
+                            onValueChange={(value) => setFormData({ ...formData, status: value })}
+                          >
+                            <SelectTrigger className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl border-border shadow-lg">
+                              {STATION_STATUS.map(status => (
+                                <SelectItem key={status} value={status}>
+                                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-4 border-t border-border mt-2">
+                          {editingStation ? (
+                            <div className="md:hidden">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button type="button" variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive h-10 w-10 rounded-xl">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="rounded-3xl border border-border bg-card">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle className="text-foreground">Delete Unit</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-muted-foreground">
+                                      Are you sure you want to delete unit {editingStation.station_number}? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel className="rounded-xl hover:bg-secondary border-border">Cancel</AlertDialogCancel>
+                                    <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => { handleDelete(editingStation.id); setDialogOpen(false); }}>
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          ) : <div />}
+                          
+                          <div className="flex justify-end gap-2">
+                            <Button type="button" variant="outline" className="rounded-xl border-border" onClick={() => setDialogOpen(false)}>
+                              Cancel
+                            </Button>
+                            <Button type="submit" className="rounded-xl font-semibold" disabled={stationTypes.length === 0}>
+                              {editingStation ? 'Update' : 'Add'} Unit
+                            </Button>
+                          </div>
+                        </div>
+                      </form>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
               
@@ -728,10 +720,10 @@ const Stations = () => {
                             <Input
                               id="base_price"
                               type="number"
-                              value={typeFormData.base_price}
+                              value={typeFormData.base_price || ''}
                               onChange={(e) => setTypeFormData({ ...typeFormData, base_price: parseInt(e.target.value) || 0 })}
                               required
-                              className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
+                              className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </div>
                           <div className="space-y-1">
@@ -739,10 +731,10 @@ const Stations = () => {
                             <Input
                               id="default_occupancy"
                               type="number"
-                              value={typeFormData.max_players}
+                              value={typeFormData.max_players || ''}
                               onChange={(e) => setTypeFormData({ ...typeFormData, max_players: parseInt(e.target.value) || 0 })}
                               required
-                              className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12"
+                              className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                           </div>
                         </div>

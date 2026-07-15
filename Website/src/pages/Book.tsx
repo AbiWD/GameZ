@@ -38,7 +38,7 @@ interface BookProps {
 }
 
 export default function Book({ setRoute }: BookProps) {
-  const { currentUser, createBooking, checkSlotConflict, dynamicPricing, stationTypes } = useAuthAndBooking();
+  const { currentUser, createBooking, checkSlotConflict, checkBanStatus, dynamicPricing, stationTypes } = useAuthAndBooking();
   
   // Wizard steps: 1 = Choose Station, 2 = Date & Time, 3 = Info / Auth, 4 = Held Countdown, 5 = Confirmed Receipt
   const [step, setStep] = useState<number>(1);
@@ -62,6 +62,7 @@ export default function Book({ setRoute }: BookProps) {
   const [holdTimer, setHoldTimer] = useState<number>(300); // 5 minutes in seconds
   const [holdExpired, setHoldExpired] = useState<boolean>(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
+  const [infoError, setInfoError] = useState<string | null>(null);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -161,8 +162,9 @@ export default function Book({ setRoute }: BookProps) {
     setStep(3);
   };
 
-  const handleInfoSubmit = (e: React.FormEvent) => {
+  const handleInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setInfoError(null);
     
     if (!currentUser) {
       setIsAuthModalOpen(true);
@@ -170,14 +172,21 @@ export default function Book({ setRoute }: BookProps) {
     }
 
     if (!customerName.trim() || !customerEmail.trim() || !customerPhone.trim()) {
-      alert('Please fill out all contact information fields.');
+      setInfoError('Please fill out all contact information fields.');
       return;
     }
 
     // Phone number validation (10 digits Indian standard format check)
     const phoneClean = customerPhone.replace(/\D/g, '');
     if (phoneClean.length < 10) {
-      alert('Please enter a valid 10-digit mobile number.');
+      setInfoError('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+
+    // Check if user is banned before allowing them to hold the table
+    const isBanned = await checkBanStatus(customerEmail);
+    if (isBanned) {
+      setInfoError('Your account has been restricted from making new bookings. Please contact support.');
       return;
     }
 
@@ -217,7 +226,7 @@ export default function Book({ setRoute }: BookProps) {
         setConfirmedBooking(res.booking);
         setStep(5);
       } else {
-        setBookingError(`Collision Error: ${res.error || 'Failed to complete booking.'}`);
+        setBookingError(res.error || 'Failed to complete booking.');
         // Remove setStep(2) so they stay on the screen and can see the error!
       }
     } catch (err: any) {
@@ -622,6 +631,15 @@ export default function Book({ setRoute }: BookProps) {
 
                     <form onSubmit={handleInfoSubmit} className="space-y-6">
                       
+                      {infoError && (
+                        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-start gap-3 text-left">
+                          <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+                          <div className="text-sm font-medium text-red-500">
+                            {infoError}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         
                         {/* Left 2 Columns: Input Fields */}

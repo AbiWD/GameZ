@@ -376,21 +376,15 @@ export default function Landing({ setRoute }: LandingProps) {
         </div>
 
         {/* Stations Grid */}
-        <motion.div 
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-100px' }}
+        <div 
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
         >
           {stationTypes.map((station) => {
             const IconComponent = ICON_COMPONENTS[station.iconName] || Gamepad2;
             
             return (
-              <motion.div
+              <div
                 key={station.id}
-                variants={fadeInVariant}
-                whileHover={prefersReducedMotion ? {} : { y: -6 }}
                 className="group flex flex-col bg-cyber-gray border border-white/5 rounded-2xl overflow-hidden shadow-xl hover:border-cyber-purple/40 hover:shadow-cyber-purple/5 transition-all duration-300"
               >
                 
@@ -476,10 +470,10 @@ export default function Landing({ setRoute }: LandingProps) {
 
                 </div>
 
-              </motion.div>
+              </div>
             );
           })}
-        </motion.div>
+        </div>
 
         {/* Live PocketBase Note */}
         <div className="mt-8 flex items-center gap-2.5 justify-center bg-cyber-gray/50 border border-white/5 px-4 py-3 rounded-xl max-w-2xl mx-auto">
@@ -745,7 +739,10 @@ export default function Landing({ setRoute }: LandingProps) {
                     <div className="space-y-4">
                       <div className="flex items-baseline gap-1">
                         <span className="font-mono text-2xl sm:text-3xl font-black text-white">
-                          ₹{(dynamicPricing.tierPrices[tier.id] || tier.price).toLocaleString('en-IN')}
+                          {tier.id === 'tier-hourly' && Object.keys(dynamicPricing.hourlyRates).length > 0
+                            ? `₹${Math.min(...Object.values(dynamicPricing.hourlyRates)).toLocaleString('en-IN')}`
+                            : `₹${(dynamicPricing.tierPrices[tier.id] || tier.price).toLocaleString('en-IN')}`
+                          }
                         </span>
                         <span className="text-xs text-gray-400">
                           / {tier.period}

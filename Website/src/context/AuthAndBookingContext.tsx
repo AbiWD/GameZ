@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import pb from '../lib/pocketbase';
 import { Booking, Station } from '../types';
 import { STATIONS } from '../data';
@@ -34,6 +34,7 @@ interface AuthAndBookingContextType {
   cancelBooking: (bookingId: string) => Promise<{ success: boolean; error?: string }>;
   extendBooking: (bookingId: string, additionalHours: number) => Promise<{ success: boolean; error?: string }>;
   checkSlotConflict: (stationId: string, date: string, time: string, duration: number, ignoreBookingId?: string) => Promise<{ conflict: boolean; details?: string }>;
+  checkBanStatus: (email: string) => Promise<boolean>;
   dismissNotification: () => void;
   clearAllEmails: () => void;
   dynamicPricing: { hourlyRates: Record<string, number>; tierPrices: Record<string, number> };
@@ -97,6 +98,11 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
   const [dynamicPricing, setDynamicPricing] = useState<{ hourlyRates: Record<string, number>; tierPrices: Record<string, number> }>({ hourlyRates: {}, tierPrices: {} });
   const [stationTypes, setStationTypes] = useState<any[]>([]);
   const [stTypesRaw, setStTypesRaw] = useState<any[]>([]);
+  
+  const bookingsRef = useRef(bookings);
+  useEffect(() => {
+    bookingsRef.current = bookings;
+  }, [bookings]);
   const [pStationsRaw, setPStationsRaw] = useState<any[]>([]);
 
   const fetchBookings = async () => {
@@ -110,7 +116,7 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
 
   const fetchPricing = async () => {
     try {
-      const pStations = await pb.collection('stations').getFullList({ filter: "status = 'active'" });
+      const pStations = await pb.collection('stations').getFullList();
       const tPrices = await pb.collection('tier_prices').getFullList();
       const stTypes = await pb.collection('station_types').getFullList();
       
@@ -151,17 +157,38 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
       const dynamicType = stTypesRaw.find(st => st.name === staticStation.name);
       
       const physical = pStationsRaw.filter(ps => ps.station_type === staticStation.name);
-      const bookedCount = currentBookings.filter(b => physical.some(ps => ps.id === b.stationId)).length;
+      
+      let availableNowCount = 0;
+      physical.forEach(ps => {
+        if (ps.status === 'available' || ps.status === 'active') {
+          const isBooked = currentBookings.some(b => b.stationId === ps.id);
+          if (!isBooked) {
+            availableNowCount++;
+          }
+        }
+      });
       
       return {
         ...staticStation,
         ratePerHour: dynamicType ? dynamicType.base_price : staticStation.ratePerHour,
         totalSlots: physical.length > 0 ? physical.length : staticStation.totalSlots,
-        availableNow: physical.length > 0 ? Math.max(0, physical.length - bookedCount) : staticStation.availableNow,
+        availableNow: physical.length > 0 ? availableNowCount : staticStation.availableNow,
       };
     });
     setStationTypes(enriched);
   }, [bookings, stTypesRaw, pStationsRaw]);
+
+  const dispatchEmailNotification = (to: string, subject: string, body: string) => {
+    const newEmail: SimulatedEmail = {
+      id: `em-${Date.now()}`, to, subject, body, timestamp: Date.now(), read: false
+    };
+    setEmails(prev => {
+      const updatedEmails = [newEmail, ...prev];
+      localStorage.setItem('gz_emails', JSON.stringify(updatedEmails));
+      return updatedEmails;
+    });
+    setActiveNotification(newEmail);
+  };
 
   useEffect(() => {
     const storedEmails = localStorage.getItem('gz_emails');
@@ -188,26 +215,25 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
       }
     });
 
-    let unsubscribeBookings: () => void;
     pb.collection('bookings').subscribe('*', function (e) {
+       if (e.action === 'update' && e.record.status === 'cancelled') {
+         const oldBooking = bookingsRef.current.find(b => b.id === e.record.id);
+         if (oldBooking && oldBooking.status !== 'cancelled') {
+           dispatchEmailNotification(
+             e.record.email || oldBooking.customerEmail,
+             `❌ Booking Cancelled: Pass Code ${e.record.booking_reference || oldBooking.verificationCode}`,
+             `Hello ${e.record.name || oldBooking.customerName},\n\nYour booking reservation for station code ${e.record.booking_reference || oldBooking.verificationCode} on ${oldBooking.bookingDate} at ${oldBooking.startTime} has been successfully CANCELLED.\n\nNo cancellation fees apply under our fair-play policy. Your table has been released back into the available pool for other local gamers.\n\nHope to see you book again soon!\nTeam GameZ Mangaluru`
+           );
+         }
+       }
        fetchBookings();
-    }).then((u: any) => { unsubscribeBookings = u; });
+    });
 
     return () => {
       unsubscribeAuth();
-      if (unsubscribeBookings) unsubscribeBookings();
+      pb.collection('bookings').unsubscribe('*');
     };
   }, []);
-
-  const dispatchEmailNotification = (to: string, subject: string, body: string) => {
-    const newEmail: SimulatedEmail = {
-      id: `em-${Date.now()}`, to, subject, body, timestamp: Date.now(), read: false
-    };
-    const updatedEmails = [newEmail, ...emails];
-    setEmails(updatedEmails);
-    localStorage.setItem('gz_emails', JSON.stringify(updatedEmails));
-    setActiveNotification(newEmail);
-  };
 
   const login = async (email: string, password: string) => {
     try {
@@ -308,16 +334,18 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
       console.error('Failed to fetch blackouts', err);
     }
     
-    // Find category name from db
-    const categoryName = stTypesRaw.find(s => s.id === categoryId)?.name || categoryId;
+    // Find category name from db or static data
+    const staticStation = STATIONS.find(s => s.id === categoryId);
+    const categoryName = staticStation ? staticStation.name : (stTypesRaw.find(s => s.id === categoryId)?.name || categoryId);
     if (!categoryName) return { conflict: true, details: 'Invalid station category.' };
 
     // Fetch all physical stations of this type from the DB
     let physicalStations: any[] = [];
     try {
       physicalStations = await pb.collection('stations').getFullList({
-        filter: `station_type = "${categoryName}" && status = 'active'`
+        filter: `station_type = "${categoryName}"`
       });
+      physicalStations = physicalStations.filter(s => s.status === 'active' || s.status === 'available');
     } catch (err) {
       return { conflict: true, details: 'Failed to retrieve available stations.' };
     }
@@ -352,7 +380,22 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
     };
   };
 
+  const checkBanStatus = async (email: string) => {
+    try {
+      const customerCheck = await pb.collection('customers').getFirstListItem(`email = "${email}"`);
+      return customerCheck && customerCheck.status === 'banned';
+    } catch (err) {
+      return false;
+    }
+  };
+
   const createBooking = async (bookingData: Omit<Booking, 'id' | 'createdAt' | 'status'>) => {
+    // Check if user is banned from booking FIRST
+    const isBanned = await checkBanStatus(bookingData.customerEmail);
+    if (isBanned) {
+      return { success: false, error: 'Your account has been restricted from making new bookings. Please contact support.' };
+    }
+
     const conflictCheck = await checkSlotConflict(
       bookingData.stationId,
       bookingData.bookingDate,
@@ -409,11 +452,9 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
       
       await pb.collection('bookings').update(bookingId, { status: 'cancelled' });
 
-      dispatchEmailNotification(
-        targetBooking.customerEmail,
-        `❌ Booking Cancelled: Pass Code ${targetBooking.verificationCode}`,
-        `Hello ${targetBooking.customerName},\n\nYour booking reservation for station code ${targetBooking.verificationCode} on ${targetBooking.bookingDate} at ${targetBooking.startTime} has been successfully CANCELLED.\n\nNo cancellation fees apply under our fair-play policy. Your table has been released back into the available pool for other local gamers.\n\nHope to see you book again soon!\nTeam GameZ Mangaluru`
-      );
+      // Note: The cancellation email is dispatched automatically by the realtime 
+      // subscription listener in useEffect when it detects the status change.
+      
       return { success: true };
     } catch(err) {
       return { success: false, error: 'Failed to cancel' };
@@ -501,7 +542,7 @@ export const AuthAndBookingProvider: React.FC<{ children: React.ReactNode }> = (
       value={{
         currentUser, users, bookings, emails, activeNotification,
         login, register, resetPassword, logout,
-        createBooking, cancelBooking, extendBooking, checkSlotConflict,
+        createBooking, cancelBooking, extendBooking, checkSlotConflict, checkBanStatus,
         dismissNotification, clearAllEmails, dynamicPricing, stationTypes
       }}
     >

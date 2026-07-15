@@ -216,7 +216,11 @@ const Bookings = () => {
                   </TableRow>
                 ) : (
                   bookings.map((booking) => (
-                    <TableRow key={booking.id} className="border-b border-border hover:bg-accent/50 transition-colors">
+                    <TableRow 
+                      key={booking.id} 
+                      className="border-b border-border hover:bg-accent/50 transition-colors cursor-pointer"
+                      onClick={() => setSelectedBooking(booking)}
+                    >
                       <TableCell className="font-mono text-xs font-semibold py-3 px-4 text-primary hidden lg:table-cell">{booking.booking_reference || '-'}</TableCell>
                       <TableCell className="font-bold py-3 px-2 sm:px-3 md:px-6 max-w-[80px] sm:max-w-[120px] lg:max-w-none truncate text-xs sm:text-sm text-foreground">{booking.name}</TableCell>
                       <TableCell className="py-3 px-4 text-muted-foreground hidden md:table-cell">{booking.phone}</TableCell>
