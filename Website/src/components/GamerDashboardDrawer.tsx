@@ -34,6 +34,7 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
 }) => {
   const { currentUser, bookings, logout, cancelBooking, extendBooking, checkSlotConflict, stationTypes } = useAuthAndBooking();
   const [activeTab, setActiveTab] = useState<'reservations' | 'profile'>('reservations');
+  const [reservationTab, setReservationTab] = useState<'upcoming' | 'past' | 'cancelled'>('upcoming');
   
   // Extension sub-states
   const [extendingBookingId, setExtendingBookingId] = useState<string | null>(null);
@@ -45,10 +46,28 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
 
   if (!currentUser) return null;
 
-  // Filter bookings linked to current user (by matching email case-insensitively)
-  const userBookings = bookings.filter(
-    b => b.customerEmail.toLowerCase() === currentUser.email.toLowerCase() && b.status !== 'cancelled'
+  // Filter bookings linked to current user
+  const allUserBookings = bookings.filter(
+    b => b.customerEmail.toLowerCase() === currentUser.email.toLowerCase()
   );
+
+  const now = new Date();
+
+  const getEndTime = (b: any) => {
+    const endDec = parseTimeToDecimal(b.startTime) + b.durationHours;
+    const endDate = new Date(b.bookingDate);
+    endDate.setHours(Math.floor(endDec), Math.round((endDec % 1) * 60), 0, 0);
+    return endDate;
+  };
+
+  const activeBookings = allUserBookings.filter(b => b.status !== 'cancelled' && getEndTime(b) > now);
+  const pastBookings = allUserBookings.filter(b => b.status !== 'cancelled' && getEndTime(b) <= now);
+  const cancelledBookings = allUserBookings.filter(b => b.status === 'cancelled');
+
+  const userBookings = 
+    reservationTab === 'upcoming' ? activeBookings :
+    reservationTab === 'past' ? pastBookings :
+    cancelledBookings;
 
   // Helper to find the station info from its ID
   const getStationName = (stationId: string) => {
@@ -170,7 +189,7 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                My Reservations ({userBookings.length})
+                My Reservations ({allUserBookings.length})
               </button>
               <button
                 onClick={() => setActiveTab('profile')}
@@ -188,6 +207,28 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
             <div className="flex-1 overflow-y-auto space-y-4 pr-1">
               {activeTab === 'reservations' && (
                 <>
+                  {/* Reservation Sub-tabs */}
+                  <div className="flex gap-2 mb-4 text-[10px] font-display uppercase tracking-widest font-bold">
+                    <button 
+                      onClick={() => setReservationTab('upcoming')}
+                      className={`px-3 py-1.5 rounded-full transition-all border ${reservationTab === 'upcoming' ? 'bg-cyber-cyan/10 border-cyber-cyan text-cyber-cyan' : 'border-white/10 text-gray-400 hover:text-white hover:border-white/30'}`}
+                    >
+                      Upcoming ({activeBookings.length})
+                    </button>
+                    <button 
+                      onClick={() => setReservationTab('past')}
+                      className={`px-3 py-1.5 rounded-full transition-all border ${reservationTab === 'past' ? 'bg-white/10 border-white/40 text-white' : 'border-white/10 text-gray-400 hover:text-white hover:border-white/30'}`}
+                    >
+                      History ({pastBookings.length})
+                    </button>
+                    <button 
+                      onClick={() => setReservationTab('cancelled')}
+                      className={`px-3 py-1.5 rounded-full transition-all border ${reservationTab === 'cancelled' ? 'bg-red-500/10 border-red-500/50 text-red-400' : 'border-white/10 text-gray-400 hover:text-white hover:border-white/30'}`}
+                    >
+                      Cancelled ({cancelledBookings.length})
+                    </button>
+                  </div>
+
                   {userBookings.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center py-12 px-6 text-gray-500 space-y-3">
                       <Calendar className="h-10 w-10 text-gray-600" />
@@ -256,8 +297,10 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
                           </div>
 
                           {/* Action triggers: Extend hours or cancel */}
-                          {!isExtending && cancelingBookingId !== booking.id ? (
-                            <div className="flex items-center gap-2 pt-1">
+                          {reservationTab === 'upcoming' && (
+                            <>
+                              {!isExtending && cancelingBookingId !== booking.id ? (
+                                <div className="flex items-center gap-2 pt-1">
                               <button
                                 onClick={() => startExtensionFlow(booking.id)}
                                 className="flex-1 py-2 text-xs font-mono font-bold uppercase tracking-wider text-cyber-cyan bg-cyber-cyan/10 hover:bg-cyber-cyan/20 border border-cyber-cyan/30 rounded-xl transition cursor-pointer flex items-center justify-center gap-1"
@@ -385,6 +428,8 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
                               </div>
                             </motion.div>
                           ) : null}
+                            </>
+                          )}
                         </div>
                       );
                     })
