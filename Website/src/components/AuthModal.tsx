@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, Phone, CheckCircle2, ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
-import { useAuthAndBooking } from '../context/AuthAndBookingContext';
+import { useLogin, useRegister, useResetPassword } from '../hooks/useAuth';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -14,7 +14,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose, 
   initialMode = 'login' 
 }) => {
-  const { login, register, resetPassword } = useAuthAndBooking();
+  const loginMutation = useLogin();
+  const registerMutation = useRegister();
+  const resetPasswordMutation = useResetPassword();
   const [mode, setMode] = useState<'login' | 'register' | 'forgot'>(initialMode);
   
   // Forms state
@@ -57,7 +59,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setIsLoading(false);
           return;
         }
-        const res = await login(email, password);
+        const res = await loginMutation.mutateAsync({ email, password });
         if (res.success) {
           setSuccess('Authenticated successfully! Loading your gaming dashboard...');
           setTimeout(() => {
@@ -85,7 +87,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           return;
         }
 
-        const res = await register(name, email, phone, password);
+        const res = await registerMutation.mutateAsync({ name, email, phone, password });
         if (res.success) {
           setSuccess('Gamer account created! Welcome to GameZ Arena...');
           setTimeout(() => {
@@ -102,7 +104,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setIsLoading(false);
           return;
         }
-        const res = await resetPassword(email);
+        const res = await resetPasswordMutation.mutateAsync(email);
         if (res.success) {
           setSuccess(res.message || 'Recovery code dispatched successfully!');
         } else {

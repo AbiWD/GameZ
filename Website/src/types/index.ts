@@ -2,6 +2,14 @@
  * Types and Interfaces for GameZ Gaming Cafe
  */
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role?: string;
+}
+
 export interface Station {
   id: string;
   name: string;
@@ -32,7 +40,6 @@ export interface PricingTier {
   description: string;
   features: string[];
   isPopular?: boolean;
-  requiresBackendChange?: boolean; // True if it's a proposed tier requiring database schema update
 }
 
 export interface GalleryItem {
@@ -50,7 +57,7 @@ export interface Review {
   text: string;
   date: string;
   role: string;
-  isPlaceholder?: boolean; // Flag to indicate a clearly labeled sample review
+  isPlaceholder?: boolean;
 }
 
 export interface Booking {
@@ -59,12 +66,19 @@ export interface Booking {
   customerEmail: string;
   customerPhone: string;
   stationId: string;
-  bookingDate: string;
-  startTime: string;
+  bookingDate: string; // YYYY-MM-DD
+  startTime: string;   // HH:MM AM/PM
   durationHours: number;
   totalPrice: number;
-  status: 'held' | 'confirmed' | 'expired';
+  status: 'held' | 'confirmed' | 'expired' | 'cancelled';
   holdExpiresAt: number; // timestamp
   createdAt: number; // timestamp
   verificationCode?: string;
+}
+
+export interface Slot {
+  date: string;
+  time: string;
+  available: boolean;
+  stationId: string;
 }

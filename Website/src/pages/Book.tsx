@@ -24,7 +24,11 @@ import {
   UserCheck
 } from 'lucide-react';
 import { Station, Booking } from '../types';
-import { useAuthAndBooking } from '../context/AuthAndBookingContext';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { usePricing } from '../hooks/useStations';
+import { useBookings, useCreateBooking } from '../hooks/useBookings';
+import { stationsApi } from '../api/stations';
+import { bookingsApi } from '../api/bookings';
 import { AuthModal } from '../components/AuthModal';
 
 const ICON_COMPONENTS: Record<string, React.ComponentType<any>> = {
@@ -38,7 +42,16 @@ interface BookProps {
 }
 
 export default function Book({ setRoute }: BookProps) {
-  const { currentUser, createBooking, checkSlotConflict, checkBanStatus, dynamicPricing, stationTypes } = useAuthAndBooking();
+  const { currentUser } = useCurrentUser();
+  const { data: pricingData } = usePricing();
+  const { data: bookings = [] } = useBookings();
+  const createBookingMutation = useCreateBooking();
+  
+  const dynamicPricing = {
+    hourlyRates: pricingData?.hourlyRates || {},
+    tierPrices: pricingData?.tierPrices || {}
+  };
+  const stationTypes = pricingData?.stTypes || [];
   
   // Wizard steps: 1 = Choose Station, 2 = Date & Time, 3 = Info / Auth, 4 = Held Countdown, 5 = Confirmed Receipt
   const [step, setStep] = useState<number>(1);
@@ -142,9 +155,17 @@ export default function Book({ setRoute }: BookProps) {
   };
 
   // Check slot conflict details live
-  const slotConflict = selectedStation && startTime 
-    ? checkSlotConflict(selectedStation.id, bookingDate, startTime, durationHours)
-    : { conflict: false };
+  const [slotConflict, setSlotConflict] = useState<{conflict: boolean; details?: string}>({ conflict: false });
+
+  useEffect(() => {
+    if (selectedStation && startTime) {
+      stationsApi.checkSlotConflict(selectedStation.id, bookingDate, startTime, durationHours, bookings)
+        .then(setSlotConflict)
+        .catch(err => setSlotConflict({ conflict: true, details: 'Error checking conflict' }));
+    } else {
+      setSlotConflict({ conflict: false });
+    }
+  }, [selectedStation, startTime, bookingDate, durationHours, bookings]);
 
   const handleTimeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,7 +205,7 @@ export default function Book({ setRoute }: BookProps) {
     }
 
     // Check if user is banned before allowing them to hold the table
-    const isBanned = await checkBanStatus(customerEmail);
+    const isBanned = await bookingsApi.checkBanStatus(customerEmail);
     if (isBanned) {
       setInfoError('Your account has been restricted from making new bookings. Please contact support.');
       return;
@@ -221,16 +242,11 @@ export default function Book({ setRoute }: BookProps) {
         totalPrice: (dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour) * durationHours
       };
 
-      const res = await createBooking(bookingData);
-      if (res.success && res.booking) {
-        setConfirmedBooking(res.booking);
-        setStep(5);
-      } else {
-        setBookingError(res.error || 'Failed to complete booking.');
-        // Remove setStep(2) so they stay on the screen and can see the error!
-      }
+      const booking = await createBookingMutation.mutateAsync(bookingData);
+      setConfirmedBooking(booking);
+      setStep(5);
     } catch (err: any) {
-      setBookingError(`Unexpected Error: ${err.message}`);
+      setBookingError(err.message || 'Failed to complete booking.');
     } finally {
       setIsSubmitting(false);
     }

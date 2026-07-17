@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Mail, X, Check, Bell, Inbox, AlertTriangle } from 'lucide-react';
-import { useAuthAndBooking } from '../context/AuthAndBookingContext';
+import { useEmail } from '../context/EmailContext';
 
 export const EmailNotificationBanner: React.FC = () => {
-  const { activeNotification, dismissNotification, emails, clearAllEmails } = useAuthAndBooking();
+  const { activeNotification, dismissNotification, emails, clearAllEmails } = useEmail();
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
 

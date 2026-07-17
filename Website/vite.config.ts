@@ -12,13 +12,31 @@ export default defineConfig(() => {
       },
     },
     server: {
-      port: 8081,
+      port: 8080,
       host: "::",
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâ€”file watching is disabled to prevent flickering during agent edits.
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:8090',
+          changeOrigin: true,
+        },
+      },
       hmr: process.env.DISABLE_HMR !== 'true',
-      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    },
+    preview: {
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:8090',
+          changeOrigin: true,
+        },
+      },
+    },
+    build: {
+      sourcemap: false,
+      minify: 'esbuild',
+      esbuild: {
+        drop: ['console', 'debugger'],
+      },
     },
   };
 });

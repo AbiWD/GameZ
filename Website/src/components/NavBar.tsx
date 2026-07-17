@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Gamepad2, Menu, X, CalendarCheck, LogIn, User, Laptop } from 'lucide-react';
-import { useAuthAndBooking } from '../context/AuthAndBookingContext';
+import { useCurrentUser } from '../hooks/useCurrentUser';
 import { AuthModal } from './AuthModal';
 import { GamerDashboardDrawer } from './GamerDashboardDrawer';
 
@@ -10,7 +10,7 @@ interface NavBarProps {
 }
 
 export default function NavBar({ currentRoute, setRoute }: NavBarProps) {
-  const { currentUser } = useAuthAndBooking();
+  const { currentUser } = useCurrentUser();
   const [isOpen, setIsOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
   

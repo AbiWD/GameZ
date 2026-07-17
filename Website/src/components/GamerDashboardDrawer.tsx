@@ -18,7 +18,11 @@ import {
   ShieldCheck,
   Zap
 } from 'lucide-react';
-import { useAuthAndBooking, parseTimeToDecimal, formatDecimalToTime } from '../context/AuthAndBookingContext';
+import { useCurrentUser } from '../hooks/useCurrentUser';
+import { useLogout } from '../hooks/useAuth';
+import { useBookings, useCancelBooking, useExtendBooking } from '../hooks/useBookings';
+import { usePricing } from '../hooks/useStations';
+import { parseTimeToDecimal, formatDecimalToTime } from '../lib/utils';
 
 
 interface GamerDashboardDrawerProps {
@@ -32,7 +36,13 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
   onClose,
   setRoute
 }) => {
-  const { currentUser, bookings, logout, cancelBooking, extendBooking, checkSlotConflict, stationTypes } = useAuthAndBooking();
+  const { currentUser } = useCurrentUser();
+  const { data: bookings = [] } = useBookings();
+  const cancelBookingMutation = useCancelBooking();
+  const extendBookingMutation = useExtendBooking();
+  const { data: pricingData } = usePricing();
+  const stationTypes = pricingData?.stTypes || [];
+  const { mutateAsync: logout } = useLogout();
   const [activeTab, setActiveTab] = useState<'reservations' | 'profile'>('reservations');
   const [reservationTab, setReservationTab] = useState<'upcoming' | 'past' | 'cancelled'>('upcoming');
   
@@ -81,7 +91,7 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
   };
 
   const handleCancel = async (bookingId: string) => {
-    await cancelBooking(bookingId);
+    await cancelBookingMutation.mutateAsync(bookingId);
     setCancelingBookingId(null);
   };
 
@@ -99,15 +109,11 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
     setIsApplyingExtension(true);
 
     try {
-      const res = await extendBooking(bookingId, extensionHours);
-      if (res.success) {
-        setExtensionSuccess(`Session extended by +${extensionHours} hour(s)! Simulated receipt confirmation email dispatched.`);
-        setTimeout(() => {
-          setExtendingBookingId(null);
-        }, 1800);
-      } else {
-        setExtensionError(res.error || 'Failed to apply extension.');
-      }
+      await extendBookingMutation.mutateAsync({ bookingId, additionalHours: extensionHours });
+      setExtensionSuccess(`Session extended by +${extensionHours} hour(s)! Simulated receipt confirmation email dispatched.`);
+      setTimeout(() => {
+        setExtendingBookingId(null);
+      }, 1800);
     } catch(err: any) {
       setExtensionError(err?.message || 'Error applying extension');
     } finally {

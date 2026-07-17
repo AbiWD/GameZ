@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 import { GAME_GENRES, PRICING_TIERS, GALLERY_ITEMS, SAMPLE_REVIEWS, VENUE_INFO } from '../data';
 import { ExpandableGallery } from '../components/ExpandableGallery';
-import { useAuthAndBooking } from '../context/AuthAndBookingContext';
+import { usePricing } from '../hooks/useStations';
 
 // Dynamic Icon Mapper to keep imports safe and prevent runtime failures
 const ICON_COMPONENTS: Record<string, React.ComponentType<any>> = {
@@ -58,7 +58,14 @@ interface LandingProps {
 }
 
 export default function Landing({ setRoute }: LandingProps) {
-  const { dynamicPricing, stationTypes } = useAuthAndBooking();
+  const { data: pricingData } = usePricing();
+  const dynamicPricing = {
+    hourlyRates: pricingData?.hourlyRates || {},
+    tierPrices: pricingData?.tierPrices || {}
+  };
+  // Use the static STATIONS data for UI layout (images, features, available slots),
+  // but the prices are driven by dynamicPricing below.
+  const stationTypes = STATIONS;
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
