@@ -43,6 +43,23 @@ onRecordCreateRequest((e) => {
         console.log("Hook overlap check error:", err);
     }
     
+    // Server-Side Pricing Enforcement (Re-calculate on create)
+    try {
+        const startObj = new Date(start);
+        const endObj = new Date(end);
+        const durationHours = (endObj.getTime() - startObj.getTime()) / 3600000;
+        
+        const stationRecord = $app.findRecordById("stations", station);
+        const typeId = stationRecord.getString("type");
+        const typeRecord = $app.findRecordById("station_types", typeId);
+        const basePrice = typeRecord.getFloat("base_price");
+        
+        const computedPrice = durationHours * basePrice;
+        record.set("total_price", computedPrice);
+    } catch(err) {
+        throw new BadRequestError("Server-side pricing recalculation failed.");
+    }
+    
     return e.next();
 }, "bookings");
 
@@ -71,6 +88,23 @@ onRecordUpdateRequest((e) => {
             throw err;
         }
         console.log("Hook overlap check error:", err);
+    }
+
+    // Server-Side Pricing Enforcement (Re-calculate on update/extend)
+    try {
+        const startObj = new Date(start);
+        const endObj = new Date(end);
+        const durationHours = (endObj.getTime() - startObj.getTime()) / 3600000;
+        
+        const stationRecord = $app.findRecordById("stations", station);
+        const typeId = stationRecord.getString("type");
+        const typeRecord = $app.findRecordById("station_types", typeId);
+        const basePrice = typeRecord.getFloat("base_price");
+        
+        const computedPrice = durationHours * basePrice;
+        record.set("total_price", computedPrice);
+    } catch(err) {
+        throw new BadRequestError("Server-side pricing recalculation failed.");
     }
 
     e.next(); // Continue with the update
