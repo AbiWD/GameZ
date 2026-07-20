@@ -32,7 +32,7 @@ import {
   Plus,
   MessageSquare
 } from 'lucide-react';
-import { GAME_GENRES, PRICING_TIERS, GALLERY_ITEMS, SAMPLE_REVIEWS, VENUE_INFO } from '../data';
+import { GAME_GENRES, PRICING_TIERS, GALLERY_ITEMS, SAMPLE_REVIEWS, VENUE_INFO, STATIONS } from '../data';
 import { ExpandableGallery } from '../components/ExpandableGallery';
 import { usePricing } from '../hooks/useStations';
 

@@ -59,16 +59,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setIsLoading(false);
           return;
         }
-        const res = await loginMutation.mutateAsync({ email, password });
-        if (res.success) {
-          setSuccess('Authenticated successfully! Loading your gaming dashboard...');
-          setTimeout(() => {
-            onClose();
-            handleResetForm();
-          }, 1200);
-        } else {
-          setError(res.error || 'Failed to authenticate.');
-        }
+        await loginMutation.mutateAsync({ email, password });
+        setSuccess('Authenticated successfully! Loading your gaming dashboard...');
+        setTimeout(() => {
+          onClose();
+          handleResetForm();
+        }, 1200);
       } 
       else if (mode === 'register') {
         if (!name || !email || !phone || !password || !confirmPassword) {
@@ -87,16 +83,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           return;
         }
 
-        const res = await registerMutation.mutateAsync({ name, email, phone, password });
-        if (res.success) {
-          setSuccess('Gamer account created! Welcome to GameZ Arena...');
-          setTimeout(() => {
-            onClose();
-            handleResetForm();
-          }, 1200);
-        } else {
-          setError(res.error || 'Failed to create account.');
-        }
+        await registerMutation.mutateAsync({ name, email, phone, password });
+        setSuccess('Gamer account created! Welcome to GameZ Arena...');
+        setTimeout(() => {
+          onClose();
+          handleResetForm();
+        }, 1200);
       } 
       else if (mode === 'forgot') {
         if (!email) {
@@ -104,15 +96,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setIsLoading(false);
           return;
         }
-        const res = await resetPasswordMutation.mutateAsync(email);
-        if (res.success) {
-          setSuccess(res.message || 'Recovery code dispatched successfully!');
-        } else {
-          setError(res.error || 'Email address not found in our database.');
-        }
+        await resetPasswordMutation.mutateAsync(email);
+        setSuccess('Recovery code dispatched successfully!');
       }
     } catch (err: any) {
-      setError(err?.message || 'An unexpected error occurred.');
+      if (err?.response?.data) {
+        // PocketBase validation error map
+        const data = err.response.data;
+        const messages = Object.entries(data)
+          .map(([field, v]: [string, any]) => `${field.toUpperCase()}: ${v.message}`)
+          .join('. ');
+        setError(messages || err.message || 'An unexpected error occurred.');
+      } else {
+        setError(err?.message || 'An unexpected error occurred.');
+      }
     } finally {
       setIsLoading(false);
     }

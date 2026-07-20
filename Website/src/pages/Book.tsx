@@ -30,6 +30,7 @@ import { useBookings, useCreateBooking } from '../hooks/useBookings';
 import { stationsApi } from '../api/stations';
 import { bookingsApi } from '../api/bookings';
 import { AuthModal } from '../components/AuthModal';
+import { useEmail } from '../context/EmailContext';
 
 const ICON_COMPONENTS: Record<string, React.ComponentType<any>> = {
   Gamepad2,
@@ -46,6 +47,7 @@ export default function Book({ setRoute }: BookProps) {
   const { data: pricingData } = usePricing();
   const { data: bookings = [] } = useBookings();
   const createBookingMutation = useCreateBooking();
+  const { dispatchEmailNotification } = useEmail();
   
   const dynamicPricing = {
     hourlyRates: pricingData?.hourlyRates || {},
@@ -245,6 +247,13 @@ export default function Book({ setRoute }: BookProps) {
       const booking = await createBookingMutation.mutateAsync(bookingData);
       setConfirmedBooking(booking);
       setStep(5);
+      
+      // Dispatch virtual email
+      dispatchEmailNotification(
+        customerEmail,
+        `Booking Confirmed: ${booking.booking_reference}`,
+        `We have reserved your slot for ${durationHours} hours starting at ${startTime} on ${bookingDate}. See you soon!`
+      );
     } catch (err: any) {
       setBookingError(err.message || 'Failed to complete booking.');
     } finally {

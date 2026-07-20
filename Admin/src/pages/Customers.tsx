@@ -56,7 +56,7 @@ const Customers = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const records = await pb.collection('customers').getFullList();
+      const records = await pb.collection('portal_users').getFullList();
       setCustomers(records as unknown as Customer[]);
     } catch (error) {
       console.error("Failed to fetch customers:", error);
@@ -87,7 +87,7 @@ const Customers = () => {
     if (!selectedCustomer) return;
     setSavingNotes(true);
     try {
-      await pb.collection('customers').update(selectedCustomer.id, {
+      await pb.collection('portal_users').update(selectedCustomer.id, {
         notes: notes
       });
       setCustomers(customers.map(c => c.id === selectedCustomer.id ? { ...c, notes } : c));
@@ -102,7 +102,7 @@ const Customers = () => {
   const handleStatusChange = async (status: string) => {
     if (!selectedCustomer) return;
     try {
-      await pb.collection('customers').update(selectedCustomer.id, {
+      await pb.collection('portal_users').update(selectedCustomer.id, {
         status: status
       });
       setCustomers(customers.map(c => c.id === selectedCustomer.id ? { ...c, status } : c));

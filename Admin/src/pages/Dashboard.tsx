@@ -415,8 +415,8 @@ const Dashboard = () => {
       // Update CRM Customer Stats
       if (record.customer_id) {
         try {
-          const customer = await pb.collection('customers').getOne(record.customer_id);
-          await pb.collection('customers').update(record.customer_id, {
+          const customer = await pb.collection('portal_users').getOne(record.customer_id);
+          await pb.collection('portal_users').update(record.customer_id, {
             total_visits: (customer.total_visits || 0) + 1,
             total_spent: (customer.total_spent || 0) + finalPrice
           });

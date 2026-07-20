@@ -130,7 +130,7 @@ export default function CreateBooking() {
       if (formData.phone) {
         try {
           // Check if customer exists by phone
-          const existingCustomers = await pb.collection('customers').getList(1, 1, {
+          const existingCustomers = await pb.collection('portal_users').getList(1, 1, {
             filter: `phone = "${formData.phone}"`
           });
           
@@ -138,10 +138,12 @@ export default function CreateBooking() {
             customerId = existingCustomers.items[0].id;
           } else {
             // Create new customer
-            const newCustomer = await pb.collection('customers').create({
+            const newCustomer = await pb.collection('portal_users').create({
               name: formData.name || 'Walk-in Guest',
               phone: formData.phone,
               email: formData.email,
+              password: 'WalkInGuest@123',
+              passwordConfirm: 'WalkInGuest@123',
               total_visits: 0,
               total_spent: 0,
               status: 'regular'

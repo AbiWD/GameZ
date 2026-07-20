@@ -6,7 +6,7 @@
   "scripts": {
     "dev:frontend": "vite --host=0.0.0.0",
     "dev:adminui": "cd ../Admin && npm run dev",
-    "dev:backend": "cd ../Admin && .\\pocketbase.exe serve",
+    "dev:backend": "cd ../gamez-backend && go run main.go serve",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:adminui\" \"npm run dev:frontend\"",
     "build": "vite build",
     "preview": "vite preview",
