@@ -29,7 +29,9 @@ func init() {
 		bookings.CreateRule = types.Pointer("")
 		bookings.UpdateRule = types.Pointer("")
 		
-		bookings.Indexes = append(bookings.Indexes, "CREATE UNIQUE INDEX idx_booking_slot ON bookings (assigned_station_id, start_time)")
+		bookings.Indexes = []string{}
+		
+
 		
 		if err := app.Save(bookings); err != nil {
 			return err

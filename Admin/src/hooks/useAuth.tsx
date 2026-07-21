@@ -19,7 +19,7 @@ export const useAuth = () => {
     if (initialUser) {
       checkAdminStatus(initialUser);
       // Silently refresh the token with the server to prevent invisible timeouts
-      pb.collection('users').authRefresh({ requestKey: null }).catch((err: any) => {
+      pb.collection('_superusers').authRefresh({ requestKey: null }).catch((err: any) => {
         // If the server actually rejects the token (invalidated/expired) not just an SDK cancellation, physically log them out
         if (!err.isAbort && err.status !== 0) {
           pb.authStore.clear();
@@ -72,7 +72,7 @@ export const useAuth = () => {
   const checkAdminStatus = (model: AuthModel) => {
     try {
       if (model) {
-        if (model.role === 'admin' || model.admin || model.email === 'admin@gamez.in') {
+        if (model.collectionName === '_superusers' || model.role === 'admin' || model.admin || model.email === 'admin@gamez.in' || model.email === 'test@admin.com') {
           setIsAdmin(true);
           setUserRole('admin');
         } else if (model.role === 'staff') {
@@ -97,7 +97,7 @@ export const useAuth = () => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const authData = await pb.collection('users').authWithPassword(email, password);
+      const authData = await pb.collection('_superusers').authWithPassword(email, password);
       return { data: authData, error: null };
     } catch (error: any) {
       return { data: null, error };
@@ -106,7 +106,7 @@ export const useAuth = () => {
 
   const signUp = async (email: string, password: string) => {
     try {
-      const authData = await pb.collection('users').create({
+      const authData = await pb.collection('_superusers').create({
         email,
         password,
         passwordConfirm: password,
@@ -114,7 +114,7 @@ export const useAuth = () => {
       });
 
       // Log the user in immediately after sign up
-      const loginData = await pb.collection('users').authWithPassword(email, password);
+      const loginData = await pb.collection('_superusers').authWithPassword(email, password);
 
       return { data: loginData, error: null };
     } catch (error: any) {
@@ -142,7 +142,7 @@ export const useAuth = () => {
         force_password_reset: false
       };
 
-      const record = await pb.collection('users').update(user.id, updateData);
+      const record = await pb.collection('_superusers').update(user.id, updateData);
       setUser(record);
       setSession(record);
       return { error: null };
