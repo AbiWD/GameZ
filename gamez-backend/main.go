@@ -306,6 +306,7 @@ func main() {
 	hooks.RegisterBookingHooks(app)
 	hooks.RegisterStationHooks(app)
 	hooks.RegisterReminderScheduler(app)
+	routes.RegisterBookingRoutes(app)
 
 	logger.Info("SYSTEM", "Starting GameZ Backend...")
 
