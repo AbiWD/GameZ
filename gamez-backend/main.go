@@ -283,6 +283,7 @@ func main() {
 		// Custom routes
 		routes.RegisterAnalyticsRoutes(se, app)
 		routes.RegisterStationRoutes(se, app)
+		routes.RegisterSetupRoutes(se, app)
 
 		logger.Info("SYSTEM", "Server bootstrap complete")
 		return se.Next()
