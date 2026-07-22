@@ -1,0 +1,7 @@
+gamezcafe.com, www.gamezcafe.com {
+    reverse_proxy 127.0.0.1:8090 {
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    encode gzip
+}

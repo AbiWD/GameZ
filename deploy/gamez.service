@@ -1,0 +1,15 @@
+[Unit]
+Description=GameZ Backend
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/gamez/gamez-server serve --http="127.0.0.1:8090"
+WorkingDirectory=/opt/gamez
+Restart=always
+RestartSec=5
+User=gamez
+EnvironmentFile=/opt/gamez/.env
+
+[Install]
+WantedBy=multi-user.target
