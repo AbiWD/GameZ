@@ -300,6 +300,10 @@ func main() {
 			se.Router.GET("/admin/{path...}", apis.Static(adminSub, true))
 		}
 
+		// ── SPA Fallback for Customer Website (pb_public) ──
+		// Serves customer website from pb_public at /
+		se.Router.GET("/{path...}", apis.Static(os.DirFS("./pb_public"), true))
+
 		logger.Info("SYSTEM", "Server bootstrap complete")
 		return se.Next()
 	})
