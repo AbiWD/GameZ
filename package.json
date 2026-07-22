@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently -n \"PB,ADMIN,WEB\" -c \"magenta,blue,yellow\" \"cd gamez-backend && go run main.go serve\" \"npm run dev --prefix Admin\" \"npm run dev --prefix Website\"",
-    "install:all": "npm install && npm install --prefix Admin && npm install --prefix Website"
+    "dev": "concurrently -n \"PB,ADMIN,WEB\" -c \"magenta,blue,yellow\" \"cd Backend && go run main.go serve\" \"npm run dev --prefix Frontend/Admin\" \"npm run dev --prefix Frontend/Website\"",
+    "install:all": "npm install && npm install --prefix Frontend/Admin && npm install --prefix Frontend/Website"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

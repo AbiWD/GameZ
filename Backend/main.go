@@ -1,6 +1,8 @@
 package main
 
 import (
+	"embed"
+	"io/fs"
 	"os"
 	"strconv"
 
@@ -16,6 +18,9 @@ import (
 
 	_ "gamez-backend/migrations"
 )
+
+//go:embed ui/admin/*
+var adminDist embed.FS
 
 const (
 	apiURL      = "http://localhost:8090"
@@ -284,6 +289,16 @@ func main() {
 		routes.RegisterAnalyticsRoutes(se, app)
 		routes.RegisterStationRoutes(se, app)
 		routes.RegisterSetupRoutes(se, app)
+
+		// ── SPA Fallback for Custom Admin UI ──
+		// Note: /admin/ serves the custom React GameZ Admin Panel.
+		// PocketBase's built-in core superuser dashboard remains at /_/.
+		adminSub, err := fs.Sub(adminDist, "ui/admin")
+		if err != nil {
+			logger.Errorf("SYSTEM", "Failed to sub embed.FS: %v", err)
+		} else {
+			se.Router.GET("/admin/{path...}", apis.Static(adminSub, true))
+		}
 
 		logger.Info("SYSTEM", "Server bootstrap complete")
 		return se.Next()
