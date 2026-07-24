@@ -296,10 +296,15 @@ const Stations = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'available': return 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20';
-      case 'occupied': return 'bg-amber-500 text-white shadow-md shadow-amber-500/20';
-      case 'maintenance': return 'bg-destructive text-white shadow-md shadow-destructive/20';
-      default: return 'bg-secondary text-secondary-foreground shadow-md';
+      case 'available':
+      case 'active':
+        return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 capitalize';
+      case 'occupied':
+        return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 capitalize';
+      case 'maintenance':
+        return 'bg-destructive/10 text-destructive border border-destructive/20 capitalize';
+      default:
+        return 'bg-secondary text-secondary-foreground border border-border capitalize';
     }
   };
 

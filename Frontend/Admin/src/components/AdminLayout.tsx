@@ -12,15 +12,22 @@ interface AdminLayoutProps {
 }
 
 export const AdminLayout = ({ children }: AdminLayoutProps) => {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, userRole } = useAuth();
   const { properties, activeProperty, setActivePropertyById } = useProperty();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
-      navigate('/auth');
+    if (!loading) {
+      if (!user || !isAdmin) {
+        navigate('/auth');
+      } else if (userRole === 'staff') {
+        const restrictedPaths = ['/admin/analytics', '/admin/stations', '/admin/properties', '/admin/staff'];
+        if (restrictedPaths.some(p => window.location.pathname.endsWith(p))) {
+          navigate('/admin');
+        }
+      }
     }
-  }, [user, loading, isAdmin, navigate]);
+  }, [user, loading, isAdmin, userRole, navigate]);
 
   if (loading) {
     return (
@@ -70,7 +77,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             </DropdownMenu>
           )}
         </header>
-        <main className="p-4 sm:p-6 lg:p-10 flex-1 max-w-[1600px] w-full mx-auto">{children}</main>
+        <main className="p-4 md:p-6 flex-1 w-full">{children}</main>
       </div>
     </SidebarProvider>
   );

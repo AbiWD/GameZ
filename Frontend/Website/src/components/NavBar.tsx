@@ -168,7 +168,7 @@ export default function NavBar({ currentRoute, setRoute }: NavBarProps) {
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-cyber-purple/30 bg-cyber-purple/5 hover:bg-cyber-purple/15 text-xs font-mono font-bold text-white shadow-sm hover:border-cyber-purple/60 transition cursor-pointer"
                 >
                   <div className="h-6 w-6 rounded-full bg-gradient-to-tr from-cyber-purple to-cyber-cyan text-white text-[10px] font-extrabold flex items-center justify-center">
-                    {currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    {(currentUser?.name || currentUser?.email || 'Gamer').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
                   My Dashboard
                 </button>
@@ -207,7 +207,7 @@ export default function NavBar({ currentRoute, setRoute }: NavBarProps) {
                   className="h-9 w-9 rounded-xl bg-gradient-to-tr from-cyber-purple to-cyber-cyan text-white text-xs font-extrabold flex items-center justify-center cursor-pointer shadow-md shadow-cyber-purple/10"
                   aria-label="Open Gamer Profile"
                 >
-                  {currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {(currentUser?.name || currentUser?.email || 'Gamer').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                 </button>
               )}
 
@@ -277,7 +277,7 @@ export default function NavBar({ currentRoute, setRoute }: NavBarProps) {
                   className="flex w-full items-center justify-center gap-2 bg-cyber-lightgray hover:bg-white/5 border border-white/5 text-white py-3 rounded-xl font-mono text-xs font-bold cursor-pointer"
                 >
                   <div className="h-5 w-5 rounded-full bg-gradient-to-tr from-cyber-purple to-cyber-cyan text-white text-[9px] font-extrabold flex items-center justify-center">
-                    {currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    {(currentUser?.name || currentUser?.email || 'Gamer').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                   </div>
                   Manage My Reservations Drawer
                 </button>

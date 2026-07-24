@@ -64,7 +64,12 @@ export const bookingsApi = {
   },
 
   cancelBooking: async (bookingId: string) => {
-    await pb.collection('bookings').update(bookingId, { status: 'cancelled' });
+    const booking = await pb.collection('bookings').getOne(bookingId).catch(() => null);
+    const updateData: any = { status: 'cancelled' };
+    if (booking && booking.hold_token) {
+      updateData.hold_token = booking.hold_token;
+    }
+    await pb.collection('bookings').update(bookingId, updateData);
     return true;
   },
 
@@ -112,7 +117,7 @@ export const bookingsApi = {
     startDate.setHours(Math.floor(startHourVal), (startHourVal % 1) * 60, 0, 0);
     const newEndDate = new Date(startDate.getTime() + newDuration * 3600000);
 
-    const blackouts = await pb.collection('blackout_periods').getFullList();
+    const blackouts = await pb.collection('blackout_periods').getFullList().catch(() => []);
     for (const b of blackouts) {
       const bStart = new Date(b.start_time);
       const bEnd = new Date(b.end_time);
@@ -121,10 +126,16 @@ export const bookingsApi = {
       }
     }
 
-    await pb.collection('bookings').update(bookingId, {
+    const rec = await pb.collection('bookings').getOne(bookingId).catch(() => null);
+    const updatePayload: any = {
        end_time: newEndDate.toISOString(),
        total_price: newPrice
-    });
+    };
+    if (rec && rec.hold_token) {
+      updatePayload.hold_token = rec.hold_token;
+    }
+
+    await pb.collection('bookings').update(bookingId, updatePayload);
     
     // We will handle the email dispatch from the UI level after the mutation succeeds, 
     // or return the updated data so the UI can construct the email.

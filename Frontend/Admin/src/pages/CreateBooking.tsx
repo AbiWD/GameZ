@@ -11,7 +11,7 @@ import { format } from "date-fns";
 import { Calendar as CalendarIcon, Clock, Users, Play, CalendarPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import pb from '@/lib/pocketbase';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useProperty } from '@/contexts/PropertyContext';
 import { usePropertyFilter } from '@/hooks/usePropertyFilter';
@@ -51,32 +51,62 @@ export default function CreateBooking() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!activeProperty) return;
-
     const initData = async () => {
       try {
-        const pStations = await pb.collection("stations").getFullList({ filter: propertyFilter ? `status != 'maintenance' && ${propertyFilter}` : `status != 'maintenance'` });
+        let pStations = await pb.collection("stations").getFullList({ 
+          filter: propertyFilter ? `status != 'maintenance' && ${propertyFilter}` : `status != 'maintenance'`,
+          requestKey: null 
+        });
+
+        if (pStations.length === 0) {
+          pStations = await pb.collection("stations").getFullList({ 
+            filter: `status != 'maintenance'`,
+            requestKey: null 
+          });
+        }
         setPhysicalStations(pStations);
 
-        const typesResult = await pb.collection("station_types").getFullList({ filter: propertyFilter });
-        const types = typesResult as unknown as StationType[];
+        let typesResult = await pb.collection("station_types").getFullList({ 
+          filter: propertyFilter || undefined,
+          requestKey: null 
+        });
+
+        if (typesResult.length === 0) {
+          typesResult = await pb.collection("station_types").getFullList({ requestKey: null });
+        }
+
+        const types = (typesResult as unknown as StationType[]).sort((a, b) => a.name.localeCompare(b.name));
         setStationTypes(types);
 
-        // Pre-fill type if specific station passed in URL
-        if (searchParams.get('station')) {
-          const s = pStations.find(st => st.id === searchParams.get('station'));
-          if (s) {
-            setFormData(prev => ({ ...prev, station_type: s.station_type }));
+        const paramStationId = searchParams.get('station');
+        let selectedType = '';
+
+        if (paramStationId) {
+          const matchedStation = pStations.find(st => st.id === paramStationId);
+          if (matchedStation) {
+            selectedType = matchedStation.station_type;
           }
-        } else if (types.length > 0 && !formData.station_type) {
-          setFormData(prev => ({ ...prev, station_type: types[0].name }));
         }
+
+        setFormData(prev => ({
+          ...prev,
+          station_type: prev.station_type || selectedType,
+          assigned_station_id: 'any'
+        }));
       } catch (e) {
         console.error("Failed to fetch stations", e);
       }
     };
     initData();
-  }, [activeProperty, searchParams]);
+  }, [activeProperty, propertyFilter, searchParams]);
+
+  const handleStationTypeChange = (type: string) => {
+    setFormData(prev => ({
+      ...prev,
+      station_type: type,
+      assigned_station_id: 'any'
+    }));
+  };
 
   // Derived Values
   const selectedType = stationTypes.find(r => r.name === formData.station_type);
@@ -93,12 +123,8 @@ export default function CreateBooking() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.station_type && bookingMode === 'advance') {
-      toast({ title: 'Error', description: 'Please select a station type', variant: 'destructive' });
-      return;
-    }
-    if (bookingMode === 'walk-in' && (!formData.assigned_station_id || formData.assigned_station_id === 'any')) {
-      toast({ title: 'Error', description: 'Please assign a specific station for Walk-in', variant: 'destructive' });
+    if (!formData.station_type) {
+      toast.error('Please select a station type');
       return;
     }
 
@@ -107,7 +133,6 @@ export default function CreateBooking() {
       const timestampRef = Date.now().toString().slice(-6);
       
       const isOpenTimer = bookingMode === 'walk-in' && formData.duration === 'open';
-      // We use the booking_reference prefix to identify Open Timers without altering the DB schema
       const booking_reference = isOpenTimer ? `OT-${timestampRef}` : `DH-${timestampRef}`;
 
       let startDateTime = new Date();
@@ -120,16 +145,21 @@ export default function CreateBooking() {
 
       let endDateTime = new Date(startDateTime);
       if (isOpenTimer) {
-        // Just set it to 24 hours ahead as fallback
         endDateTime.setHours(endDateTime.getHours() + 24);
       } else {
         endDateTime.setMinutes(endDateTime.getMinutes() + parseInt(formData.duration));
       }
 
+      // If assigned_station_id is 'any', auto-assign the first free station of this type
+      let finalAssignedStationId = formData.assigned_station_id;
+      if (!finalAssignedStationId || finalAssignedStationId === 'any') {
+        const freeStation = physicalStations.find(s => s.station_type === formData.station_type && s.status !== 'maintenance');
+        finalAssignedStationId = freeStation ? freeStation.id : null;
+      }
+
       let customerId = null;
       if (formData.phone) {
         try {
-          // Check if customer exists by phone
           const existingCustomers = await pb.collection('portal_users').getList(1, 1, {
             filter: `phone = "${formData.phone}"`
           });
@@ -137,11 +167,11 @@ export default function CreateBooking() {
           if (existingCustomers.items.length > 0) {
             customerId = existingCustomers.items[0].id;
           } else {
-            // Create new customer
+            const customerEmail = formData.email || (formData.phone ? `${formData.phone}@guest.gamez.in` : `guest_${Date.now()}@gamez.in`);
             const newCustomer = await pb.collection('portal_users').create({
               name: formData.name || 'Walk-in Guest',
               phone: formData.phone,
-              email: formData.email,
+              email: customerEmail,
               password: 'WalkInGuest@123',
               passwordConfirm: 'WalkInGuest@123',
               total_visits: 0,
@@ -152,20 +182,20 @@ export default function CreateBooking() {
           }
         } catch (err) {
           console.error("Failed to process customer CRM data", err);
-          // Non-blocking, continue with booking creation
         }
       }
 
       await pb.collection('bookings').create({
         name: formData.name || 'Walk-in Guest',
-        email: formData.email,
-        phone: formData.phone,
+        email: formData.email || 'walkin@gamez.in',
+        phone: formData.phone || '',
         station_type: formData.station_type,
-        assigned_station_id: formData.assigned_station_id !== 'any' ? formData.assigned_station_id : null,
+        assigned_station_id: finalAssignedStationId,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
         message: formData.message,
         guests: formData.guests || 1,
+        players: formData.guests || 1,
         total_price: totalPrice,
         booking_reference,
         status: 'confirmed',
@@ -174,18 +204,10 @@ export default function CreateBooking() {
         customer_id: customerId
       });
 
-      toast({
-        title: 'Success',
-        description: 'Booking created successfully!',
-      });
-
-      navigate('/admin');
+      toast.success('Walk-in booking created successfully!');
+      navigate('/admin/bookings');
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast.error(error.message || 'Failed to create booking');
     } finally {
       setLoading(false);
     }
@@ -230,161 +252,131 @@ export default function CreateBooking() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-card border border-border rounded-[32px] p-6 md:p-8 shadow-sm">
-            <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              Player Details
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium ml-1 text-muted-foreground">Player Name {bookingMode === 'advance' && '*'}</Label>
-                <Input
-                  id="name"
-                  required={bookingMode === 'advance'}
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder={bookingMode === 'walk-in' ? 'Optional for Walk-ins' : 'Enter full name'}
-                  className="rounded-xl bg-secondary border-border px-4 py-6 font-medium"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium ml-1 text-muted-foreground">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  maxLength={10}
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9]/g, '') })}
-                  placeholder="10-digit mobile"
-                  className="rounded-xl bg-secondary border-border px-4 py-6 font-medium"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-card border border-border rounded-[32px] p-6 md:p-8 shadow-sm">
-            <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
-              <Clock className="w-5 h-5 text-primary" />
-              Session Details
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium ml-1 text-muted-foreground">Station Type *</Label>
-                <Select
-                  value={formData.station_type}
-                  onValueChange={(val) => setFormData({ ...formData, station_type: val, assigned_station_id: 'any' })}
-                >
-                  <SelectTrigger className="rounded-xl bg-secondary border-border px-4 py-6 font-medium">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {stationTypes.map(t => (
-                      <SelectItem key={t.name} value={t.name}>{t.name} (₹{t.base_price}/hr)</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium ml-1 text-muted-foreground">Assign Station {bookingMode === 'walk-in' ? '*' : '(Optional)'}</Label>
-                <Select
-                  value={formData.assigned_station_id}
-                  onValueChange={(val) => setFormData({ ...formData, assigned_station_id: val })}
-                >
-                  <SelectTrigger className="rounded-xl bg-secondary border-border px-4 py-6 font-medium">
-                    <SelectValue placeholder={formData.station_type ? "Assign a station" : "Select type first"} />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    {bookingMode === 'advance' && <SelectItem value="any">Assign Later (Any)</SelectItem>}
-                    {filteredStations.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name || s.station_number}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {bookingMode === 'advance' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-                <div className="space-y-2 flex flex-col">
-                  <Label className="text-sm font-medium ml-1 text-muted-foreground">Date *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-medium rounded-xl bg-secondary border border-border px-4 py-6",
-                          !formData.start_date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.start_date ? format(formData.start_date, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={formData.start_date}
-                        onSelect={(d) => d && setFormData({ ...formData, start_date: d })}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+          <div className="bg-card border border-border rounded-[32px] p-6 md:p-8 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                Player Details
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-medium ml-1 text-muted-foreground">Player Name {bookingMode === 'advance' && '*'}</Label>
+                  <Input
+                    id="name"
+                    required={bookingMode === 'advance'}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder={bookingMode === 'walk-in' ? 'Optional for Walk-ins' : 'Enter full name'}
+                    className="rounded-xl bg-secondary border-border px-4 py-6 font-medium"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium ml-1 text-muted-foreground">Time *</Label>
-                  <Input 
-                    type="time" 
-                    required 
-                    value={formData.start_time}
-                    onChange={(e) => setFormData({...formData, start_time: e.target.value})}
-                    className="rounded-xl bg-secondary border-border px-4 py-6 font-medium w-full flex" 
+                  <Label htmlFor="phone" className="text-sm font-medium ml-1 text-muted-foreground">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    maxLength={10}
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/[^0-9]/g, '') })}
+                    placeholder="10-digit mobile"
+                    className="rounded-xl bg-secondary border-border px-4 py-6 font-medium"
                   />
                 </div>
               </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium ml-1 text-muted-foreground">Duration *</Label>
-                <Select
-                  value={formData.duration}
-                  onValueChange={(val) => setFormData({ ...formData, duration: val })}
-                >
-                  <SelectTrigger className="rounded-xl bg-secondary border-border px-4 py-6 font-medium">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value="30">30 Minutes</SelectItem>
-                    <SelectItem value="60">1 Hour</SelectItem>
-                    <SelectItem value="90">1.5 Hours</SelectItem>
-                    <SelectItem value="120">2 Hours</SelectItem>
-                    <SelectItem value="180">3 Hours</SelectItem>
-                    {bookingMode === 'walk-in' && <SelectItem value="open">Open Timer (Pay at end)</SelectItem>}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium ml-1 text-muted-foreground">Guests</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={formData.guests}
-                  onChange={(e) => setFormData({ ...formData, guests: parseInt(e.target.value) || '' })}
-                  className="rounded-xl bg-secondary border-border px-4 py-6 font-medium"
-                />
-              </div>
             </div>
-            
-            <div className="space-y-2 mt-5">
-              <Label className="text-sm font-medium ml-1 text-muted-foreground">Special Requests</Label>
-              <Textarea
-                value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                rows={2}
-                className="rounded-2xl bg-secondary border-border px-5 py-4 font-medium resize-none"
-              />
+
+            <hr className="border-border/60" />
+
+            <div>
+              <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-primary" />
+                Session Details
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium ml-1 text-muted-foreground">Station Type *</Label>
+                  <Select
+                    value={formData.station_type}
+                    onValueChange={handleStationTypeChange}
+                  >
+                    <SelectTrigger className="rounded-xl bg-secondary border-border px-4 py-6 font-medium">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border shadow-lg">
+                      {stationTypes.map(t => (
+                        <SelectItem key={t.name} value={t.name}>
+                          {t.name} (₹{t.base_price}/hr)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium ml-1 text-muted-foreground">Duration *</Label>
+                  <Select
+                    value={formData.duration}
+                    onValueChange={(val) => setFormData({ ...formData, duration: val })}
+                  >
+                    <SelectTrigger className="rounded-xl bg-secondary border-border px-4 py-6 font-medium">
+                      <SelectValue placeholder="Select duration" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border shadow-lg">
+                      <SelectItem value="30">30 Minutes</SelectItem>
+                      <SelectItem value="60">1 Hour</SelectItem>
+                      <SelectItem value="90">1.5 Hours</SelectItem>
+                      <SelectItem value="120">2 Hours</SelectItem>
+                      <SelectItem value="180">3 Hours</SelectItem>
+                      {bookingMode === 'walk-in' && (
+                        <SelectItem value="open">
+                          Open Timer (Pay at end)
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {bookingMode === 'advance' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                  <div className="space-y-2 flex flex-col">
+                    <Label className="text-sm font-medium ml-1 text-muted-foreground">Date *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-medium rounded-xl bg-secondary border border-border px-4 py-6",
+                            !formData.start_date && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {formData.start_date ? format(formData.start_date, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={formData.start_date}
+                          onSelect={(d) => d && setFormData({ ...formData, start_date: d })}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium ml-1 text-muted-foreground">Time *</Label>
+                    <Input 
+                      type="time" 
+                      required 
+                      value={formData.start_time}
+                      onChange={(e) => setFormData({...formData, start_time: e.target.value})}
+                      className="rounded-xl bg-secondary border-border px-4 py-6 font-medium w-full flex" 
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

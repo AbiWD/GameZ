@@ -5,7 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import pb from '@/lib/pocketbase';
-import { DollarSign, Users, Calendar, Gamepad2, Play, Clock, ArrowRight, LayoutGrid, LayoutTemplate, Activity, CreditCard, Banknote, Smartphone, Star, ArrowDownUp, GripHorizontal } from 'lucide-react';
+import { IndianRupee, Users, Calendar, Gamepad2, Play, Clock, ArrowRight, LayoutGrid, LayoutTemplate, Activity, CreditCard, Banknote, Smartphone, Star, ArrowDownUp, GripHorizontal } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
@@ -206,7 +206,7 @@ const Dashboard = () => {
     {
       title: "Today's Revenue",
       value: `₹${stats.todayRevenue.toLocaleString()}`,
-      icon: DollarSign,
+      icon: IndianRupee,
     },
     {
       title: "Today's Sessions",

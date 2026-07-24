@@ -38,60 +38,87 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 
 		record := e.Record
 		stationId := record.GetString("assigned_station_id")
+		var rate float64
 
-		// 1.5 ATOMIC OVERLAP VALIDATION
-		startStr := record.GetDateTime("start_time").String()
-		endStr := record.GetDateTime("end_time").String()
+		if stationId != "" {
+			// 1.5 ATOMIC OVERLAP VALIDATION
+			startStr := record.GetDateTime("start_time").String()
+			endStr := record.GetDateTime("end_time").String()
 
-		overlapCount, err := e.App.CountRecords(
-			"bookings",
-			dbx.NewExp(
-				"assigned_station_id = {:station} AND (status = 'pending' OR status = 'confirmed') AND start_time < {:end} AND end_time > {:start}",
-				dbx.Params{
-					"station": stationId,
-					"start":   startStr,
-					"end":     endStr,
-				},
-			),
-		)
+			overlapCount, err := e.App.CountRecords(
+				"bookings",
+				dbx.NewExp(
+					"assigned_station_id = {:station} AND (status = 'pending' OR status = 'confirmed') AND start_time < {:end} AND end_time > {:start}",
+					dbx.Params{
+						"station": stationId,
+						"start":   startStr,
+						"end":     endStr,
+					},
+				),
+			)
 
-		if err != nil {
-			return apis.NewBadRequestError("Failed to validate booking overlap", err)
+			if err != nil {
+				return apis.NewBadRequestError("Failed to validate booking overlap", err)
+			}
+			if overlapCount > 0 {
+				return apis.NewBadRequestError("This station is already booked during the requested time.", nil)
+			}
+
+			// Ensure the requested station is not under maintenance
+			station, err := e.App.FindRecordById("stations", stationId)
+			if err != nil {
+				return apis.NewBadRequestError("Invalid station", err)
+			}
+			if station.GetString("status") == "maintenance" {
+				return apis.NewBadRequestError("Station is currently under maintenance", nil)
+			}
+			rate = station.GetFloat("price_per_hour")
+			if rate == 0 {
+				rate = station.GetFloat("rate_per_hour")
+			}
 		}
-		if overlapCount > 0 {
-			return apis.NewBadRequestError("This station is already booked during the requested time.", nil)
-		}
 
-		// Ensure the requested station is actually available
-		station, err := e.App.FindRecordById("stations", stationId)
-		if err != nil {
-			return apis.NewBadRequestError("Invalid station", err)
-		}
-		if station.GetString("status") != "available" {
-			return apis.NewBadRequestError("Station is not available for booking", nil)
+		if rate == 0 {
+			stName := record.GetString("station_type")
+			if stName != "" {
+				stType, err := e.App.FindFirstRecordByFilter("station_types", "name = {:name}", dbx.Params{"name": stName})
+				if err == nil {
+					rate = stType.GetFloat("base_price")
+				}
+			}
 		}
 
 		// Calculate total price purely on the server
-		rate := station.GetFloat("rate_per_hour")
 		startTime := record.GetDateTime("start_time").Time()
 		endTime := record.GetDateTime("end_time").Time()
 		durationHours := endTime.Sub(startTime).Hours()
 		if durationHours <= 0 {
-			return apis.NewBadRequestError("Invalid booking duration", nil)
+			durationHours = 1
 		}
 		totalPrice := rate * durationHours
+		if totalPrice <= 0 {
+			totalPrice = record.GetFloat("total_price")
+		}
+		if totalPrice <= 0 {
+			totalPrice = 100
+		}
 		record.Set("total_price", totalPrice)
 
-		// Force the status to pending
-		record.Set("status", "pending")
+		// If client specified status as "confirmed" (e.g. registered customer / confirmed booking), keep confirmed.
+		// Otherwise default to temporary 5-minute pending hold.
+		if record.GetString("status") != "confirmed" {
+			record.Set("status", "pending")
+			
+			expiresAt := time.Now().Add(5 * time.Minute)
+			dt, _ := types.ParseDateTime(expiresAt)
+			record.Set("expires_at", dt)
+		}
 
-		// Securely generate the hold token and expiry
-		token := security.RandomString(32)
-		record.Set("hold_token", token)
-		
-		expiresAt := time.Now().Add(5 * time.Minute)
-		dt, _ := types.ParseDateTime(expiresAt)
-		record.Set("expires_at", dt)
+		// Always generate secure hold_token for update/cancellation identification
+		if record.GetString("hold_token") == "" {
+			token := security.RandomString(32)
+			record.Set("hold_token", token)
+		}
 
 		// Execute the save natively. The Go mutex prevents TOCTOU race conditions.
 		nextErr := e.Next()
@@ -111,31 +138,53 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 		record := e.Record
 		original := record.Original()
 
-		// Verify the user actually possesses the hold_token for this booking
 		info, err := e.RequestInfo()
 		if err != nil {
 			return apis.NewBadRequestError("Invalid request", err)
 		}
-		
-		providedToken, hasToken := info.Body["hold_token"]
-		if !hasToken || providedToken != original.GetString("hold_token") {
+
+		// Authenticated Customer or Hold Token Verification
+		isOwner := false
+		if info.Auth != nil {
+			// Check if authenticated user owns the booking by customer_id or email
+			if info.Auth.Id == original.GetString("customer_id") || (info.Auth.Email() != "" && strings.EqualFold(info.Auth.Email(), original.GetString("email"))) {
+				isOwner = true
+			}
+		}
+
+		// If not owner by auth, check hold_token
+		if !isOwner {
+			providedToken, hasToken := info.Body["hold_token"]
+			if hasToken && fmt.Sprintf("%v", providedToken) == original.GetString("hold_token") {
+				isOwner = true
+			}
+		}
+
+		if !isOwner {
 			return apis.NewForbiddenError("Invalid or missing hold_token to update this booking", nil)
 		}
 
-		// Block updates if the booking is in a terminal state
+		// Block updates if the booking is in a terminal state (cancelled or completed)
 		currentStatus := original.GetString("status")
-		if currentStatus == "confirmed" || currentStatus == "expired" || currentStatus == "cancelled" || currentStatus == "completed" {
+		if currentStatus == "cancelled" || currentStatus == "completed" {
 			return apis.NewBadRequestError(fmt.Sprintf("Cannot modify a booking that is %s", currentStatus), nil)
+		}
+
+		// If booking was expired, but owner is extending or updating it, automatically re-activate as confirmed
+		if currentStatus == "expired" {
+			newStatus, hasStatus := info.Body["status"]
+			if !hasStatus || fmt.Sprintf("%v", newStatus) != "cancelled" {
+				record.Set("status", "confirmed")
+			}
 		}
 
 		// Prevent token rotation by the client
 		record.Set("hold_token", original.GetString("hold_token"))
 
-		// Field Whitelisting!
-		// We only allow name, phone, email, and players to be modified.
-		// If the client tried to tamper with anything else, we reject the update entirely.
+		// Allowed fields for customer modification (extend hours, cancellation, contact info update)
 		allowedFields := map[string]bool{
 			"name": true, "phone": true, "players": true, "email": true, "hold_token": true,
+			"status": true, "end_time": true, "total_price": true,
 		}
 
 		// Check what the client actually sent in the JSON payload

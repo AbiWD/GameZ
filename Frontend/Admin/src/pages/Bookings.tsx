@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ChevronRight, ChevronLeft, AlertTriangle, XCircle, Copy } from 'lucide-react';
+import { ChevronRight, ChevronLeft, AlertTriangle, XCircle, Copy, ArrowUpDown } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { escapePbFilterValue } from '@/lib/utils';
 import { useProperty } from '@/contexts/PropertyContext';
@@ -71,6 +71,9 @@ const Bookings = () => {
   // Available station types for filter
   const [availableStationTypes, setAvailableStationTypes] = useState<string[]>([]);
 
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortOrder, setSortOrder] = useState('-created');
+
   // Debounce search term to protect database
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(searchTerm), 350);
@@ -80,13 +83,13 @@ const Bookings = () => {
   // Reset page to 1 when filters logically change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, stationFilter]);
+  }, [debouncedSearch, stationFilter, statusFilter, sortOrder]);
 
   useEffect(() => {
     if (activeProperty) {
       fetchBookings();
     }
-  }, [activeProperty, page, debouncedSearch, stationFilter]);
+  }, [activeProperty, page, debouncedSearch, stationFilter, statusFilter, sortOrder]);
 
   // Fetch available station types for dropdown once when property loads
   useEffect(() => {
@@ -107,7 +110,7 @@ const Bookings = () => {
       
       if (debouncedSearch) {
         const safeSearch = escapePbFilterValue(debouncedSearch);
-        filterStr += ` && (name ~ "${safeSearch}" || email ~ "${safeSearch}" || phone ~ "${safeSearch}" || booking_reference ~ "${safeSearch}")`;
+        filterStr += ` && (name ~ "${safeSearch}" || email ~ "${safeSearch}" || phone ~ "${safeSearch}" || booking_reference ~ "${safeSearch}" || status ~ "${safeSearch}")`;
       }
       
       if (stationFilter && stationFilter !== 'all') {
@@ -115,8 +118,14 @@ const Bookings = () => {
         filterStr += ` && assigned_station_id.station_type = "${safeStation}"`;
       }
 
+      if (statusFilter && statusFilter !== 'all') {
+        const safeStatus = escapePbFilterValue(statusFilter);
+        filterStr += ` && status = "${safeStatus}"`;
+      }
+
       const result = await pb.collection('bookings').getList(page, 10, {
         filter: filterStr,
+        sort: sortOrder,
         expand: 'assigned_station_id',
         requestKey: null
       });
@@ -137,26 +146,20 @@ const Bookings = () => {
 
   const executeSingleCancel = async () => {
     if (!cancelTargetBooking) return;
-    
     try {
-      await pb.collection('bookings').update(cancelTargetBooking.id, {
-        status: 'cancelled'
-      });
-      toast.success('Booking cancelled successfully');
+      await pb.collection('bookings').update(cancelTargetBooking.id, { status: 'cancelled' });
+      toast.success(`Booking ${cancelTargetBooking.booking_reference || cancelTargetBooking.id} has been cancelled.`);
+      setCancelTargetBooking(null);
       setSelectedBooking(null);
       fetchBookings();
-    } catch (error) {
-      console.error('Error cancelling booking:', error);
-      toast.error('Failed to cancel booking');
-    } finally {
-      setCancelTargetBooking(null);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to cancel booking');
     }
   };
 
-
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="w-full space-y-6">
         <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">All Bookings</h1>
@@ -167,7 +170,7 @@ const Bookings = () => {
         <div className="bg-card border border-border rounded-2xl md:rounded-3xl p-4 sm:p-5 md:p-8 shadow-sm overflow-x-hidden w-full">
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <Input
-              placeholder="Search by name, email, or phone..."
+              placeholder="Search by name, phone, or ref #..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full sm:max-w-sm rounded-xl border border-border bg-secondary/50 px-4 py-6 shadow-sm focus-visible:ring-1 focus-visible:bg-background transition-all"
@@ -184,6 +187,29 @@ const Bookings = () => {
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[180px] rounded-xl border border-border bg-secondary/50 px-4 py-6 shadow-sm focus:bg-background transition-all">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-border shadow-lg">
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="expired">Expired</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              onClick={() => setSortOrder(sortOrder === '-created' ? '+created' : '-created')}
+              className="w-full sm:w-auto rounded-xl border border-border bg-secondary/50 px-4 py-6 shadow-sm hover:bg-background transition-all flex items-center justify-center gap-2 font-medium"
+            >
+              <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              {sortOrder === '-created' ? 'Newest First' : 'Oldest First'}
+            </Button>
           </div>
 
         {loading ? (
@@ -203,14 +229,13 @@ const Bookings = () => {
                   <TableHead className="py-4 px-4 font-semibold text-muted-foreground hidden md:table-cell">End Time</TableHead>
                   <TableHead className="py-4 px-4 font-semibold text-muted-foreground hidden lg:table-cell">Status</TableHead>
                   <TableHead className="py-4 px-4 font-semibold text-muted-foreground hidden lg:table-cell">Price</TableHead>
-                  <TableHead className="py-4 px-4 font-semibold text-muted-foreground hidden lg:table-cell">Guests</TableHead>
                   <TableHead className="py-4 px-1 md:px-6 font-semibold text-muted-foreground text-right lg:hidden text-xs sm:text-sm">Details</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {bookings.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
                       No bookings found
                     </TableCell>
                   </TableRow>
@@ -244,7 +269,6 @@ const Bookings = () => {
                         )}
                       </TableCell>
                       <TableCell className="py-3 px-4 font-semibold text-foreground hidden lg:table-cell">₹{booking.total_price}</TableCell>
-                      <TableCell className="py-3 px-4 text-muted-foreground hidden lg:table-cell">{booking.guests}</TableCell>
                       <TableCell className="py-3 px-1 md:px-6 text-right lg:hidden">
                         <button 
                           onClick={() => setSelectedBooking(booking)}
@@ -301,35 +325,35 @@ const Bookings = () => {
               <div className="bg-secondary/30 border border-border rounded-2xl p-5 shadow-sm space-y-3">
                  <div className="flex justify-between items-center border-b border-border pb-3">
                    <span className="text-sm font-medium text-muted-foreground">Player Name</span>
-                   <span className="font-bold text-foreground max-w-[150px] sm:max-w-[180px] text-right truncate">{selectedBooking.name}</span>
+                   <span className="font-bold text-foreground text-right truncate max-w-[180px]">{selectedBooking.name}</span>
                  </div>
                  <div className="flex justify-between items-center border-b border-border pb-3">
                    <span className="text-sm font-medium text-muted-foreground">Reference #</span>
-                   <span className="font-mono text-sm text-primary">{selectedBooking.booking_reference || '-'}</span>
+                   <span className="font-mono text-sm text-primary font-bold">{selectedBooking.booking_reference || '-'}</span>
                  </div>
                  <div className="flex justify-between items-center border-b border-border pb-3">
                    <span className="text-sm font-medium text-muted-foreground">Phone</span>
                    <span className="font-medium text-foreground">{selectedBooking.phone}</span>
                  </div>
+                 {selectedBooking.email && !selectedBooking.email.endsWith('@guest.gamez.in') && !selectedBooking.email.startsWith('walkin') && !selectedBooking.email.startsWith('guest') && (
+                    <div className="flex justify-between items-center border-b border-border pb-3">
+                      <span className="text-sm font-medium text-muted-foreground">Email</span>
+                      <span className="font-medium text-foreground truncate max-w-[180px] text-right">{selectedBooking.email}</span>
+                    </div>
+                  )}
                  <div className="flex justify-between items-center border-b border-border pb-3">
-                   <span className="text-sm font-medium text-muted-foreground">Email</span>
-                   <span className="font-medium text-foreground truncate max-w-[150px] sm:max-w-[180px] text-right">{selectedBooking.email}</span>
-                 </div>
-                 <div className="flex justify-between items-center border-b border-border pb-3">
-                   <span className="text-sm font-medium text-muted-foreground">Station Type</span>
-                   <span className="text-sm font-semibold text-primary bg-primary/10 border border-primary/20 xl:py-0.5 px-2 rounded-md">{selectedBooking.station_type}</span>
+                   <span className="text-sm font-medium text-muted-foreground">Station</span>
+                   <span className="text-xs font-semibold text-primary bg-primary/10 border border-primary/20 py-0.5 px-2.5 rounded-md">
+                     {selectedBooking.expand?.assigned_station_id?.name || selectedBooking.expand?.assigned_station_id?.station_type || selectedBooking.station_type || 'Gaming Console'}
+                   </span>
                  </div>
                  <div className="flex justify-between items-center border-b border-border pb-3">
                    <span className="text-sm font-medium text-muted-foreground">Start Time</span>
-                   <span className="font-medium text-foreground">{safeFormatDate(selectedBooking.start_time, 'MMM dd, yyyy')}</span>
+                   <span className="font-medium text-foreground">{safeFormatDate(selectedBooking.start_time, 'MMM dd, yyyy • hh:mm a')}</span>
                  </div>
                  <div className="flex justify-between items-center border-b border-border pb-3">
                    <span className="text-sm font-medium text-muted-foreground">End Time</span>
-                   <span className="font-medium text-foreground">{safeFormatDate(selectedBooking.end_time, 'MMM dd, yyyy')}</span>
-                 </div>
-                 <div className="flex justify-between items-center border-b border-border pb-3">
-                   <span className="text-sm font-medium text-muted-foreground">Guests</span>
-                   <span className="font-medium text-foreground">{selectedBooking.guests}</span>
+                   <span className="font-medium text-foreground">{safeFormatDate(selectedBooking.end_time, 'MMM dd, yyyy • hh:mm a')}</span>
                  </div>
                  <div className="flex justify-between items-center border-b border-border pb-3">
                    <span className="text-sm font-medium text-muted-foreground">Status</span>

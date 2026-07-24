@@ -1,0 +1,129 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "GameZ Gaming Arena Backend REST API",
+    "description": "Comprehensive API specification for GameZ lounge booking, station inventory, pricing calculation, and staff auth operations.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8090/api",
+      "description": "Local GameZ Server"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "API Health Check",
+        "description": "Returns API operational status.",
+        "responses": {
+          "200": {
+            "description": "API is healthy",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "API is healthy.",
+                  "code": 200,
+                  "data": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collections/stations/records": {
+      "get": {
+        "summary": "Get Stations Inventory",
+        "description": "Fetches all gaming stations (PS5, Snooker, Pool, Carrom) and their current statuses.",
+        "responses": {
+          "200": {
+            "description": "List of station records"
+          }
+        }
+      }
+    },
+    "/collections/bookings/records": {
+      "get": {
+        "summary": "List Bookings",
+        "description": "Queries all booking records. Supports filtering by status.",
+        "responses": {
+          "200": {
+            "description": "List of bookings"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Booking Hold (Guest or Staff)",
+        "description": "Creates a new booking record. Auto-calculates total_price and sets hold_token and 5-minute expiry.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["assigned_station_id", "start_time", "end_time", "players", "name", "email", "phone"],
+                "properties": {
+                  "assigned_station_id": { "type": "string", "example": "ps5station00001" },
+                  "start_time": { "type": "string", "format": "date-time", "example": "2026-07-24T18:00:00.000Z" },
+                  "end_time": { "type": "string", "format": "date-time", "example": "2026-07-24T19:00:00.000Z" },
+                  "players": { "type": "integer", "example": 2 },
+                  "name": { "type": "string", "example": "John Doe" },
+                  "email": { "type": "string", "example": "john@example.com" },
+                  "phone": { "type": "string", "example": "9876543210" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Booking hold created successfully" },
+          "400": { "description": "Station booked or invalid time slot" }
+        }
+      }
+    },
+    "/custom/bookings/{id}/confirm": {
+      "post": {
+        "summary": "Staff Confirm Booking",
+        "description": "Staff-only endpoint to confirm a pending booking. Rejects unauthenticated guest attempts with 403 Forbidden.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Booking confirmed by staff" },
+          "403": { "description": "Forbidden - Only staff can confirm bookings" }
+        }
+      }
+    },
+    "/collections/_superusers/auth-with-password": {
+      "post": {
+        "summary": "Staff Admin Login",
+        "description": "Authenticates staff members and returns JWT token.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["identity", "password"],
+                "properties": {
+                  "identity": { "type": "string", "example": "test@admin.com" },
+                  "password": { "type": "string", "example": "admin@1234" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successfully authenticated" },
+          "400": { "description": "Invalid credentials" }
+        }
+      }
+    }
+  }
+}

@@ -29,6 +29,7 @@ async function runTest() {
             name: 'Deletion Test',
             email: 'test@deletion.com',
             phone: '1234567890',
+            total_price: 200,
             status: 'confirmed'
         });
 

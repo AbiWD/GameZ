@@ -42,6 +42,7 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
   const extendBookingMutation = useExtendBooking();
   const { data: pricingData } = usePricing();
   const stationTypes = pricingData?.stTypes || [];
+  const physicalStations = pricingData?.pStations || [];
   const { mutateAsync: logout } = useLogout();
   const [activeTab, setActiveTab] = useState<'reservations' | 'profile'>('reservations');
   const [reservationTab, setReservationTab] = useState<'upcoming' | 'past' | 'cancelled'>('upcoming');
@@ -70,19 +71,22 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
     return endDate;
   };
 
-  const activeBookings = allUserBookings.filter(b => b.status !== 'cancelled' && getEndTime(b) > now);
-  const pastBookings = allUserBookings.filter(b => b.status !== 'cancelled' && getEndTime(b) <= now);
-  const cancelledBookings = allUserBookings.filter(b => b.status === 'cancelled');
+  const activeBookings = allUserBookings.filter(b => b.status !== 'cancelled' && b.status !== 'expired' && getEndTime(b) > now);
+  const pastBookings = allUserBookings.filter(b => b.status !== 'cancelled' && b.status !== 'expired' && getEndTime(b) <= now);
+  const cancelledBookings = allUserBookings.filter(b => b.status === 'cancelled' || b.status === 'expired');
 
   const userBookings = 
     reservationTab === 'upcoming' ? activeBookings :
     reservationTab === 'past' ? pastBookings :
     cancelledBookings;
 
-  // Helper to find the station info from its ID
-  const getStationName = (stationId: string) => {
-    const s = stationTypes.find(x => x.id === stationId);
-    return s ? s.name : 'Gaming Console';
+  // Helper to get clean category name from booking record
+  const getStationName = (b: any) => {
+    if (typeof b === 'string') {
+      const s = stationTypes.find((x: any) => x.id === b);
+      return s ? s.name : 'Gaming Console';
+    }
+    return b?.station_type || 'Gaming Console';
   };
 
   const getStationRate = (stationId: string) => {
@@ -297,8 +301,10 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
                               <span>{booking.durationHours} hours total</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-400">
-                              <ShieldCheck className="h-3.5 w-3.5 text-cyber-neon shrink-0" />
-                              <span className="text-cyber-neon font-semibold uppercase text-[10px]">Lobby Confirmed</span>
+                              <ShieldCheck className={`h-3.5 w-3.5 shrink-0 ${booking.status === 'confirmed' ? 'text-cyber-neon' : booking.status === 'held' ? 'text-amber-400' : 'text-red-400'}`} />
+                              <span className={`font-semibold uppercase text-[10px] ${booking.status === 'confirmed' ? 'text-cyber-neon' : booking.status === 'held' ? 'text-amber-400' : 'text-red-400'}`}>
+                                {booking.status === 'confirmed' ? 'Lobby Confirmed' : booking.status === 'held' ? 'Temporary Hold (5m)' : booking.status === 'expired' ? 'Hold Expired' : 'Cancelled'}
+                              </span>
                             </div>
                           </div>
 
@@ -448,10 +454,10 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
                   <div className="p-6 bg-cyber-lightgray/10 rounded-2xl border border-white/5 text-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 h-12 w-12 bg-cyber-purple/15 rounded-bl-full pointer-events-none" />
                     <div className="mx-auto h-20 w-20 rounded-full bg-gradient-to-tr from-cyber-purple to-cyber-cyan text-white flex items-center justify-center text-2xl font-extrabold shadow-lg shadow-cyber-purple/20 mb-4 select-none">
-                      {currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {(currentUser?.name || currentUser?.email || 'Gamer').split(' ').filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                     </div>
                     <h3 className="font-display text-lg font-bold text-white mb-1">
-                      {currentUser.name}
+                      {currentUser?.name || currentUser?.email || 'Gamer'}
                     </h3>
                     <span className="inline-block text-[10px] font-mono text-cyber-cyan uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-cyber-cyan/10 border border-cyber-cyan/20">
                       Gamer Badge ID #7890

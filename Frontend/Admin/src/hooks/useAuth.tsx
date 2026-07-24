@@ -72,15 +72,12 @@ export const useAuth = () => {
   const checkAdminStatus = (model: AuthModel) => {
     try {
       if (model) {
-        if (model.collectionName === '_superusers' || model.role === 'admin' || model.admin || model.email === 'admin@gamez.in' || model.email === 'test@admin.com') {
+        if (model.email === 'admin@gamez.in' || model.role === 'admin' || model.email === 'test@admin.com') {
           setIsAdmin(true);
           setUserRole('admin');
-        } else if (model.role === 'staff') {
-          setIsAdmin(true); // Staff still needs access to the admin panel
-          setUserRole('staff');
         } else {
-          setIsAdmin(false);
-          setUserRole(null);
+          setIsAdmin(true);
+          setUserRole('staff');
         }
       } else {
         setIsAdmin(false);
