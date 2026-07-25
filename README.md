@@ -1,28 +1,85 @@
-# GameZ Platform Monorepo
+# 🎮 GameZ Platform Monorepo
 
-## System Architecture & Deployment Model
+An all-in-one gaming cafe management & online reservation platform built with **Go (PocketBase)** and **React (TypeScript & Vite)**. Engineered for single-binary distribution with zero external database dependencies.
 
-The GameZ backend is built on top of PocketBase (Go) and engineered for high performance, single-binary distribution.
+---
 
-### Single-Instance Concurrency Constraint
+## 🏗️ System Architecture & Route Topology
+
+The system compiles into a single executable serving both frontends and the backend REST API:
+
+- `/` — **Customer Website** (Served from `Backend/pb_public/`)
+- `/admin/` — **Admin & Staff Roster Portal** (Served from `Backend/ui/admin/`)
+- `/_/` — **Native PocketBase Superuser Dashboard**
+- `/api/` — **Backend REST API Endpoints**
+
+### ⚠️ Single-Instance Concurrency Constraint
 > [!IMPORTANT]
 > **Single-Instance Deployment Required:**
 > The booking creation engine uses an in-memory `sync.Mutex` (`bookingMutex`) in `Backend/hooks/bookings.go` to guarantee TOCTOU-safe transaction isolation for booking slots. 
 > 
 > Because this lock is in-memory:
-> - The backend **must be deployed as a single application instance** (single Go process).
+> - The backend **must be deployed as a single application process**.
 > - Horizontal scaling across multiple load-balanced process instances is **not supported** without replacing the internal Go mutex with a distributed lock manager (e.g., Redis `redlock` or Postgres advisory locks).
 > - Vertical scaling (increasing CPU/RAM on the instance) is the recommended path for increased capacity.
 
-### Route Topology
-- `/` - Customer Website SPA (Served from `pb_public/`)
-- `/admin/` - Custom GameZ Admin Panel SPA (Embedded via `go:embed`)
-- `/_/` - Native PocketBase Superuser Dashboard
-- `/api/` - Backend REST API Endpoints
+---
 
-### Production Build
-Run `build.sh` (Linux/Mac) or `build.ps1` (Windows) from the repository root:
+## 🛠️ Prerequisites
+
+Ensure you have the following installed on your machine:
+- **Node.js** (v18 or higher)
+- **Go** (v1.22 or higher)
+- **Git**
+
+---
+
+## 🚀 Quick Start (Development Mode)
+
+### 1. Install Dependencies
+Run the command below from the repository root to install dependencies for the root, Admin frontend, and Website frontend:
+```bash
+npm run install:all
+```
+
+### 2. Start Local Development Environment
+Start the Go backend and both Vite dev servers concurrently with hot-reloading:
+```bash
+npm run dev
+```
+
+Once running, access the services at:
+- **Website (Dev)**: `http://localhost:8080`
+- **Admin Portal (Dev)**: `http://localhost:8081/admin`
+- **Backend API & Dashboard**: `http://localhost:8090`
+
+---
+
+## 📦 Production Build & Deployment
+
+To compile the entire monorepo into a single self-contained executable:
+
+### On Linux / macOS:
 ```bash
 ./build.sh
 ```
-This script compiles both React SPAs, copies static assets into their designated paths (`ui/admin` and `pb_public`), and compiles the single `gamez-server` Go executable.
+
+### On Windows (PowerShell):
+```powershell
+.\build.ps1
+```
+
+This script compiles both React SPAs, copies the static assets to their designated backend paths (`Backend/ui/admin` and `Backend/pb_public`), and compiles the single `gamez-server` Go executable.
+
+### Running the Production Binary:
+```bash
+cd Backend
+./gamez-server serve --http="127.0.0.1:8090"
+```
+
+---
+
+## 🔑 Default Credentials
+
+- **Admin Login Email**: `admin@gamez.in`
+- **Admin Password**: `admin@1234`
