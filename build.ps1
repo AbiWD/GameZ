@@ -29,4 +29,14 @@ Set-Location Backend
 go build -o gamez-server.exe
 Set-Location ..
 
-Write-Host "Build complete! The binary is located at Backend\gamez-server.exe"
+Write-Host "`n=======================================================" -ForegroundColor Green
+Write-Host " Build Complete! The executable is at Backend\gamez-server.exe" -ForegroundColor Green
+Write-Host "=======================================================" -ForegroundColor Green
+Write-Host "`nTo start the production server, run:" -ForegroundColor Cyan
+Write-Host "  cd Backend" -ForegroundColor Yellow
+Write-Host "  .\gamez-server.exe serve --http=`"127.0.0.1:8090`"`n" -ForegroundColor Yellow
+Write-Host "Then access your applications at:" -ForegroundColor Cyan
+Write-Host "  - Admin Portal:      http://localhost:8090/admin/" -ForegroundColor White
+Write-Host "  - Customer Website:  http://localhost:8090/" -ForegroundColor White
+Write-Host "  - REST API:          http://localhost:8090/api/" -ForegroundColor White
+Write-Host "=======================================================" -ForegroundColor Green

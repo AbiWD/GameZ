@@ -26,4 +26,17 @@ cd Backend
 go build -o gamez-server
 cd ..
 
-echo "Build complete! The binary is located at Backend/gamez-server"
+echo ""
+echo "======================================================="
+echo " Build Complete! The executable is at Backend/gamez-server"
+echo "======================================================="
+echo ""
+echo "To start the production server, run:"
+echo "  cd Backend"
+echo "  ./gamez-server serve --http=\"127.0.0.1:8090\""
+echo ""
+echo "Then access your applications at:"
+echo "  - Admin Portal:      http://localhost:8090/admin/"
+echo "  - Customer Website:  http://localhost:8090/"
+echo "  - REST API:          http://localhost:8090/api/"
+echo "======================================================="
