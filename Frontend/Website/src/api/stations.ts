@@ -2,12 +2,15 @@ import pb from '../lib/pocketbase';
 import type { Booking } from '../types';
 import { parseTimeToDecimal } from '../lib/utils';
 import { STATIONS } from '../data';
-
 export const stationsApi = {
   fetchPricing: async () => {
-    const pStations = await pb.collection('stations').getFullList();
-    const tPrices = await pb.collection('tier_prices').getFullList();
-    const stTypes = await pb.collection('station_types').getFullList();
+    let pStations: any[] = [];
+    let tPrices: any[] = [];
+    let stTypes: any[] = [];
+
+    try { pStations = await pb.collection('stations').getFullList(); } catch (e) {}
+    try { tPrices = await pb.collection('tier_prices').getFullList(); } catch (e) {}
+    try { stTypes = await pb.collection('station_types').getFullList(); } catch (e) {}
     
     const hourlyRates: Record<string, number> = {};
     stTypes.forEach(st => {
@@ -18,8 +21,26 @@ export const stationsApi = {
     tPrices.forEach(t => {
       tierPrices[t.tier_id] = t.price;
     });
+
+    const liveAvailability: Record<string, { total: number; available: number }> = {};
     
-    return { pStations, tPrices, stTypes, hourlyRates, tierPrices };
+    pStations.forEach(ps => {
+      const matchedType = stTypes.find(st => st.id === ps.station_type || st.name === ps.station_type);
+      const categoryName = matchedType ? matchedType.name : (ps.station_type || '');
+
+      if (categoryName) {
+        if (!liveAvailability[categoryName]) {
+          liveAvailability[categoryName] = { total: 0, available: 0 };
+        }
+        liveAvailability[categoryName].total += 1;
+        const statusLower = (ps.status || '').toLowerCase();
+        if (statusLower === 'available' || statusLower === 'vacant') {
+          liveAvailability[categoryName].available += 1;
+        }
+      }
+    });
+    
+    return { pStations, tPrices, stTypes, hourlyRates, tierPrices, liveAvailability };
   },
 
   checkSlotConflict: async (

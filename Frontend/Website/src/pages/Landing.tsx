@@ -461,33 +461,38 @@ export default function Landing({ setRoute }: LandingProps) {
                   </ul>
 
                   {/* Availability badge & Reserve CTA button */}
-                  <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-3 mt-auto">
-                    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wide text-cyber-cyan bg-cyber-cyan/10 px-2.5 py-1 rounded-full">
-                      <span className="h-1.5 w-1.5 rounded-full bg-cyber-cyan animate-pulse" />
-                      {station.availableNow} / {station.totalSlots} AVAILABLE
-                    </span>
-                    <button
-                      id={`book-station-${station.id}`}
-                      onClick={() => setRoute('/book')}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-display font-semibold text-white bg-cyber-purple/20 hover:bg-cyber-purple/80 hover:scale-[1.03] transition-all duration-200 border border-cyber-purple/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyber-purple cursor-pointer"
-                    >
-                      Book Now
-                    </button>
-                  </div>
+                  {(() => {
+                    const liveAvail = pricingData?.liveAvailability?.[station.name];
+                    const totalSlots = liveAvail ? liveAvail.total : station.totalSlots;
+                    const availableNow = liveAvail ? liveAvail.available : station.availableNow;
+                    const isFullyBooked = availableNow === 0;
+
+                    return (
+                      <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-3 mt-auto">
+                        <span className={`inline-flex items-center gap-1.5 font-mono text-[10px] tracking-wide px-2.5 py-1 rounded-full ${
+                          isFullyBooked 
+                            ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20' 
+                            : 'text-cyber-cyan bg-cyber-cyan/10 border border-cyber-cyan/20'
+                        }`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${isFullyBooked ? 'bg-rose-400' : 'bg-cyber-cyan animate-pulse'}`} />
+                          {availableNow} / {totalSlots} AVAILABLE
+                        </span>
+                        <button
+                          id={`book-station-${station.id}`}
+                          onClick={() => setRoute('/book')}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-display font-semibold text-white bg-cyber-purple/20 hover:bg-cyber-purple/80 hover:scale-[1.03] transition-all duration-200 border border-cyber-purple/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyber-purple cursor-pointer"
+                        >
+                          Book Now
+                        </button>
+                      </div>
+                    );
+                  })()}
 
                 </div>
 
               </div>
             );
           })}
-        </div>
-
-        {/* Live PocketBase Note */}
-        <div className="mt-8 flex items-center gap-2.5 justify-center bg-cyber-gray/50 border border-white/5 px-4 py-3 rounded-xl max-w-2xl mx-auto">
-          <Info className="h-4.5 w-4.5 text-cyber-cyan shrink-0" />
-          <p className="text-xs text-gray-500 leading-normal">
-            <strong>V1 Database Note:</strong> Active rates reflect real configurations. PocketBase live binding hooks (collections: <code className="text-cyber-purple font-mono bg-cyber-lightgray px-1 rounded text-[10px]">stations</code>) are structurally implemented in comments to run automatically in production V2.
-          </p>
         </div>
 
       </section>

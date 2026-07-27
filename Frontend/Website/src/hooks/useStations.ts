@@ -7,6 +7,7 @@ export function usePricing() {
   return useQuery({
     queryKey: PRICING_QUERY_KEY,
     queryFn: stationsApi.fetchPricing,
-    staleTime: 1000 * 60 * 60, // 1 hour (pricing rarely changes)
+    staleTime: 2000,
+    refetchInterval: 3000, // Live poll every 3 seconds for active station availability
   });
 }
