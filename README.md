@@ -55,27 +55,45 @@ Once running, access the services at:
 
 ---
 
-## 📦 Production Build & Deployment
+## 📦 Production Build & Running the Server
 
-To compile the entire monorepo into a single self-contained executable:
+To compile the entire monorepo into a single self-contained executable and launch it:
 
-### On Linux / macOS:
-```bash
-./build.sh
-```
+### Step 1: Build the Executable
+- **On Linux / macOS**:
+  ```bash
+  ./build.sh
+  ```
+- **On Windows (PowerShell)**:
+  ```powershell
+  .\build.ps1
+  ```
+*This script compiles both React SPAs, copies static assets into designated backend folders (`Backend/ui/admin` and `Backend/pb_public`), and compiles the `gamez-server` Go binary.*
 
-### On Windows (PowerShell):
-```powershell
-.\build.ps1
-```
+---
 
-This script compiles both React SPAs, copies the static assets to their designated backend paths (`Backend/ui/admin` and `Backend/pb_public`), and compiles the single `gamez-server` Go executable.
+### Step 2: Start the Production Server
+> [!NOTE]
+> The build script only **compiles** the executable (`gamez-server.exe`). You must run the command below to turn the server **ON** before clicking the links!
 
-### Running the Production Binary:
-```bash
-cd Backend
-./gamez-server serve --http="127.0.0.1:8090"
-```
+- **On Windows (PowerShell)**:
+  ```powershell
+  cd Backend
+  .\gamez-server.exe serve --http="127.0.0.1:8090"
+  ```
+- **On Linux / macOS (Bash)**:
+  ```bash
+  cd Backend
+  ./gamez-server serve --http="127.0.0.1:8090"
+  ```
+
+---
+
+### Step 3: Access Live Production Applications
+Once the server is running, open:
+- **Admin & Staff Portal**: 👉 `http://localhost:8090/admin/`
+- **Customer Website**: 👉 `http://localhost:8090/`
+- **REST API**: 👉 `http://localhost:8090/api/`
 
 ---
 
