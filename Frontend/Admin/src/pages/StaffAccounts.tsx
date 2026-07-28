@@ -221,7 +221,7 @@ const StaffAccounts = () => {
                     <TableCell className="font-medium">{user.email}</TableCell>
                     <TableCell>{user.name || '-'}</TableCell>
                     <TableCell>
-                      {user.role === 'admin' || user.email === 'admin@gamez.in' ? (
+                      {user.role === 'admin' || user.email === 'sysadmin@gamez.in' || user.email === 'admin@gamez.in' ? (
                         <Badge variant="default" className="bg-primary hover:bg-primary/90 gap-1">
                           <ShieldAlert className="w-3 h-3" /> Admin
                         </Badge>

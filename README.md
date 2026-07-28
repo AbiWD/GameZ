@@ -99,5 +99,5 @@ Once the server is running, open:
 
 ## 🔑 Default Credentials
 
-- **Admin Login Email**: `admin@gamez.in`
-- **Admin Password**: `admin@1234`
+- **Permanent System Admin Email**: `sysadmin@gamez.in`
+- **Permanent System Admin Password**: `Password123!`
