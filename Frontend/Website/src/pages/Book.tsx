@@ -739,67 +739,84 @@ export default function Book({ setRoute }: BookProps) {
                             </span>
                           </div>
 
+                          {/* Cancel / Reset under left column inputs */}
+                          <div className="pt-2">
+                            <button
+                              id="step-3-reset-btn"
+                              type="button"
+                              onClick={handleCancelOrReset}
+                              className="text-xs font-display font-semibold text-gray-500 hover:text-white transition-colors focus:outline-none flex items-center gap-1"
+                            >
+                              ← Cancel / Reset
+                            </button>
+                          </div>
                         </div>
 
                         {/* Right Column: Static Receipt Summary Card */}
-                        <div className="p-6 bg-cyber-dark/60 border border-white/5 rounded-xl space-y-4 text-left">
-                          <h3 className="font-display font-bold text-sm text-white uppercase tracking-wider border-b border-white/5 pb-2 flex items-center gap-1">
-                            <Zap className="h-4 w-4 text-cyber-cyan" />
-                            Booking Summary
-                          </h3>
-                          
-                          <div className="space-y-3 text-xs">
-                            <div className="flex flex-col">
-                              <span className="text-gray-500 uppercase font-mono tracking-wide text-[9px]">Gaming Arena</span>
-                              <span className="text-white font-medium mt-0.5">{selectedStation.name}</span>
-                            </div>
+                        <div className="p-5 bg-cyber-dark/60 border border-white/5 rounded-xl space-y-3.5 text-left flex flex-col justify-between">
+                          <div className="space-y-3">
+                            <h3 className="font-display font-bold text-sm text-white uppercase tracking-wider border-b border-white/5 pb-2 flex items-center gap-1">
+                              <Zap className="h-4 w-4 text-cyber-cyan" />
+                              Booking Summary
+                            </h3>
                             
-                            <div className="flex flex-col">
-                              <span className="text-gray-500 uppercase font-mono tracking-wide text-[9px]">Date & Commute</span>
-                              <span className="text-white font-mono font-medium mt-0.5">{bookingDate}</span>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="flex flex-col">
+                                <span className="text-gray-500 uppercase font-mono tracking-wide text-[9px]">Gaming Arena</span>
+                                <span className="text-white font-medium mt-0.5">{selectedStation.name}</span>
+                              </div>
+                              
+                              <div className="flex flex-col">
+                                <span className="text-gray-500 uppercase font-mono tracking-wide text-[9px]">Date & Commute</span>
+                                <span className="text-white font-mono font-medium mt-0.5">{bookingDate}</span>
+                              </div>
+
+                              <div className="flex flex-col">
+                                <span className="text-gray-500 uppercase font-mono tracking-wide text-[9px]">Start Slot</span>
+                                <span className="text-white font-mono font-medium mt-0.5">{startTime}</span>
+                              </div>
+
+                              <div className="flex flex-col">
+                                <span className="text-gray-500 uppercase font-mono tracking-wide text-[9px]">Session Duration</span>
+                                <span className="text-white font-mono font-medium mt-0.5">{durationHours} Hour{durationHours > 1 ? 's' : ''}</span>
+                              </div>
                             </div>
 
-                            <div className="flex flex-col">
-                              <span className="text-gray-500 uppercase font-mono tracking-wide text-[9px]">Start Slot</span>
-                              <span className="text-white font-mono font-medium mt-0.5">{startTime}</span>
+                            <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs">
+                              <span className="text-gray-400">Session Rate</span>
+                              <span className="text-white font-mono">₹{dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour}/hr</span>
                             </div>
 
-                            <div className="flex flex-col">
-                              <span className="text-gray-500 uppercase font-mono tracking-wide text-[9px]">Session Duration</span>
-                              <span className="text-white font-mono font-medium mt-0.5">{durationHours} Hour{durationHours > 1 ? 's' : ''}</span>
+                            {/* MINI BOOKING & CANCELLATION POLICY */}
+                            <div className="p-3 rounded-xl bg-cyber-lightgray/50 border border-cyber-purple/20 text-[10.5px] space-y-1 text-gray-300">
+                              <div className="flex items-center gap-1 font-bold text-cyber-purple uppercase tracking-wider text-[9.5px]">
+                                <ShieldAlert className="w-3.5 h-3.5 text-cyber-cyan" />
+                                Booking & Cancellation Policy
+                              </div>
+                              <ul className="space-y-0.5 text-[10px] text-gray-400 leading-snug list-disc pl-3.5">
+                                <li><strong>Payment:</strong> Pay at front desk upon check-in.</li>
+                                <li><strong>Cancellation:</strong> Free cancellation up to 2 hrs prior.</li>
+                                <li><strong>Hold Timer:</strong> Slots auto-release 5 mins past start time.</li>
+                              </ul>
+                            </div>
+
+                            <div className="flex items-center justify-between text-sm font-bold text-cyber-neon border-t border-white/5 pt-2">
+                              <span>Total Owed</span>
+                              <span className="font-mono text-lg">₹{(dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour) * durationHours}</span>
                             </div>
                           </div>
 
-                          <div className="pt-4 border-t border-white/5 flex items-center justify-between text-xs">
-                            <span className="text-gray-400">Session Rate</span>
-                            <span className="text-white font-mono">₹{dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour}/hr</span>
-                          </div>
-
-                          <div className="flex items-center justify-between text-sm font-bold text-cyber-neon border-t border-white/5 pt-2">
-                            <span>Total Owed</span>
-                            <span className="font-mono text-lg">₹{(dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour) * durationHours}</span>
-                          </div>
+                          {/* Primary Submit Action directly inside summary column */}
+                          <button
+                            id="step-3-submit-btn"
+                            type="submit"
+                            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-cyber-purple to-cyber-cyan text-white font-display font-bold text-sm tracking-wide rounded-xl shadow-lg transition hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-cyber-cyan cursor-pointer mt-2"
+                          >
+                            Secure Hold Lock
+                            <ArrowRight className="h-4.5 w-4.5" />
+                          </button>
                         </div>
 
-                      </div>
-
-                      <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-4">
-                        <button
-                          id="step-3-reset-btn"
-                          type="button"
-                          onClick={handleCancelOrReset}
-                          className="px-6 py-3 text-xs font-display font-semibold text-gray-400 hover:text-white transition-colors focus:outline-none"
-                        >
-                          Cancel / Reset
-                        </button>
-                        <button
-                          id="step-3-submit-btn"
-                          type="submit"
-                          className="flex items-center gap-1.5 px-8 py-3 bg-gradient-to-r from-cyber-purple to-cyber-cyan text-white font-display font-bold text-sm tracking-wide rounded-xl shadow-md transition hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-cyber-cyan cursor-pointer"
-                        >
-                          Secure Hold Lock
-                          <ArrowRight className="h-4.5 w-4.5" />
-                        </button>
                       </div>
 
                     </form>

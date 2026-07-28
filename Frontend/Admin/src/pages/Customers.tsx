@@ -11,6 +11,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Search, Users, Phone, Mail, Award, Clock, IndianRupee, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
+import { useToast } from '@/hooks/use-toast';
+
 interface Customer {
   id: string;
   name: string;
@@ -49,6 +51,7 @@ const Customers = () => {
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
   const { userRole } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchCustomers();
@@ -93,23 +96,31 @@ const Customers = () => {
       });
       setCustomers(customers.map(c => c.id === selectedCustomer.id ? { ...c, notes } : c));
       setSelectedCustomer({ ...selectedCustomer, notes });
+      toast({ title: 'Success', description: 'Internal notes saved successfully.' });
     } catch (err) {
       console.error("Failed to save notes", err);
+      toast({ title: 'Error', description: 'Failed to save notes', variant: 'destructive' });
     } finally {
       setSavingNotes(false);
     }
   };
 
-  const handleStatusChange = async (status: string) => {
+  const handleStatusChange = async (newStatus: string) => {
     if (!selectedCustomer) return;
     try {
       await pb.collection('portal_users').update(selectedCustomer.id, {
-        status: status
+        status: newStatus,
+        notes: notes
       });
-      setCustomers(customers.map(c => c.id === selectedCustomer.id ? { ...c, status } : c));
-      setSelectedCustomer({ ...selectedCustomer, status });
+      setCustomers(customers.map(c => c.id === selectedCustomer.id ? { ...c, status: newStatus, notes } : c));
+      setSelectedCustomer({ ...selectedCustomer, status: newStatus, notes });
+      toast({
+        title: 'Status Updated',
+        description: `Customer account marked as ${newStatus.toUpperCase()}`
+      });
     } catch (err) {
       console.error("Failed to update status", err);
+      toast({ title: 'Error', description: 'Failed to update customer status', variant: 'destructive' });
     }
   };
 

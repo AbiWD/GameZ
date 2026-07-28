@@ -252,4 +252,59 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 
 		return e.Next()
 	})
+
+	// 4. AFTER UPDATE: Send Cancellation Email
+	app.OnRecordAfterUpdateSuccess("bookings").BindFunc(func(e *core.RecordEvent) error {
+		status := e.Record.GetString("status")
+		email := e.Record.GetString("email")
+
+		// Only send email if the booking was changed to cancelled and customer email is present
+		if status != "cancelled" || email == "" {
+			return e.Next()
+		}
+
+		ref := e.Record.GetString("id")
+		startTime := e.Record.GetDateTime("start_time").Time().Format("2006-01-02 15:04")
+
+		htmlBody := fmt.Sprintf(`
+		<div style="background-color: #0d0b14; color: #fff; font-family: monospace; padding: 20px; border: 2px solid #ef4444;">
+			<h1 style="color: #ef4444;">GAMEZ - BOOKING CANCELLED</h1>
+			<p>Your booking reservation has been cancelled.</p>
+			<div style="background: #1a1625; padding: 15px; margin: 20px 0; border-left: 4px solid #ef4444;">
+				<strong>BOOKING REF:</strong> %s<br/>
+				<strong>SCHEDULED TIME:</strong> %s<br/>
+				<strong>STATUS:</strong> CANCELLED<br/>
+			</div>
+			<p>If you have any questions or require assistance, please contact cafe management.</p>
+		</div>`, ref, startTime)
+
+		message := &mailer.Message{
+			From: mail.Address{
+				Address: app.Settings().Meta.SenderAddress,
+				Name:    app.Settings().Meta.SenderName,
+			},
+			To: []mail.Address{
+				{Address: email},
+			},
+			Subject: fmt.Sprintf("GameZ Booking Cancelled: %s", ref),
+			HTML:    htmlBody,
+			Text:    strings.ReplaceAll(htmlBody, "<br/>", "\n"),
+		}
+
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					logger.Error("HOOKS", fmt.Sprintf("Cancellation email goroutine panicked: %v", r))
+				}
+			}()
+			
+			if err := app.NewMailClient().Send(message); err != nil {
+				logger.Error("HOOKS", fmt.Sprintf("Failed to send cancellation email to %s: %v", email, err))
+			} else {
+				logger.Info("HOOKS", fmt.Sprintf("Cancellation email sent to %s", email))
+			}
+		}()
+
+		return e.Next()
+	})
 }

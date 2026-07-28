@@ -177,7 +177,13 @@ export default function CreateBooking() {
           });
           
           if (existingCustomers.items.length > 0) {
-            customerId = existingCustomers.items[0].id;
+            const customerRecord = existingCustomers.items[0];
+            if (customerRecord.status === 'banned') {
+              toast.error(`Cannot create booking: Customer (${customerRecord.name || formData.phone}) is marked as BANNED.`);
+              setLoading(false);
+              return;
+            }
+            customerId = customerRecord.id;
           } else {
             const customerEmail = formData.email || (formData.phone ? `${formData.phone}@guest.gamez.in` : `guest_${Date.now()}@gamez.in`);
             const newCustomer = await pb.collection('portal_users').create({
@@ -390,6 +396,17 @@ export default function CreateBooking() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* MINI BOOKING & CANCELLATION POLICY */}
+          <div className="bg-secondary/40 border border-border rounded-2xl p-4 text-xs space-y-1 text-muted-foreground">
+            <p className="font-bold text-foreground flex items-center gap-1.5 text-xs uppercase tracking-wider">
+              <ShieldAlert className="w-3.5 h-3.5 text-primary" /> Booking & Cancellation Policy
+            </p>
+            <p className="text-[11.5px] leading-relaxed">
+              • <strong>Payment & Refunds:</strong> Cancellations up to 2 hours prior to slot start time are eligible for refund/reschedule.<br />
+              • <strong>Hold Expiry:</strong> Unconfirmed advance bookings automatically expire 5 minutes after scheduled start time.
+            </p>
           </div>
 
           <div className="flex flex-col md:flex-row items-center gap-6 pt-4">

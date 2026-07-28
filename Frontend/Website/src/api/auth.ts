@@ -4,6 +4,10 @@ import type { User } from '../types';
 export const authApi = {
   login: async ({ email, password }: { email: string; password: string }) => {
     const authData = await pb.collection('portal_users').authWithPassword(email, password);
+    if (authData.record.status === 'banned') {
+      pb.authStore.clear();
+      throw new Error("Your account has been restricted. Please contact store management.");
+    }
     return authData;
   },
 

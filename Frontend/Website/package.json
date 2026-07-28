@@ -7,7 +7,7 @@
     "dev:frontend": "vite --host=0.0.0.0",
     "dev:adminui": "cd ../Admin && npm run dev",
     "dev:backend": "cd ../gamez-backend && go run main.go serve",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:adminui\" \"npm run dev:frontend\"",
+    "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
