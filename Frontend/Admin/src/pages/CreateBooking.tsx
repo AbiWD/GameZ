@@ -150,6 +150,18 @@ export default function CreateBooking() {
         endDateTime.setMinutes(endDateTime.getMinutes() + parseInt(formData.duration));
       }
 
+      // Check if requested time overlaps with a Blackout Period
+      const blackouts = await pb.collection('blackout_periods').getFullList().catch(() => []);
+      for (const b of blackouts) {
+        const bStart = new Date(b.start_time);
+        const bEnd = new Date(b.end_time);
+        if (startDateTime < bEnd && endDateTime > bStart) {
+          toast.error(`Cannot create booking: Store is in a Blackout Period (${b.reason})`);
+          setLoading(false);
+          return;
+        }
+      }
+
       // If assigned_station_id is 'any', auto-assign the first free station of this type
       let finalAssignedStationId = formData.assigned_station_id;
       if (!finalAssignedStationId || finalAssignedStationId === 'any') {

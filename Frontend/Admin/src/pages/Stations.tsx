@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import pb from '@/lib/pocketbase';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import * as LucideIcons from 'lucide-react';
 import { Gamepad2 } from 'lucide-react';
 
-import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X, DoorOpen } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X, DoorOpen, CalendarX, Clock, AlertTriangle } from 'lucide-react';
 
 import { useProperty } from '@/contexts/PropertyContext';
 import { usePropertyFilter } from '@/hooks/usePropertyFilter';
@@ -46,10 +47,34 @@ interface StationType {
   description?: string;
 }
 
+interface BlackoutPeriod {
+  id: string;
+  reason: string;
+  start_time: string;
+  end_time: string;
+  property_id?: string;
+  created?: string;
+}
+
 const STATION_STATUS = ['available', 'occupied', 'maintenance'];
 const AVAILABLE_ICONS = ['Gamepad2', 'Monitor', 'Headphones', 'Mouse', 'Keyboard', 'Tv', 'Sofa', 'Coffee', 'Wifi', 'Cpu', 'Speaker'];
 
 const Stations = () => {
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'inventory';
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const tabsListRef = useRef<HTMLDivElement>(null);
+
+  // Auto-center active tab on mobile view
+  useEffect(() => {
+    if (activeTab && tabsListRef.current) {
+      const activeEl = tabsListRef.current.querySelector(`[data-tab-value="${activeTab}"]`) as HTMLElement;
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [activeTab]);
+
   const { properties, activeProperty } = useProperty();
   const propertyFilter = usePropertyFilter();
   
@@ -58,6 +83,16 @@ const Stations = () => {
   const [allStations, setAllStations] = useState<Station[]>([]); // Raw dashboard stats data
   const [stationTypes, setStationTypes] = useState<StationType[]>([]);
   
+  // Blackouts State
+  const [blackouts, setBlackouts] = useState<BlackoutPeriod[]>([]);
+  const [loadingBlackouts, setLoadingBlackouts] = useState(false);
+  const [blackoutDialogOpen, setBlackoutDialogOpen] = useState(false);
+  const [blackoutFormData, setBlackoutFormData] = useState({
+    reason: '',
+    start_time: '',
+    end_time: ''
+  });
+
   const [loading, setLoading] = useState(true);
   const [loadingTypes, setLoadingTypes] = useState(true);
 
@@ -143,14 +178,62 @@ const Stations = () => {
     }
   };
 
+  const fetchBlackouts = async () => {
+    setLoadingBlackouts(true);
+    try {
+      const data = await pb.collection('blackout_periods').getFullList({
+        sort: '-start_time',
+        filter: propertyFilter
+      });
+      setBlackouts(data as unknown as BlackoutPeriod[]);
+    } catch (error) {
+      console.error('Error fetching blackout periods:', error);
+    } finally {
+      setLoadingBlackouts(false);
+    }
+  };
+
   // Re-fetch stations when the page number changes or property changes
   useEffect(() => {
-    if (activeProperty) fetchStations();
+    if (activeProperty) {
+      fetchStations();
+      fetchStationTypes();
+      fetchBlackouts();
+    }
   }, [page, activeProperty]);
 
-  useEffect(() => {
-    if (activeProperty) fetchStationTypes();
-  }, [activeProperty]);
+  // --- BLACKOUT PERIOD LOGIC ---
+  const handleBlackoutSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!blackoutFormData.reason || !blackoutFormData.start_time || !blackoutFormData.end_time) {
+      toast({ title: 'Error', description: 'Please fill in all blackout period fields.', variant: 'destructive' });
+      return;
+    }
+    try {
+      await pb.collection('blackout_periods').create({
+        ...blackoutFormData,
+        property_id: activeProperty?.id
+      });
+      toast({ title: 'Success', description: 'Blackout period added successfully' });
+      setBlackoutDialogOpen(false);
+      setBlackoutFormData({ reason: '', start_time: '', end_time: '' });
+      fetchBlackouts();
+    } catch (error: any) {
+      console.error('Error saving blackout period:', error);
+      toast({ title: 'Error', description: error.message || 'Failed to save blackout period', variant: 'destructive' });
+    }
+  };
+
+  const handleBlackoutDelete = async (id: string) => {
+    try {
+      await pb.collection('blackout_periods').delete(id);
+      toast({ title: 'Success', description: 'Blackout period deleted' });
+      fetchBlackouts();
+    } catch (error) {
+      console.error('Error deleting blackout period:', error);
+      toast({ title: 'Error', description: 'Failed to delete blackout period', variant: 'destructive' });
+    }
+  };
 
   // --- STATION LOGIC ---
   const handleSubmit = async (e: React.FormEvent) => {
@@ -352,15 +435,19 @@ const Stations = () => {
             </div>
           </div>
         </div>
-        <Tabs defaultValue="inventory" className="w-full space-y-6">
-          <TabsList className="bg-secondary/50 border border-border flex w-full overflow-x-auto whitespace-nowrap scrollbar-hide justify-start h-auto rounded-2xl p-1">
-            <TabsTrigger value="inventory" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-xl py-2 px-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+          <TabsList ref={tabsListRef} className="bg-secondary/50 border border-border flex w-full overflow-x-auto whitespace-nowrap scrollbar-hide justify-start h-auto rounded-2xl p-1.5 scroll-smooth px-8 sm:px-1.5 gap-1">
+            <TabsTrigger value="inventory" data-tab-value="inventory" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-xl py-2.5 px-5 shrink-0 transition-all">
               <ConsoleIcon className="w-4 h-4 mr-2" />
               Individual Units
             </TabsTrigger>
-            <TabsTrigger value="types" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-xl py-2 px-4">
+            <TabsTrigger value="types" data-tab-value="types" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-xl py-2.5 px-5 shrink-0 transition-all">
               <Settings2 className="w-4 h-4 mr-2" />
               Game Categories
+            </TabsTrigger>
+            <TabsTrigger value="blackouts" data-tab-value="blackouts" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-xl py-2.5 px-5 shrink-0 transition-all">
+              <CalendarX className="w-4 h-4 mr-2" />
+              Blackouts & Store Closures
             </TabsTrigger>
           </TabsList>
 
@@ -870,6 +957,157 @@ const Stations = () => {
                   </div>
                 )}
               </div>
+            </div>
+          </TabsContent>
+
+          {/* BLACKOUTS TAB */}
+          <TabsContent value="blackouts" className="outline-none space-y-6 animate-in fade-in duration-500 fill-mode-forwards">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Blackout Periods & Store Closures</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Block online customer bookings during eSports tournaments, maintenance, or holiday store closures.</p>
+              </div>
+              <Dialog open={blackoutDialogOpen} onOpenChange={setBlackoutDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="rounded-xl font-semibold gap-2 shadow-sm">
+                    <Plus className="w-4 h-4" /> Add Blackout Period
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="rounded-3xl border border-border bg-card max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-foreground">Add Blackout Period</DialogTitle>
+                    <DialogDescription className="text-muted-foreground">
+                      Prevent online bookings during specified dates and times.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleBlackoutSubmit} className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="reason" className="text-xs font-bold text-muted-foreground">Reason / Event Name</Label>
+                      <Input
+                        id="reason"
+                        placeholder="e.g. FIFA eSports Tournament, Deep Cleaning, Holiday Closure"
+                        value={blackoutFormData.reason}
+                        onChange={(e) => setBlackoutFormData({ ...blackoutFormData, reason: e.target.value })}
+                        required
+                        className="rounded-xl bg-secondary border-border"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="start_time" className="text-xs font-bold text-muted-foreground">Start Time</Label>
+                        <Input
+                          id="start_time"
+                          type="datetime-local"
+                          value={blackoutFormData.start_time}
+                          onChange={(e) => setBlackoutFormData({ ...blackoutFormData, start_time: e.target.value })}
+                          required
+                          className="rounded-xl bg-secondary border-border text-xs"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="end_time" className="text-xs font-bold text-muted-foreground">End Time</Label>
+                        <Input
+                          id="end_time"
+                          type="datetime-local"
+                          value={blackoutFormData.end_time}
+                          onChange={(e) => setBlackoutFormData({ ...blackoutFormData, end_time: e.target.value })}
+                          required
+                          className="rounded-xl bg-secondary border-border text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="pt-4 flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => setBlackoutDialogOpen(false)} className="rounded-xl border-border">Cancel</Button>
+                      <Button type="submit" className="rounded-xl font-semibold">Save Blackout</Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+              {loadingBlackouts ? (
+                <div className="py-12 text-center text-muted-foreground font-medium">Loading blackout periods...</div>
+              ) : blackouts.length === 0 ? (
+                <div className="py-12 text-center text-muted-foreground space-y-2">
+                  <CalendarX className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+                  <p className="font-semibold text-foreground">No active blackout periods</p>
+                  <p className="text-xs max-w-sm mx-auto text-muted-foreground">All stations are open for online customer reservations according to standard operating hours.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-secondary/40 border-border hover:bg-secondary/40">
+                        <TableHead className="font-bold text-foreground">Reason / Event</TableHead>
+                        <TableHead className="font-bold text-foreground">Start Time</TableHead>
+                        <TableHead className="font-bold text-foreground">End Time</TableHead>
+                        <TableHead className="font-bold text-foreground">Status</TableHead>
+                        <TableHead className="font-bold text-foreground text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {blackouts.map((b) => {
+                        const now = new Date();
+                        const sTime = new Date(b.start_time);
+                        const eTime = new Date(b.end_time);
+                        const isActive = now >= sTime && now <= eTime;
+                        const isUpcoming = now < sTime;
+
+                        return (
+                          <TableRow key={b.id} className="border-border">
+                            <TableCell className="font-bold text-foreground">{b.reason}</TableCell>
+                            <TableCell className="text-xs font-mono text-muted-foreground">
+                              {new Date(b.start_time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                            </TableCell>
+                            <TableCell className="text-xs font-mono text-muted-foreground">
+                              {new Date(b.end_time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                            </TableCell>
+                            <TableCell>
+                              {isActive ? (
+                                <Badge variant="default" className="bg-rose-500/10 text-rose-600 border border-rose-500/20 gap-1 font-semibold">
+                                  <AlertTriangle className="w-3 h-3" /> Active Now
+                                </Badge>
+                              ) : isUpcoming ? (
+                                <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border border-amber-500/20 gap-1 font-semibold">
+                                  <Clock className="w-3 h-3" /> Scheduled
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-muted-foreground border-border capitalize">
+                                  Passed
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent className="rounded-3xl border border-border bg-card">
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle className="text-foreground">Delete Blackout Period</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-muted-foreground">
+                                      Are you sure you want to delete the blackout for "{b.reason}"? Online bookings will resume for this time window.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel className="rounded-xl border-border">Cancel</AlertDialogCancel>
+                                    <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => handleBlackoutDelete(b.id)}>
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

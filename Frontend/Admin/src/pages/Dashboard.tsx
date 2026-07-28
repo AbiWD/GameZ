@@ -5,7 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import pb from '@/lib/pocketbase';
-import { IndianRupee, Users, Calendar, Gamepad2, Play, Clock, ArrowRight, LayoutGrid, LayoutTemplate, Activity, CreditCard, Banknote, Smartphone, Star, ArrowDownUp, GripHorizontal } from 'lucide-react';
+import { IndianRupee, Users, Calendar, Gamepad2, Play, Clock, ArrowRight, LayoutGrid, LayoutTemplate, Activity, CreditCard, Banknote, Smartphone, Star, ArrowDownUp, GripHorizontal, CalendarX } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
@@ -662,6 +662,10 @@ const Dashboard = () => {
               </Button>
             </div>
           </div>
+          <Button variant="outline" className="bg-background border-border shadow-sm text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20" onClick={() => navigate('/admin/stations?tab=blackouts')}>
+            <CalendarX className="w-4 h-4 mr-2" />
+            Blackout / Closure
+          </Button>
           <Button variant="outline" className="bg-background shadow-sm" onClick={() => navigate('/admin/create-booking?type=online')}>
             Advance booking
           </Button>
