@@ -130,10 +130,9 @@ export default function CreateBooking() {
 
     setLoading(true);
     try {
-      const timestampRef = Date.now().toString().slice(-6);
-      
+      const randomCode = Math.floor(1000 + Math.random() * 9000).toString();
       const isOpenTimer = bookingMode === 'walk-in' && formData.duration === 'open';
-      const booking_reference = isOpenTimer ? `OT-${timestampRef}` : `WT-${timestampRef}`;
+      const booking_reference = isOpenTimer ? `OT-${randomCode}` : `WT-${randomCode}`;
 
       let startDateTime = new Date();
       if (bookingMode === 'advance') {
