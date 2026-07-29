@@ -241,7 +241,8 @@ export default function Book({ setRoute }: BookProps) {
         bookingDate,
         startTime,
         durationHours,
-        totalPrice: (dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour) * durationHours
+        totalPrice: (dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour) * durationHours,
+        status: 'confirmed'
       };
 
       const booking = await createBookingMutation.mutateAsync(bookingData);

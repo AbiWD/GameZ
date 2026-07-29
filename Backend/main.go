@@ -58,8 +58,8 @@ func setupS3(app *pocketbase.PocketBase) {
 
 func setupSMTP(app *pocketbase.PocketBase) {
 	host := os.Getenv("SMTP_HOST")
-	if host == "" {
-		logger.Warn("SMTP", "SMTP_HOST not set — skipping")
+	if host == "" || host == "smtp.example.com" {
+		logger.Warn("SMTP", "SMTP_HOST not set or contains placeholder — preserving PocketBase UI settings")
 		return
 	}
 

@@ -273,21 +273,43 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 </html>`, badgeColor, badgeColor, badgeColor, badgeText, title, subtitle, ref, stationName, startTime, priceStr)
 	}
 
-	// 3. AFTER CREATE: Send Email ONLY if booking is confirmed
+	// Helper to extract clean Booking Reference (#OT-8412) and Station Name
+	getRefAndStationName := func(rec *core.Record) (string, string) {
+		ref := rec.GetString("booking_reference")
+		if ref == "" {
+			ref = rec.GetString("id")
+		}
+
+		stationName := "Gaming Station"
+		assignedID := rec.GetString("assigned_station_id")
+		if assignedID != "" {
+			stRecord, err := app.FindRecordById("stations", assignedID)
+			if err == nil && stRecord != nil {
+				stType := stRecord.GetString("station_type")
+				stName := stRecord.GetString("name")
+				if stType != "" {
+					stationName = stType
+				} else if stName != "" {
+					stationName = stName
+				}
+			} else {
+				stationName = assignedID
+			}
+		}
+		return ref, stationName
+	}
+
+	// 3. AFTER CREATE: Send Confirmation Email
 	app.OnRecordAfterCreateSuccess("bookings").BindFunc(func(e *core.RecordEvent) error {
 		email := e.Record.GetString("email")
 		status := e.Record.GetString("status")
 
-		// Skip emails for temporary holds — send email ONLY if confirmed
-		if email == "" || status != "confirmed" {
+		// Skip emails if email is empty or booking was cancelled
+		if email == "" || status == "cancelled" || status == "expired" {
 			return e.Next()
 		}
 
-		ref := e.Record.GetString("id")
-		stationType := e.Record.GetString("assigned_station_id")
-		if stationType == "" {
-			stationType = "Gaming Desk"
-		}
+		ref, stationName := getRefAndStationName(e.Record)
 		startTime := e.Record.GetDateTime("start_time").Time().Format("2006-01-02 15:04")
 		price := e.Record.GetFloat("total_price")
 
@@ -297,7 +319,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 		badgeColor := "#22c55e"
 		subject := fmt.Sprintf("GameZ Booking Confirmed: %s", ref)
 
-		htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationType, startTime, price)
+		htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationName, startTime, price)
 
 		message := &mailer.Message{
 			From: mail.Address{
@@ -309,7 +331,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 			},
 			Subject: subject,
 			HTML:    htmlBody,
-			Text:    fmt.Sprintf("%s\nRef: %s\nStation: %s\nTime: %s", title, ref, stationType, startTime),
+			Text:    fmt.Sprintf("%s\nRef: %s\nStation: %s\nTime: %s", title, ref, stationName, startTime),
 		}
 
 		go func() {
@@ -338,11 +360,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 			return e.Next()
 		}
 
-		ref := e.Record.GetString("id")
-		stationType := e.Record.GetString("assigned_station_id")
-		if stationType == "" {
-			stationType = "Gaming Desk"
-		}
+		ref, stationName := getRefAndStationName(e.Record)
 		startTime := e.Record.GetDateTime("start_time").Time().Format("2006-01-02 15:04")
 		price := e.Record.GetFloat("total_price")
 
@@ -353,7 +371,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 			badgeColor := "#22c55e"
 			subject := fmt.Sprintf("GameZ Booking Confirmed: %s", ref)
 
-			htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationType, startTime, price)
+			htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationName, startTime, price)
 
 			message := &mailer.Message{
 				From: mail.Address{
@@ -365,7 +383,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 				},
 				Subject: subject,
 				HTML:    htmlBody,
-				Text:    fmt.Sprintf("%s\nRef: %s\nStation: %s\nTime: %s", title, ref, stationType, startTime),
+				Text:    fmt.Sprintf("%s\nRef: %s\nStation: %s\nTime: %s", title, ref, stationName, startTime),
 			}
 
 			go func() {
@@ -388,7 +406,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 			badgeColor := "#ef4444"
 			subject := fmt.Sprintf("GameZ Booking Cancelled: %s", ref)
 
-			htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationType, startTime, 0)
+			htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationName, startTime, 0)
 
 			message := &mailer.Message{
 				From: mail.Address{
@@ -400,7 +418,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 				},
 				Subject: subject,
 				HTML:    htmlBody,
-				Text:    fmt.Sprintf("%s\nRef: %s\nStation: %s\nTime: %s", title, ref, stationType, startTime),
+				Text:    fmt.Sprintf("%s\nRef: %s\nStation: %s\nTime: %s", title, ref, stationName, startTime),
 			}
 
 			go func() {
