@@ -130,7 +130,7 @@ export default function CreateBooking() {
 
     setLoading(true);
     try {
-      const randomCode = Math.floor(10000 + Math.random() * 90000).toString();
+      const randomCode = Math.floor(100000 + Math.random() * 900000).toString();
       const isOpenTimer = bookingMode === 'walk-in' && formData.duration === 'open';
       const booking_reference = isOpenTimer ? `OT-${randomCode}` : `WT-${randomCode}`;
 
