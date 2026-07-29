@@ -197,30 +197,108 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 		return e.Next()
 	})
 
-	// 3. AFTER CREATE: Send Email
+	// Helper to generate unified PocketBase-styled Cyber HTML Email
+	buildCyberEmailHTML := func(title, subtitle, badgeText, badgeColor, ref, stationName, startTime string, price float64) string {
+		priceStr := ""
+		if price > 0 {
+			priceStr = fmt.Sprintf(`<div style="display: flex; justify-content: space-between; padding: 8px 0;">
+					<span style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase;">AMOUNT PAID</span>
+					<span style="color: #4ade80; font-family: monospace; font-weight: 700; font-size: 14px;">₹%.2f</span>
+				</div>`, price)
+		}
+
+		return fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #0d0b14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+	<table role="presentation" width="100%%" border="0" cellspacing="0" cellpadding="0" style="background-color: #0d0b14; padding: 40px 10px;">
+		<tr>
+			<td align="center">
+				<table role="presentation" width="100%%" style="max-width: 520px; background-color: #13111c; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+					<!-- Header Logo Banner -->
+					<tr>
+						<td align="center" style="background: linear-gradient(135deg, #1f1b2e 0%%, #13111c 100%%); padding: 32px 24px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+							<h1 style="color: #a855f7; font-size: 26px; font-weight: 900; letter-spacing: 5px; text-transform: uppercase; margin: 0; font-family: sans-serif;">GAMEZ</h1>
+							<span style="color: #06b6d4; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; display: block; margin-top: 4px;">Ultimate Gaming Lounge</span>
+						</td>
+					</tr>
+					<!-- Main Content -->
+					<tr>
+						<td style="padding: 32px 28px; color: #e2e8f0; font-size: 14px; line-height: 1.6;">
+							<div style="margin-bottom: 16px;">
+								<span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; background-color: %s15; color: %s; border: 1px solid %s40;">
+									%s
+								</span>
+							</div>
+							<h2 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0 0 8px 0;">%s</h2>
+							<p style="color: #94a3b8; font-size: 13px; margin: 0 0 24px 0;">%s</p>
+
+							<!-- Reservation Card -->
+							<div style="background-color: #1a1625; border: 1px solid rgba(168,85,247,0.25); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+								<table width="100%%" border="0" cellspacing="0" cellpadding="0">
+									<tr>
+										<td style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; padding: 6px 0;">BOOKING REF</td>
+										<td align="right" style="color: #06b6d4; font-family: monospace; font-weight: 800; font-size: 14px; padding: 6px 0;">%s</td>
+									</tr>
+									<tr>
+										<td style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; padding: 6px 0; border-top: 1px solid rgba(255,255,255,0.05);">STATION</td>
+										<td align="right" style="color: #ffffff; font-weight: 700; font-size: 13px; padding: 6px 0; border-top: 1px solid rgba(255,255,255,0.05);">%s</td>
+									</tr>
+									<tr>
+										<td style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; padding: 6px 0; border-top: 1px solid rgba(255,255,255,0.05);">SCHEDULED TIME</td>
+										<td align="right" style="color: #ffffff; font-family: monospace; font-size: 12px; padding: 6px 0; border-top: 1px solid rgba(255,255,255,0.05);">%s</td>
+									</tr>
+									%s
+								</table>
+							</div>
+
+							<p style="color: #cbd5e1; font-size: 12px; margin: 0; text-align: center;">
+								Show this booking reference code to cafe staff upon arrival for instant check-in.
+							</p>
+						</td>
+					</tr>
+					<!-- Footer -->
+					<tr>
+						<td align="center" style="background-color: #0f0d17; padding: 20px; color: #64748b; font-size: 11px; border-top: 1px solid rgba(255,255,255,0.05);">
+							&copy; 2026 GameZ Mangaluru. All rights reserved. | <a href="http://localhost:8080" style="color: #06b6d4; text-decoration: none;">gamez.in</a>
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
+</body>
+</html>`, badgeColor, badgeColor, badgeColor, badgeText, title, subtitle, ref, stationName, startTime, priceStr)
+	}
+
+	// 3. AFTER CREATE: Send Email ONLY if booking is confirmed
 	app.OnRecordAfterCreateSuccess("bookings").BindFunc(func(e *core.RecordEvent) error {
 		email := e.Record.GetString("email")
-		if email == "" {
+		status := e.Record.GetString("status")
+
+		// Skip emails for temporary holds — send email ONLY if confirmed
+		if email == "" || status != "confirmed" {
 			return e.Next()
 		}
 
 		ref := e.Record.GetString("id")
 		stationType := e.Record.GetString("assigned_station_id")
+		if stationType == "" {
+			stationType = "Gaming Desk"
+		}
 		startTime := e.Record.GetDateTime("start_time").Time().Format("2006-01-02 15:04")
 		price := e.Record.GetFloat("total_price")
 
-		htmlBody := fmt.Sprintf(`
-		<div style="background-color: #0d0b14; color: #fff; font-family: monospace; padding: 20px; border: 2px solid #eab308;">
-			<h1 style="color: #eab308;">GAMEZ - BOOKING HELD</h1>
-			<p>Your slot is temporarily held for 5 minutes. Please proceed to the front desk to complete payment and confirm your booking. If unconfirmed, this hold will expire.</p>
-			<div style="background: #1a1625; padding: 15px; margin: 20px 0; border-left: 4px solid #a855f7;">
-				<strong>REF:</strong> %s<br/>
-				<strong>STATION ID:</strong> %s<br/>
-				<strong>TIME:</strong> %s<br/>
-				<strong>AMOUNT:</strong> ₹%.2f<br/>
-			</div>
-			<p>Get ready to play!</p>
-		</div>`, ref, stationType, startTime, price)
+		title := "Booking Confirmed!"
+		subtitle := "Your gaming station reservation is confirmed and ready for your session."
+		badgeText := "CONFIRMED"
+		badgeColor := "#22c55e"
+		subject := fmt.Sprintf("GameZ Booking Confirmed: %s", ref)
+
+		htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationType, startTime, price)
 
 		message := &mailer.Message{
 			From: mail.Address{
@@ -230,12 +308,11 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 			To: []mail.Address{
 				{Address: email},
 			},
-			Subject: fmt.Sprintf("GameZ Booking Hold Created: %s", ref),
+			Subject: subject,
 			HTML:    htmlBody,
-			Text:    strings.ReplaceAll(htmlBody, "<br/>", "\n"),
+			Text:    fmt.Sprintf("%s\nRef: %s\nStation: %s\nTime: %s", title, ref, stationType, startTime),
 		}
 
-		// Send email asynchronously in a goroutine so it doesn't block the global bookingLock mutex
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
@@ -246,64 +323,101 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 			if err := app.NewMailClient().Send(message); err != nil {
 				logger.Error("HOOKS", fmt.Sprintf("Failed to send booking email to %s: %v", email, err))
 			} else {
-				logger.Info("HOOKS", fmt.Sprintf("Booking email sent to %s", email))
+				logger.Info("HOOKS", fmt.Sprintf("Booking confirmation email sent to %s", email))
 			}
 		}()
 
 		return e.Next()
 	})
 
-	// 4. AFTER UPDATE: Send Cancellation Email
+	// 4. AFTER UPDATE: Send Confirmation or Cancellation Email
 	app.OnRecordAfterUpdateSuccess("bookings").BindFunc(func(e *core.RecordEvent) error {
 		status := e.Record.GetString("status")
 		email := e.Record.GetString("email")
 
-		// Only send email if the booking was changed to cancelled and customer email is present
-		if status != "cancelled" || email == "" {
+		if email == "" {
 			return e.Next()
 		}
 
 		ref := e.Record.GetString("id")
-		startTime := e.Record.GetDateTime("start_time").Time().Format("2006-01-02 15:04")
-
-		htmlBody := fmt.Sprintf(`
-		<div style="background-color: #0d0b14; color: #fff; font-family: monospace; padding: 20px; border: 2px solid #ef4444;">
-			<h1 style="color: #ef4444;">GAMEZ - BOOKING CANCELLED</h1>
-			<p>Your booking reservation has been cancelled.</p>
-			<div style="background: #1a1625; padding: 15px; margin: 20px 0; border-left: 4px solid #ef4444;">
-				<strong>BOOKING REF:</strong> %s<br/>
-				<strong>SCHEDULED TIME:</strong> %s<br/>
-				<strong>STATUS:</strong> CANCELLED<br/>
-			</div>
-			<p>If you have any questions or require assistance, please contact cafe management.</p>
-		</div>`, ref, startTime)
-
-		message := &mailer.Message{
-			From: mail.Address{
-				Address: app.Settings().Meta.SenderAddress,
-				Name:    app.Settings().Meta.SenderName,
-			},
-			To: []mail.Address{
-				{Address: email},
-			},
-			Subject: fmt.Sprintf("GameZ Booking Cancelled: %s", ref),
-			HTML:    htmlBody,
-			Text:    strings.ReplaceAll(htmlBody, "<br/>", "\n"),
+		stationType := e.Record.GetString("assigned_station_id")
+		if stationType == "" {
+			stationType = "Gaming Desk"
 		}
+		startTime := e.Record.GetDateTime("start_time").Time().Format("2006-01-02 15:04")
+		price := e.Record.GetFloat("total_price")
 
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					logger.Error("HOOKS", fmt.Sprintf("Cancellation email goroutine panicked: %v", r))
+		if status == "confirmed" {
+			title := "Booking Confirmed!"
+			subtitle := "Your gaming station reservation is confirmed and ready for your session."
+			badgeText := "CONFIRMED"
+			badgeColor := "#22c55e"
+			subject := fmt.Sprintf("GameZ Booking Confirmed: %s", ref)
+
+			htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationType, startTime, price)
+
+			message := &mailer.Message{
+				From: mail.Address{
+					Address: app.Settings().Meta.SenderAddress,
+					Name:    app.Settings().Meta.SenderName,
+				},
+				To: []mail.Address{
+					{Address: email},
+				},
+				Subject: subject,
+				HTML:    htmlBody,
+				Text:    fmt.Sprintf("%s\nRef: %s\nStation: %s\nTime: %s", title, ref, stationType, startTime),
+			}
+
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						logger.Error("HOOKS", fmt.Sprintf("Confirmation email goroutine panicked: %v", r))
+					}
+				}()
+				
+				if err := app.NewMailClient().Send(message); err != nil {
+					logger.Error("HOOKS", fmt.Sprintf("Failed to send confirmation email to %s: %v", email, err))
+				} else {
+					logger.Info("HOOKS", fmt.Sprintf("Confirmation email sent to %s", email))
 				}
 			}()
-			
-			if err := app.NewMailClient().Send(message); err != nil {
-				logger.Error("HOOKS", fmt.Sprintf("Failed to send cancellation email to %s: %v", email, err))
-			} else {
-				logger.Info("HOOKS", fmt.Sprintf("Cancellation email sent to %s", email))
+		} else if status == "cancelled" {
+			title := "Booking Cancelled"
+			subtitle := "Your booking reservation has been cancelled and the slot has been released."
+			badgeText := "CANCELLED"
+			badgeColor := "#ef4444"
+			subject := fmt.Sprintf("GameZ Booking Cancelled: %s", ref)
+
+			htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationType, startTime, 0)
+
+			message := &mailer.Message{
+				From: mail.Address{
+					Address: app.Settings().Meta.SenderAddress,
+					Name:    app.Settings().Meta.SenderName,
+				},
+				To: []mail.Address{
+					{Address: email},
+				},
+				Subject: subject,
+				HTML:    htmlBody,
+				Text:    fmt.Sprintf("%s\nRef: %s\nStation: %s\nTime: %s", title, ref, stationType, startTime),
 			}
-		}()
+
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						logger.Error("HOOKS", fmt.Sprintf("Cancellation email goroutine panicked: %v", r))
+					}
+				}()
+				
+				if err := app.NewMailClient().Send(message); err != nil {
+					logger.Error("HOOKS", fmt.Sprintf("Failed to send cancellation email to %s: %v", email, err))
+				} else {
+					logger.Info("HOOKS", fmt.Sprintf("Cancellation email sent to %s", email))
+				}
+			}()
+		}
 
 		return e.Next()
 	})
