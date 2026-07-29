@@ -19,7 +19,7 @@ import {
   Zap
 } from 'lucide-react';
 import { useCurrentUser } from '../hooks/useCurrentUser';
-import { useLogout } from '../hooks/useAuth';
+import { useLogout, useUpdateProfile } from '../hooks/useAuth';
 import { useBookings, useCancelBooking, useExtendBooking } from '../hooks/useBookings';
 import { usePricing } from '../hooks/useStations';
 import { parseTimeToDecimal, formatDecimalToTime } from '../lib/utils';
@@ -40,6 +40,7 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
   const { data: bookings = [] } = useBookings();
   const cancelBookingMutation = useCancelBooking();
   const extendBookingMutation = useExtendBooking();
+  const updateProfileMutation = useUpdateProfile();
   const { data: pricingData } = usePricing();
   const stationTypes = pricingData?.stTypes || [];
   const physicalStations = pricingData?.pStations || [];
@@ -54,6 +55,20 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
   const [extensionError, setExtensionError] = useState<string | null>(null);
   const [extensionSuccess, setExtensionSuccess] = useState<string | null>(null);
   const [isApplyingExtension, setIsApplyingExtension] = useState(false);
+
+  // Phone editing state
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [phoneInput, setPhoneInput] = useState(currentUser?.phone || '');
+  const [phoneSaving, setPhoneSaving] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [phoneSuccess, setPhoneSuccess] = useState<string | null>(null);
+
+  // Name editing state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(currentUser?.name || '');
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [nameSuccess, setNameSuccess] = useState<string | null>(null);
 
   if (!currentUser) return null;
 
@@ -469,6 +484,96 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
                       Account Specifications
                     </h4>
 
+                    {/* Gamer Full Name field with inline editing */}
+                    <div className="p-3.5 bg-cyber-lightgray/30 rounded-xl border border-white/5 flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <User className="h-4.5 w-4.5 text-cyber-purple shrink-0" />
+                          <div>
+                            <span className="block text-[9px] font-mono text-gray-500 uppercase">Gamer Alias / Full Name</span>
+                            {!isEditingName && (
+                              <span className="block text-xs text-white font-mono mt-0.5">
+                                {currentUser.name || <span className="text-gray-500 italic">No name specified</span>}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {!isEditingName ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsEditingName(true);
+                              setNameInput(currentUser.name || '');
+                              setNameError(null);
+                              setNameSuccess(null);
+                            }}
+                            className="px-2.5 py-1 bg-cyber-purple/10 hover:bg-cyber-purple/20 border border-cyber-purple/30 text-cyber-purple text-[10px] font-mono font-bold uppercase rounded-lg transition cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingName(false)}
+                            className="text-[10px] text-gray-400 hover:text-white"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Editing Drawer Form */}
+                      {isEditingName && (
+                        <div className="mt-2 pt-2 border-t border-white/5 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder="Enter your full name / gamer tag"
+                              value={nameInput}
+                              onChange={(e) => setNameInput(e.target.value)}
+                              className="flex-1 px-3 py-2 bg-cyber-dark border border-white/10 rounded-lg text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              disabled={nameSaving}
+                              onClick={async () => {
+                                setNameError(null);
+                                setNameSuccess(null);
+                                if (!nameInput.trim()) {
+                                  setNameError('Name cannot be empty.');
+                                  return;
+                                }
+                                setNameSaving(true);
+                                try {
+                                  await updateProfileMutation.mutateAsync({ name: nameInput.trim() });
+                                  setNameSuccess('Full name updated successfully!');
+                                  setTimeout(() => {
+                                    setIsEditingName(false);
+                                    setNameSuccess(null);
+                                  }, 1200);
+                                } catch(err: any) {
+                                  setNameError(err?.message || 'Failed to update name.');
+                                } finally {
+                                  setNameSaving(false);
+                                }
+                              }}
+                              className="px-3 py-2 bg-gradient-to-r from-cyber-purple to-cyber-cyan text-white text-xs font-mono font-bold uppercase rounded-lg hover:scale-105 transition cursor-pointer disabled:opacity-50"
+                            >
+                              {nameSaving ? 'Saving...' : 'Save'}
+                            </button>
+                          </div>
+
+                          {nameError && (
+                            <p className="text-[10px] font-mono text-cyber-pink mt-1">{nameError}</p>
+                          )}
+                          {nameSuccess && (
+                            <p className="text-[10px] font-mono text-cyber-neon mt-1">{nameSuccess}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Email field */}
                     <div className="p-3.5 bg-cyber-lightgray/30 rounded-xl border border-white/5 flex items-center gap-3">
                       <Mail className="h-4.5 w-4.5 text-cyber-purple shrink-0" />
@@ -478,13 +583,96 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
                       </div>
                     </div>
 
-                    {/* Phone field */}
-                    <div className="p-3.5 bg-cyber-lightgray/30 rounded-xl border border-white/5 flex items-center gap-3">
-                      <Phone className="h-4.5 w-4.5 text-cyber-purple shrink-0" />
-                      <div>
-                        <span className="block text-[9px] font-mono text-gray-500 uppercase">Mobile Contact</span>
-                        <span className="block text-xs text-white font-mono mt-0.5">+91 {currentUser.phone}</span>
+                    {/* Phone field with inline editing */}
+                    <div className="p-3.5 bg-cyber-lightgray/30 rounded-xl border border-white/5 flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Phone className="h-4.5 w-4.5 text-cyber-purple shrink-0" />
+                          <div>
+                            <span className="block text-[9px] font-mono text-gray-500 uppercase">Mobile Contact</span>
+                            {!isEditingPhone && (
+                              <span className="block text-xs text-white font-mono mt-0.5">
+                                {currentUser.phone ? `+91 ${currentUser.phone}` : <span className="text-gray-500 italic">No mobile number added</span>}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {!isEditingPhone ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsEditingPhone(true);
+                              setPhoneInput(currentUser.phone || '');
+                              setPhoneError(null);
+                              setPhoneSuccess(null);
+                            }}
+                            className="px-2.5 py-1 bg-cyber-purple/10 hover:bg-cyber-purple/20 border border-cyber-purple/30 text-cyber-purple text-[10px] font-mono font-bold uppercase rounded-lg transition cursor-pointer"
+                          >
+                            {currentUser.phone ? 'Edit' : '+ Add Number'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingPhone(false)}
+                            className="text-[10px] text-gray-400 hover:text-white"
+                          >
+                            Cancel
+                          </button>
+                        )}
                       </div>
+
+                      {/* Editing Drawer Form */}
+                      {isEditingPhone && (
+                        <div className="mt-2 pt-2 border-t border-white/5 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-mono text-gray-400 bg-white/5 px-2 py-2 rounded-lg border border-white/5">+91</span>
+                            <input
+                              type="tel"
+                              maxLength={10}
+                              placeholder="Enter 10-digit mobile number"
+                              value={phoneInput}
+                              onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, ''))}
+                              className="flex-1 px-3 py-2 bg-cyber-dark border border-white/10 rounded-lg text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              disabled={phoneSaving}
+                              onClick={async () => {
+                                setPhoneError(null);
+                                setPhoneSuccess(null);
+                                if (phoneInput.length < 10) {
+                                  setPhoneError('Please enter a valid 10-digit mobile number.');
+                                  return;
+                                }
+                                setPhoneSaving(true);
+                                try {
+                                  await updateProfileMutation.mutateAsync({ phone: phoneInput });
+                                  setPhoneSuccess('Mobile contact updated successfully!');
+                                  setTimeout(() => {
+                                    setIsEditingPhone(false);
+                                    setPhoneSuccess(null);
+                                  }, 1200);
+                                } catch(err: any) {
+                                  setPhoneError(err?.message || 'Failed to update phone number.');
+                                } finally {
+                                  setPhoneSaving(false);
+                                }
+                              }}
+                              className="px-3 py-2 bg-gradient-to-r from-cyber-purple to-cyber-cyan text-white text-xs font-mono font-bold uppercase rounded-lg hover:scale-105 transition cursor-pointer disabled:opacity-50"
+                            >
+                              {phoneSaving ? 'Saving...' : 'Save'}
+                            </button>
+                          </div>
+
+                          {phoneError && (
+                            <p className="text-[10px] font-mono text-cyber-pink mt-1">{phoneError}</p>
+                          )}
+                          {phoneSuccess && (
+                            <p className="text-[10px] font-mono text-cyber-neon mt-1">{phoneSuccess}</p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Verified system badge */}

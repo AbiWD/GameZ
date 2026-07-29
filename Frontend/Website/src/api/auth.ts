@@ -11,6 +11,32 @@ export const authApi = {
     return authData;
   },
 
+  loginWithGoogle: async () => {
+    const authData = await pb.collection('portal_users').authWithOAuth2({
+      provider: 'google',
+    });
+    if (authData.record.status === 'banned') {
+      pb.authStore.clear();
+      throw new Error("Your account has been restricted. Please contact store management.");
+    }
+    // Sync name from Google meta and default status if unset
+    const updates: any = {};
+    if (!authData.record.status) updates.status = 'regular';
+    if ((!authData.record.name || authData.record.name === 'N/A') && authData.meta?.name) {
+      updates.name = authData.meta.name;
+    }
+    if (Object.keys(updates).length > 0) {
+      await pb.collection('portal_users').update(authData.record.id, updates);
+    }
+    return authData;
+  },
+
+  updateProfile: async (data: { name?: string; phone?: string }) => {
+    if (!pb.authStore.record) throw new Error("Not authenticated");
+    const record = await pb.collection('portal_users').update(pb.authStore.record.id, data);
+    return record;
+  },
+
   register: async ({ name, email, phone, password }: any) => {
     // Basic validation
     if (!name || !email || !password || !phone) {

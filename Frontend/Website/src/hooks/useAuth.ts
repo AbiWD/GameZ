@@ -7,6 +7,12 @@ export function useLogin() {
   });
 }
 
+export function useGoogleLogin() {
+  return useMutation({
+    mutationFn: authApi.loginWithGoogle,
+  });
+}
+
 export function useRegister() {
   return useMutation({
     mutationFn: authApi.register,
@@ -22,5 +28,11 @@ export function useLogout() {
 export function useResetPassword() {
   return useMutation({
     mutationFn: authApi.resetPassword,
+  });
+}
+
+export function useUpdateProfile() {
+  return useMutation({
+    mutationFn: authApi.updateProfile,
   });
 }

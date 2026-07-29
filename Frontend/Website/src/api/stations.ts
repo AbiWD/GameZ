@@ -9,7 +9,6 @@ export const stationsApi = {
     let stTypes: any[] = [];
 
     try { pStations = await pb.collection('stations').getFullList(); } catch (e) {}
-    try { tPrices = await pb.collection('tier_prices').getFullList(); } catch (e) {}
     try { stTypes = await pb.collection('station_types').getFullList(); } catch (e) {}
     
     const hourlyRates: Record<string, number> = {};

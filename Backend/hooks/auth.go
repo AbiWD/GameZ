@@ -20,7 +20,7 @@ func RegisterAuthHooks(app *pocketbase.PocketBase) {
 
 	// 2. Prevent banned users from authenticating via OAuth2
 	app.OnRecordAuthWithOAuth2Request("portal_users").BindFunc(func(e *core.RecordAuthWithOAuth2RequestEvent) error {
-		if e.Record.GetString("status") == "banned" {
+		if e.Record != nil && e.Record.GetString("status") == "banned" {
 			return apis.NewForbiddenError("Your account has been suspended.", nil)
 		}
 		return e.Next()
