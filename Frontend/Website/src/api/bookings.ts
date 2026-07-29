@@ -39,7 +39,7 @@ export const bookingsApi = {
       throw new Error(conflictCheck.details || 'Station conflict');
     }
 
-    const randomCode = `OT-${Math.floor(1000 + Math.random() * 9000)}`;
+    const randomCode = `OT-${Math.floor(10000 + Math.random() * 90000)}`;
     const startHour = parseTimeToDecimal(bookingData.startTime);
     const startDate = new Date(bookingData.bookingDate);
     startDate.setHours(Math.floor(startHour), (startHour % 1) * 60, 0, 0);
