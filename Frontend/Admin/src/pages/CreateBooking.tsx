@@ -133,7 +133,7 @@ export default function CreateBooking() {
       const timestampRef = Date.now().toString().slice(-6);
       
       const isOpenTimer = bookingMode === 'walk-in' && formData.duration === 'open';
-      const booking_reference = isOpenTimer ? `OT-${timestampRef}` : `DH-${timestampRef}`;
+      const booking_reference = isOpenTimer ? `OT-${timestampRef}` : `WT-${timestampRef}`;
 
       let startDateTime = new Date();
       if (bookingMode === 'advance') {
