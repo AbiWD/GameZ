@@ -74,7 +74,7 @@ export default function Book({ setRoute }: BookProps) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Hold Timer States
-  const [holdTimer, setHoldTimer] = useState<number>(300); // 5 minutes in seconds
+  const [holdTimer, setHoldTimer] = useState<number>(180); // 3 minutes in seconds
   const [holdExpired, setHoldExpired] = useState<boolean>(false);
   const [confirmedBooking, setConfirmedBooking] = useState<Booking | null>(null);
   const [infoError, setInfoError] = useState<string | null>(null);
@@ -214,7 +214,7 @@ export default function Book({ setRoute }: BookProps) {
     }
 
     // Trigger Hold Lock
-    setHoldTimer(300);
+    setHoldTimer(180);
     setHoldExpired(false);
     setStep(4);
   };
@@ -269,7 +269,7 @@ export default function Book({ setRoute }: BookProps) {
     setSelectedStation(null);
     setStartTime('');
     setDurationHours(1);
-    setHoldTimer(300);
+    setHoldTimer(180);
     setHoldExpired(false);
     setConfirmedBooking(null);
   };
@@ -917,7 +917,7 @@ export default function Book({ setRoute }: BookProps) {
                     </div>
 
                     <p className="text-sm text-gray-400 leading-relaxed max-w-sm mx-auto">
-                      The 5-minute lock on your selected station expired. Please reset the wizard to check current real-time table availability and secure a new lock.
+                      The 3-minute lock on your selected station expired. Please reset the wizard to check current real-time table availability and secure a new lock.
                     </p>
 
                     <div className="pt-6">

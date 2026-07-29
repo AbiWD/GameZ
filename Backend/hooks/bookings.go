@@ -105,11 +105,10 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 		record.Set("total_price", totalPrice)
 
 		// If client specified status as "confirmed" (e.g. registered customer / confirmed booking), keep confirmed.
-		// Otherwise default to temporary 5-minute pending hold.
+		// Otherwise default to temporary 3-minute pending hold.
 		if record.GetString("status") != "confirmed" {
-			record.Set("status", "pending")
-			
-			expiresAt := time.Now().Add(5 * time.Minute)
+			// Calculate 3-minute expiration window for temporary holds
+			expiresAt := time.Now().Add(3 * time.Minute)
 			dt, _ := types.ParseDateTime(expiresAt)
 			record.Set("expires_at", dt)
 		}
