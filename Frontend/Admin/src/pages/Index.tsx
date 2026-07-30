@@ -12,7 +12,9 @@ const Index = () => {
       if (isSetupRequired) {
         navigate('/setup');
       } else if (user && isAdmin) {
-        navigate('/admin');
+        navigate('/dashboard');
+      } else {
+        navigate('/auth');
       }
     }
   }, [user, isAdmin, loading, isSetupRequired, navigate]);
