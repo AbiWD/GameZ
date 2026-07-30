@@ -18,6 +18,7 @@ const Auth = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { signIn, updateUserPassword, requestPasswordReset, user, isAdmin, isSetupRequired } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
