@@ -148,6 +148,20 @@ export const useAuth = () => {
     }
   };
 
+  const requestPasswordReset = async (email: string) => {
+    try {
+      await pb.collection('_superusers').requestPasswordReset(email);
+      return { error: null };
+    } catch (error: any) {
+      try {
+        await pb.collection('portal_users').requestPasswordReset(email);
+        return { error: null };
+      } catch (err: any) {
+        return { error: err || error };
+      }
+    }
+  };
+
   return {
     user,
     session,
@@ -160,5 +174,6 @@ export const useAuth = () => {
     signUp,
     signOut,
     updateUserPassword,
+    requestPasswordReset,
   };
 };

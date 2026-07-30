@@ -16,8 +16,9 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const { signIn, updateUserPassword, user, isAdmin, isSetupRequired } = useAuth();
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const { signIn, updateUserPassword, requestPasswordReset, user, isAdmin, isSetupRequired } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -58,6 +59,35 @@ const Auth = () => {
       }
     }
 
+    setLoading(false);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast({
+        title: 'Email Required',
+        description: 'Please enter your account email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await requestPasswordReset(email);
+
+    if (error) {
+      toast({
+        title: 'Notice',
+        description: 'If an account exists with this email, a reset link has been dispatched.',
+      });
+    } else {
+      toast({
+        title: 'Reset Link Dispatched 📩',
+        description: `Check your inbox at ${email} for password reset instructions.`,
+      });
+    }
+    setResetSent(true);
     setLoading(false);
   };
 
@@ -104,12 +134,19 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 font-sans">
-      <div className="w-full max-w-md bg-card rounded-3xl p-10 shadow-xl border border-border">
-        <div className="mb-8 text-center">
+    <div className="min-h-screen w-full flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Dynamic Background Effects */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="w-full max-w-[420px] z-10 bg-card/60 backdrop-blur-xl border border-border/80 p-8 sm:p-10 rounded-3xl shadow-2xl transition-all">
+        <div className="text-center mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-foreground mb-2">GameZ</h1>
           <p className="text-muted-foreground font-medium">
-            {isResetting ? "Reset Temporary Password" : "Admin Dashboard Access"}
+            {isResetting 
+              ? "Reset Temporary Password" 
+              : isForgotPassword 
+              ? "Recover Account Access" 
+              : "Admin Dashboard Access"}
           </p>
         </div>
 
@@ -184,6 +221,38 @@ const Auth = () => {
               {loading ? 'Updating...' : 'Set New Password'}
             </Button>
           </form>
+        ) : isForgotPassword ? (
+          <form onSubmit={handleForgotPassword} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="forgot-email" className="text-sm font-bold ml-1 text-muted-foreground">Account Email</Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                placeholder="admin@gamez.in"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="rounded-xl bg-secondary border border-border px-5 py-6 font-medium text-foreground focus-visible:ring-2 focus-visible:ring-primary/40 placeholder:text-muted-foreground"
+              />
+              <p className="text-xs text-muted-foreground mt-1.5 ml-1">
+                Enter your staff or admin email address to receive password reset instructions.
+              </p>
+            </div>
+
+            <Button type="submit" className="w-full rounded-full bg-primary hover:bg-primary/90 px-8 py-7 h-auto text-primary-foreground font-bold text-base shadow-lg shadow-primary/10 mt-4 transition-all active:scale-[0.98]" disabled={loading}>
+              {loading ? 'Sending Link...' : 'Send Reset Link'}
+            </Button>
+
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => setIsForgotPassword(false)}
+                className="text-xs font-bold text-primary hover:underline focus:outline-none"
+              >
+                ← Back to Sign In
+              </button>
+            </div>
+          </form>
         ) : (
           <form onSubmit={handleSignIn} className="space-y-5">
             <div className="space-y-2">
@@ -201,7 +270,13 @@ const Auth = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="signin-password" className="text-sm font-bold ml-1 text-muted-foreground">Password</Label>
-                <a href="#" className="text-xs font-bold text-primary hover:text-primary/80">Forgot?</a>
+                <button
+                  type="button"
+                  onClick={() => setIsForgotPassword(true)}
+                  className="text-xs font-bold text-primary hover:text-primary/80 focus:outline-none"
+                >
+                  Forgot?
+                </button>
               </div>
               <div className="relative">
                 <Input

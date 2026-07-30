@@ -183,7 +183,7 @@ func setupEmailTemplates(app *pocketbase.PocketBase) {
     <p style="color:#9ca3af;font-size:14px;margin-bottom:24px;">
       Please click the button below to confirm your new email address.
     </p>
-    <a href="` + apiURL + `/_/#/auth/confirm-email-change/{TOKEN}"
+    <a href="` + frontendURL + `/confirm-email?token={TOKEN}"
        target="_blank"
        rel="noopener"
        style="display:inline-block;background:linear-gradient(to right, #8b5cf6, #06b6d4);color:white;padding:12px 28px;
@@ -194,7 +194,7 @@ func setupEmailTemplates(app *pocketbase.PocketBase) {
       If the button does not work, copy and paste this link into your browser:
     </p>
     <p style="word-break:break-all;font-size:12px;color:#06b6d4;">
-      ` + apiURL + `/_/#/auth/confirm-email-change/{TOKEN}
+      ` + frontendURL + `/confirm-email?token={TOKEN}
     </p>
     <p style="color:#4b5563;font-size:12px;margin-top:24px;">
       If you did not request this change please contact us immediately.
@@ -211,7 +211,7 @@ func setupEmailTemplates(app *pocketbase.PocketBase) {
 	// ── Save App Meta ──
 	settings := app.Settings()
 	settings.Meta.AppName = "GameZ"
-	settings.Meta.AppURL = apiURL
+	settings.Meta.AppURL = frontendURL
 	if err := app.Save(settings); err != nil {
 		logger.Errorf("SYSTEM", "Meta settings failed: %v", err)
 	}
