@@ -72,7 +72,7 @@ export const useAuth = () => {
   const checkAdminStatus = (model: AuthModel) => {
     try {
       if (model) {
-        if (model.email === 'sysadmin@gamez.in' || model.email === 'admin@gamez.in' || model.role === 'admin' || model.email === 'test@admin.com') {
+        if (model.email === 'sysadmin@gamez.in' || model.email === 'admin@gamez.in' || model.email === 'abhilashbangera97@gmail.com' || model.role === 'admin' || model.email === 'test@admin.com') {
           setIsAdmin(true);
           setUserRole('admin');
         } else {
