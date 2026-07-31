@@ -13,15 +13,18 @@ import { useToast } from '@/hooks/use-toast';
 import { Trash2, UserPlus, Mail, KeyRound, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+import { useAuth } from '@/hooks/useAuth';
+
 interface StaffUser {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'staff';
+  role: 'admin' | 'manager' | 'staff';
   created: string;
 }
 
 const StaffAccounts = () => {
+  const { userRole } = useAuth();
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -59,9 +62,15 @@ const StaffAccounts = () => {
       return;
     }
 
+    // Manager can ONLY create staff accounts
+    const payload = {
+      ...formData,
+      role: userRole === 'manager' ? 'staff' : formData.role
+    };
+
     try {
       setSaving(true);
-      await pb.collection('staff_accounts').create(formData);
+      await pb.collection('staff_accounts').create(payload);
       
       toast({ title: "Account created successfully" });
       setIsDialogOpen(false);
@@ -141,17 +150,22 @@ const StaffAccounts = () => {
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
                 <Select
-                  value={formData.role}
+                  value={userRole === 'manager' ? 'staff' : formData.role}
                   onValueChange={(val) => setFormData({ ...formData, role: val })}
+                  disabled={userRole === 'manager'}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="staff">Staff (Front Desk Only)</SelectItem>
-                    <SelectItem value="admin">Admin (Full Access)</SelectItem>
+                    {userRole === 'admin' && <SelectItem value="manager">Manager (Shift Leader)</SelectItem>}
+                    {userRole === 'admin' && <SelectItem value="admin">Admin (Full Access)</SelectItem>}
                   </SelectContent>
                 </Select>
+                {userRole === 'manager' && (
+                  <p className="text-[11px] text-muted-foreground">Managers can only create Staff accounts.</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Temporary Password</Label>
@@ -197,12 +211,14 @@ const StaffAccounts = () => {
       <Card>
         <CardHeader>
           <CardTitle>Active Users</CardTitle>
-          <CardDescription>All accounts with access to the GameZ Admin Panel.</CardDescription>
+          <CardDescription>
+            {userRole === 'manager' ? 'Staff accounts under your management.' : 'All accounts with access to the GameZ Admin Panel.'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="py-8 text-center text-muted-foreground">Loading accounts...</div>
-          ) : users.length === 0 ? (
+          ) : users.filter(u => userRole === 'admin' ? true : u.role === 'staff').length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">No accounts found.</div>
           ) : (
             <Table>
@@ -216,14 +232,18 @@ const StaffAccounts = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {users.filter(u => userRole === 'admin' ? true : u.role === 'staff').map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.email}</TableCell>
                     <TableCell>{user.name || '-'}</TableCell>
                     <TableCell>
-                      {user.role === 'admin' || user.email === 'sysadmin@gamez.in' || user.email === 'admin@gamez.in' ? (
+                      {user.role === 'admin' || user.email === 'sysadmin@gamez.in' ? (
                         <Badge variant="default" className="bg-primary hover:bg-primary/90 gap-1">
                           <ShieldAlert className="w-3 h-3" /> Admin
+                        </Badge>
+                      ) : user.role === 'manager' ? (
+                        <Badge variant="default" className="bg-purple-600 hover:bg-purple-700 gap-1">
+                          <ShieldAlert className="w-3 h-3" /> Manager
                         </Badge>
                       ) : (
                         <Badge variant="secondary" className="gap-1">

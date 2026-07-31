@@ -26,7 +26,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
           navigate('/admin');
         }
       } else if (userRole === 'manager') {
-        const restrictedPaths = ['/admin/analytics', '/admin/properties', '/admin/staff'];
+        const restrictedPaths = ['/admin/analytics', '/admin/properties'];
         if (restrictedPaths.some(p => window.location.pathname.endsWith(p))) {
           navigate('/admin');
         }

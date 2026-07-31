@@ -95,7 +95,6 @@ export function AdminSidebar() {
                 }
                 if (userRole === 'manager') {
                   if (item.title === 'Analytics') return false;
-                  if (item.title === 'Staff Accounts') return false;
                   if (item.title === 'Branches') return false;
                 }
                 return true;
