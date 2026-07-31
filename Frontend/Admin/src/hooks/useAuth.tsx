@@ -18,8 +18,9 @@ export const useAuth = () => {
 
     if (initialUser) {
       checkAdminStatus(initialUser);
-      // Silently refresh the token with the server to prevent invisible timeouts
-      pb.collection('_superusers').authRefresh({ requestKey: null }).catch((err: any) => {
+      // Silently refresh the token with the server using the user's collectionName
+      const colName = initialUser.collectionName || 'staff_accounts';
+      pb.collection(colName).authRefresh({ requestKey: null }).catch((err: any) => {
         // If the server actually rejects the token (invalidated/expired) not just an SDK cancellation, physically log them out
         if (!err.isAbort && err.status !== 0) {
           pb.authStore.clear();
