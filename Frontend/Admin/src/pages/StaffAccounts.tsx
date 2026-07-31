@@ -39,9 +39,7 @@ const StaffAccounts = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const records = await pb.collection('staff_accounts').getFullList({
-        sort: '-created',
-      });
+      const records = await pb.collection('staff_accounts').getFullList();
       setUsers(records as unknown as StaffUser[]);
     } catch (error: any) {
       toast({
