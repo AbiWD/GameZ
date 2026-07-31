@@ -83,6 +83,12 @@ const Stations = () => {
   const [allStations, setAllStations] = useState<Station[]>([]); // Raw dashboard stats data
   const [stationTypes, setStationTypes] = useState<StationType[]>([]);
   
+const WhatsAppIcon = ({ className = "w-3.5 h-3.5" }: { className?: string }) => (
+  <svg className={`${className} fill-current`} viewBox="0 0 24 24">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347m-5.421 7.461c-1.926 0-3.72-.51-5.275-1.4l-.378-.217-3.921 1.028 1.046-3.822-.243-.387a10.05 10.05 0 0 1-1.542-5.385C2.238 6.46 6.698 2 12.051 2c2.62 0 5.084 1.021 6.937 2.874a9.78 9.78 0 0 1 2.876 6.937c0 5.417-4.46 9.878-9.813 9.878M12.051 0C5.452 0 0 5.453 0 12.054a11.98 11.98 0 0 0 1.841 6.417L0 24l5.707-1.497A11.96 11.96 0 0 0 12.051 24c6.6 0 12.053-5.453 12.053-12.054C24.104 5.453 18.651 0 12.051 0" />
+  </svg>
+);
+
 interface ConflictingBooking {
   id: string;
   name: string;
@@ -1187,7 +1193,7 @@ interface ConflictingBooking {
                                     rel="noopener noreferrer"
                                     className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-xl bg-green-500/10 text-green-600 font-semibold active:scale-95 transition-transform"
                                   >
-                                    <MessageSquare className="w-3.5 h-3.5" /> WhatsApp
+                                    <WhatsAppIcon className="w-3.5 h-3.5" /> WhatsApp
                                   </a>
                                 </div>
                               )}
@@ -1272,7 +1278,7 @@ interface ConflictingBooking {
                                             className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 font-semibold transition-colors"
                                             title="WhatsApp Message"
                                           >
-                                            <MessageSquare className="w-3 h-3" /> WA
+                                            <WhatsAppIcon className="w-3 h-3" /> WA
                                           </a>
                                         </>
                                       )}
