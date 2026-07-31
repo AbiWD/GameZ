@@ -88,10 +88,15 @@ export function AdminSidebar() {
               // Filter out items within sections if needed
               const visibleItems = section.items.filter(item => {
                 if (userRole === 'staff') {
-                  // Staff can see Dashboard and Front Desk items, but NOT Analytics
                   if (item.title === 'Analytics') return false;
-                  // If we add Staff Accounts later, hide from staff
                   if (item.title === 'Staff Accounts') return false;
+                  if (item.title === 'Stations') return false;
+                  if (item.title === 'Branches') return false;
+                }
+                if (userRole === 'manager') {
+                  if (item.title === 'Analytics') return false;
+                  if (item.title === 'Staff Accounts') return false;
+                  if (item.title === 'Branches') return false;
                 }
                 return true;
               });

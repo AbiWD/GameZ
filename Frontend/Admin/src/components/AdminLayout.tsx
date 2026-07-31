@@ -25,6 +25,11 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         if (restrictedPaths.some(p => window.location.pathname.endsWith(p))) {
           navigate('/admin');
         }
+      } else if (userRole === 'manager') {
+        const restrictedPaths = ['/admin/analytics', '/admin/properties', '/admin/staff'];
+        if (restrictedPaths.some(p => window.location.pathname.endsWith(p))) {
+          navigate('/admin');
+        }
       }
     }
   }, [user, loading, isAdmin, userRole, navigate]);

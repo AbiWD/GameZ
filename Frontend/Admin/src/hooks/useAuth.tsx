@@ -7,7 +7,7 @@ export const useAuth = () => {
   const [session, setSession] = useState<AuthModel | null>(pb.authStore.model);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [userRole, setUserRole] = useState<'admin' | 'staff' | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'manager' | 'staff' | null>(null);
   const [isSetupRequired, setIsSetupRequired] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -73,11 +73,12 @@ export const useAuth = () => {
   const checkAdminStatus = (model: AuthModel) => {
     try {
       if (model) {
-        if (model.email === 'sysadmin@gamez.in' || model.email === 'admin@gamez.in' || model.email === 'abhilashbangera97@gmail.com' || model.role === 'admin' || model.email === 'test@admin.com') {
-          setIsAdmin(true);
+        setIsAdmin(true);
+        if (model.collectionName === '_superusers' || model.email === 'abhilashbangera97@gmail.com') {
           setUserRole('admin');
+        } else if (model.role) {
+          setUserRole(model.role as 'admin' | 'manager' | 'staff');
         } else {
-          setIsAdmin(true);
           setUserRole('staff');
         }
       } else {

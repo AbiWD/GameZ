@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
 import { useProperty } from '@/contexts/PropertyContext';
 import { usePropertyFilter } from '@/hooks/usePropertyFilter';
+import { useAuth } from '@/hooks/useAuth';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
@@ -197,17 +198,19 @@ const Dashboard = () => {
     }
   };
 
+  const { userRole } = useAuth();
+
   const statCards = [
     {
       title: 'Active Players',
       value: stats.activePlayers,
       icon: Users,
     },
-    {
+    ...(userRole === 'admin' ? [{
       title: "Today's Revenue",
       value: `₹${stats.todayRevenue.toLocaleString()}`,
       icon: IndianRupee,
-    },
+    }] : []),
     {
       title: "Today's Sessions",
       value: stats.todaySessions,
