@@ -1066,9 +1066,9 @@ interface ConflictingBooking {
                     <Plus className="w-4 h-4" /> Add Blackout Period
                   </Button>
                 </DialogTrigger>
-                <DialogContent className={`rounded-3xl border border-border bg-card ${blackoutStep === 'conflicts' ? 'max-w-2xl' : 'max-w-md'}`}>
+                <DialogContent className={`rounded-2xl sm:rounded-3xl border border-border bg-card w-[95vw] max-w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-6`}>
                   <DialogHeader>
-                    <DialogTitle className="text-foreground">
+                    <DialogTitle className="text-foreground text-base sm:text-lg pr-6">
                       {blackoutStep === 'conflicts' ? '⚠️ Review Booking Conflicts' : 'Add Blackout Period'}
                     </DialogTitle>
                     <DialogDescription className="text-muted-foreground text-xs">
@@ -1115,9 +1115,9 @@ interface ConflictingBooking {
                           />
                         </div>
                       </div>
-                      <div className="pt-4 flex justify-end gap-2">
-                        <Button type="button" variant="outline" onClick={() => setBlackoutDialogOpen(false)} className="rounded-xl border-border">Cancel</Button>
-                        <Button type="submit" disabled={checkingConflicts} className="rounded-xl font-semibold">
+                      <div className="pt-4 flex flex-col sm:flex-row justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => setBlackoutDialogOpen(false)} className="rounded-xl border-border w-full sm:w-auto">Cancel</Button>
+                        <Button type="submit" disabled={checkingConflicts} className="rounded-xl font-semibold w-full sm:w-auto">
                           {checkingConflicts ? 'Checking Conflicts...' : 'Check Conflicts & Save Blackout'}
                         </Button>
                       </div>
@@ -1125,22 +1125,72 @@ interface ConflictingBooking {
                   ) : (
                     <div className="space-y-4 pt-2">
                       {/* Customer Relationship Phone Call Hint Banner */}
-                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-xs space-y-1.5 text-amber-700 dark:text-amber-300">
-                        <div className="flex items-center gap-2 font-bold text-sm text-amber-600 dark:text-amber-400">
-                          <Phone className="w-4 h-4 animate-bounce" />
+                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 sm:p-4 text-xs space-y-1.5 text-amber-700 dark:text-amber-300">
+                        <div className="flex items-center gap-2 font-bold text-xs sm:text-sm text-amber-600 dark:text-amber-400">
+                          <Phone className="w-4 h-4 shrink-0 animate-bounce" />
                           Proactive Customer Relationship Tip
                         </div>
-                        <p className="text-[12px] leading-relaxed">
+                        <p className="text-[11.5px] sm:text-[12px] leading-relaxed">
                           Please call or message the customer(s) below before cancelling! A quick 30-second phone call builds lounge loyalty and prevents negative feedback during emergency closures.
                         </p>
                       </div>
 
-                      <div className="text-xs font-semibold text-muted-foreground flex justify-between items-center">
+                      <div className="text-xs font-semibold text-muted-foreground flex flex-col sm:flex-row justify-between sm:items-center gap-1">
                         <span>{conflictingBookings.length} Conflicting Paid Session(s) Found</span>
-                        <span className="text-[11px] text-primary">Email with Refund Notice & Reschedule Button will be sent</span>
+                        <span className="text-[11px] text-primary">Email with Refund Notice & Reschedule Link will be sent</span>
                       </div>
 
-                      <div className="border border-border rounded-xl overflow-hidden max-h-60 overflow-y-auto text-xs">
+                      {/* MOBILE CARD VIEW (< sm) */}
+                      <div className="space-y-3 sm:hidden max-h-60 overflow-y-auto pr-1">
+                        {conflictingBookings.map((b) => {
+                          const isChecked = selectedBookingIds.includes(b.id);
+                          const cleanPhone = b.phone.replace(/[^0-9]/g, '');
+                          return (
+                            <div key={b.id} className={`p-3 rounded-2xl border ${isChecked ? 'border-destructive/40 bg-destructive/5' : 'border-border bg-secondary/30'} space-y-2 text-xs`}>
+                              <div className="flex items-start justify-between gap-2">
+                                <label className="flex items-center gap-2 font-bold text-foreground cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      if (e.target.checked) setSelectedBookingIds([...selectedBookingIds, b.id]);
+                                      else setSelectedBookingIds(selectedBookingIds.filter(id => id !== b.id));
+                                    }}
+                                    className="rounded border-border"
+                                  />
+                                  <span>{b.name}</span>
+                                </label>
+                                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">₹{b.total_price}</span>
+                              </div>
+                              <div className="text-[11px] text-muted-foreground pl-6 space-y-0.5">
+                                <div><span className="font-semibold text-primary">{b.station_name}</span></div>
+                                <div>{new Date(b.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(b.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                              </div>
+                              {b.phone && (
+                                <div className="flex items-center gap-2 pt-1 pl-6">
+                                  <a
+                                    href={`tel:${b.phone}`}
+                                    className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 font-semibold active:scale-95 transition-transform"
+                                  >
+                                    <Phone className="w-3.5 h-3.5" /> Call
+                                  </a>
+                                  <a
+                                    href={`https://wa.me/${cleanPhone}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-xl bg-green-500/10 text-green-600 font-semibold active:scale-95 transition-transform"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5" /> WhatsApp
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* DESKTOP TABLE VIEW (>= sm) */}
+                      <div className="hidden sm:block border border-border rounded-xl overflow-hidden max-h-60 overflow-y-auto text-xs">
                         <Table>
                           <TableHeader>
                             <TableRow>
@@ -1228,12 +1278,12 @@ interface ConflictingBooking {
                         </Table>
                       </div>
 
-                      <div className="pt-3 flex justify-between items-center gap-2">
+                      <div className="pt-3 flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-2">
                         <Button
                           type="button"
                           variant="outline"
                           onClick={() => setBlackoutStep('form')}
-                          className="rounded-xl border-border text-xs"
+                          className="rounded-xl border-border text-xs w-full sm:w-auto"
                         >
                           Back to Dates
                         </Button>
@@ -1242,10 +1292,10 @@ interface ConflictingBooking {
                           variant="destructive"
                           disabled={savingBlackout}
                           onClick={() => executeSaveBlackoutWithCancellations(selectedBookingIds)}
-                          className="rounded-xl font-semibold text-xs"
+                          className="rounded-xl font-semibold text-xs w-full sm:w-auto"
                         >
                           {savingBlackout
-                            ? 'Processing Cancellations & Emailing...'
+                            ? 'Processing Cancellations...'
                             : `Cancel ${selectedBookingIds.length} Selected & Apply Blackout`}
                         </Button>
                       </div>
