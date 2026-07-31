@@ -15,6 +15,7 @@ import (
 	"github.com/pocketbase/pocketbase/tools/types"
 	"github.com/pocketbase/pocketbase/apis"
 	"gamez-backend/logger"
+	"gamez-backend/whatsapp"
 )
 
 func RegisterBookingHooks(app *pocketbase.PocketBase) {
@@ -383,33 +384,12 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 			subject := fmt.Sprintf("GameZ Booking Confirmed: %s", ref)
 
 			htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationName, startTime, price)
+			waText := fmt.Sprintf("🎮 *GameZ Booking Confirmed!*\n\nRef: *#%s*\nStation: %s\nTime: %s\nTotal: ₹%d\n\nShow this ticket at front desk for instant check-in!", ref, stationName, startTime, price)
 
-			message := &mailer.Message{
-				From: mail.Address{
-					Address: app.Settings().Meta.SenderAddress,
-					Name:    app.Settings().Meta.SenderName,
-				},
-				To: []mail.Address{
-					{Address: email},
-				},
-				Subject: subject,
-				HTML:    htmlBody,
-				Text:    fmt.Sprintf("%s\nRef: %s\nStation: %s\nTime: %s", title, ref, stationName, startTime),
+			if whatsapp.GlobalQueue != nil {
+				phone := e.Record.GetString("phone")
+				_ = whatsapp.GlobalQueue.Enqueue(e.Record.Id, "booking_confirmation", phone, email, waText, htmlBody, subject)
 			}
-
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						logger.Error("HOOKS", fmt.Sprintf("Confirmation email goroutine panicked: %v", r))
-					}
-				}()
-				
-				if err := app.NewMailClient().Send(message); err != nil {
-					logger.Error("HOOKS", fmt.Sprintf("Failed to send confirmation email to %s: %v", email, err))
-				} else {
-					logger.Info("HOOKS", fmt.Sprintf("Confirmation email sent to %s", email))
-				}
-			}()
 		} else if status == "cancelled" {
 			title := "Booking Cancelled"
 			subtitle := "Your booking reservation has been cancelled and the slot has been released."
@@ -418,7 +398,9 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 			subject := fmt.Sprintf("GameZ Booking Cancelled: %s", ref)
 
 			htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationName, startTime, 0)
+			waText := fmt.Sprintf("⚠️ *GameZ Notice*\n\nYour reservation *#%s* for %s (%s) has been cancelled and refunded.\n\nBook next session: http://localhost:4173", ref, stationName, startTime)
 
+			// Emergency Blackout: Send Email immediately in parallel + Enqueue WhatsApp
 			message := &mailer.Message{
 				From: mail.Address{
 					Address: app.Settings().Meta.SenderAddress,
@@ -438,13 +420,13 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 						logger.Error("HOOKS", fmt.Sprintf("Cancellation email goroutine panicked: %v", r))
 					}
 				}()
-				
-				if err := app.NewMailClient().Send(message); err != nil {
-					logger.Error("HOOKS", fmt.Sprintf("Failed to send cancellation email to %s: %v", email, err))
-				} else {
-					logger.Info("HOOKS", fmt.Sprintf("Cancellation email sent to %s", email))
-				}
+				_ = app.NewMailClient().Send(message)
 			}()
+
+			if whatsapp.GlobalQueue != nil {
+				phone := e.Record.GetString("phone")
+				_ = whatsapp.GlobalQueue.Enqueue(e.Record.Id, "blackout_cancellation", phone, email, waText, htmlBody, subject)
+			}
 		}
 
 		return e.Next()

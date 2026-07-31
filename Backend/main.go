@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"io/fs"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"gamez-backend/hooks"
 	"gamez-backend/logger"
 	"gamez-backend/routes"
+	"gamez-backend/whatsapp"
 
 	_ "gamez-backend/migrations"
 )
@@ -381,6 +383,20 @@ func main() {
 		routes.RegisterAnalyticsRoutes(se, app)
 		routes.RegisterStationRoutes(se, app)
 		routes.RegisterSetupRoutes(se, app)
+		routes.RegisterWhatsAppRoutes(se, app)
+
+		// Initialize WhatsApp Engine & Queue
+		go func() {
+			svc, err := whatsapp.InitWhatsAppService(app)
+			if err != nil {
+				logger.Errorf("WHATSAPP", "Failed to init WhatsApp service: %v", err)
+				return
+			}
+			_, _ = whatsapp.InitNotificationQueue(app, svc)
+			if err := svc.Start(context.Background()); err != nil {
+				logger.Errorf("WHATSAPP", "WhatsApp start error: %v", err)
+			}
+		}()
 
 		// ── SPA Fallback for Custom Admin UI ──
 		// Note: /admin/ serves the custom React GameZ Admin Panel.

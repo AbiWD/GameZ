@@ -17,6 +17,7 @@ import Analytics from "./pages/Analytics";
 import StaffAccounts from "./pages/StaffAccounts";
 import Setup from "./pages/Setup";
 import Customers from "./pages/Customers";
+import WhatsAppSettings from "./pages/WhatsAppSettings";
 
 import { PropertyProvider } from "@/contexts/PropertyContext";
 
@@ -58,6 +59,9 @@ const App = () => (
 
             <Route path="/customers" element={<Customers />} />
             <Route path="/admin/customers" element={<Customers />} />
+
+            <Route path="/whatsapp" element={<WhatsAppSettings />} />
+            <Route path="/admin/whatsapp" element={<WhatsAppSettings />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
