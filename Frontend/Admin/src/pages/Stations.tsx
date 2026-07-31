@@ -17,10 +17,11 @@ import * as LucideIcons from 'lucide-react';
 import { Gamepad2 } from 'lucide-react';
 
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X, DoorOpen, CalendarX, Clock, AlertTriangle, Phone, MessageSquare, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X, DoorOpen, CalendarX, Clock, AlertTriangle, Phone, MessageSquare, AlertCircle, ShieldAlert, Lock } from 'lucide-react';
 
 import { useProperty } from '@/contexts/PropertyContext';
 import { usePropertyFilter } from '@/hooks/usePropertyFilter';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Station {
   id: string;
@@ -77,6 +78,8 @@ const Stations = () => {
 
   const { properties, activeProperty } = useProperty();
   const propertyFilter = usePropertyFilter();
+  const { userRole } = useAuth();
+  const isAdminOrOwner = !userRole || userRole === 'admin' || userRole === 'owner';
   
   // Inventory State
   const [stations, setStations] = useState<Station[]>([]);
@@ -1071,13 +1074,14 @@ interface ConflictingBooking {
                 <h2 className="text-xl font-bold text-foreground">Blackout Periods & Store Closures</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Block online customer bookings during eSports tournaments, maintenance, or holiday store closures.</p>
               </div>
-              <Dialog open={blackoutDialogOpen} onOpenChange={setBlackoutDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="rounded-xl font-semibold gap-2 shadow-sm">
-                    <Plus className="w-4 h-4" /> Add Blackout Period
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className={`rounded-2xl sm:rounded-3xl border border-border bg-card w-[95vw] max-w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-6`}>
+              {isAdminOrOwner ? (
+                <Dialog open={blackoutDialogOpen} onOpenChange={setBlackoutDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="rounded-xl font-semibold gap-2 shadow-sm">
+                      <Plus className="w-4 h-4" /> Add Blackout Period
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className={`rounded-2xl sm:rounded-3xl border border-border bg-card w-[95vw] max-w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-6`}>
                   <DialogHeader>
                     <div className="flex items-center gap-2.5 pr-6">
                       <div className={`p-2 rounded-xl border shrink-0 ${blackoutStep === 'conflicts' ? 'bg-amber-500/15 text-amber-500 border-amber-500/30' : 'bg-primary/10 text-primary border-primary/20'}`}>
@@ -1321,6 +1325,11 @@ interface ConflictingBooking {
                   )}
                 </DialogContent>
               </Dialog>
+              ) : (
+                <Badge variant="outline" className="py-2.5 px-4 bg-amber-500/10 text-amber-600 border border-amber-500/30 gap-2 font-semibold text-xs rounded-xl shrink-0">
+                  <Lock className="w-4 h-4 text-amber-500" /> Admin Permission Required to Create Blackouts
+                </Badge>
+              )}
             </div>
 
             <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
@@ -1377,27 +1386,29 @@ interface ConflictingBooking {
                               )}
                             </TableCell>
                             <TableCell className="text-right">
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10">
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="rounded-3xl border border-border bg-card">
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle className="text-foreground">Delete Blackout Period</AlertDialogTitle>
-                                    <AlertDialogDescription className="text-muted-foreground">
-                                      Are you sure you want to delete the blackout for "{b.reason}"? Online bookings will resume for this time window.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel className="rounded-xl border-border">Cancel</AlertDialogCancel>
-                                    <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => handleBlackoutDelete(b.id)}>
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                              {isAdminOrOwner && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="rounded-3xl border border-border bg-card">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle className="text-foreground">Delete Blackout Period</AlertDialogTitle>
+                                      <AlertDialogDescription className="text-muted-foreground">
+                                        Are you sure you want to delete the blackout for "{b.reason}"? Online bookings will resume for this time window.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel className="rounded-xl border-border">Cancel</AlertDialogCancel>
+                                      <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => handleBlackoutDelete(b.id)}>
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
