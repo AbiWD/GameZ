@@ -1068,14 +1068,21 @@ interface ConflictingBooking {
                 </DialogTrigger>
                 <DialogContent className={`rounded-2xl sm:rounded-3xl border border-border bg-card w-[95vw] max-w-full sm:max-w-2xl max-h-[92vh] overflow-y-auto p-4 sm:p-6`}>
                   <DialogHeader>
-                    <DialogTitle className="text-foreground text-base sm:text-lg pr-6">
-                      {blackoutStep === 'conflicts' ? '⚠️ Review Booking Conflicts' : 'Add Blackout Period'}
-                    </DialogTitle>
-                    <DialogDescription className="text-muted-foreground text-xs">
-                      {blackoutStep === 'conflicts'
-                        ? 'Pre-booked paid sessions found during this blackout period. Review and contact customers before executing cancellations.'
-                        : 'Prevent online and offline bookings during specified dates and times.'}
-                    </DialogDescription>
+                    <div className="flex items-center gap-2.5 pr-6">
+                      <div className={`p-2 rounded-xl border shrink-0 ${blackoutStep === 'conflicts' ? 'bg-amber-500/15 text-amber-500 border-amber-500/30' : 'bg-primary/10 text-primary border-primary/20'}`}>
+                        {blackoutStep === 'conflicts' ? <AlertTriangle className="w-5 h-5" /> : <CalendarX className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <DialogTitle className="text-foreground text-base sm:text-lg font-bold">
+                          {blackoutStep === 'conflicts' ? 'Review Booking Conflicts' : 'Add Blackout Period'}
+                        </DialogTitle>
+                        <DialogDescription className="text-muted-foreground text-xs mt-0.5">
+                          {blackoutStep === 'conflicts'
+                            ? 'Pre-booked paid sessions found during this blackout period. Review and contact customers before executing cancellations.'
+                            : 'Prevent online and offline bookings during specified dates and times.'}
+                        </DialogDescription>
+                      </div>
+                    </div>
                   </DialogHeader>
 
                   {blackoutStep === 'form' ? (
