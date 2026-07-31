@@ -98,6 +98,7 @@ interface ConflictingBooking {
   start_time: string;
   end_time: string;
   total_price: number;
+  hold_token?: string;
 }
 
   // Blackouts State
@@ -265,6 +266,7 @@ interface ConflictingBooking {
             start_time: bk.start_time,
             end_time: bk.end_time,
             total_price: bk.total_price || 0,
+            hold_token: bk.hold_token || '',
           });
         }
       }
@@ -291,9 +293,12 @@ interface ConflictingBooking {
 
       // 1. Cancel selected bookings (this triggers the backend email hook with refund notice + reschedule link!)
       for (const id of idsToCancel) {
-        await pb.collection('bookings').update(id, {
-          status: 'cancelled'
-        });
+        const found = conflictingBookings.find(c => c.id === id);
+        const payload: any = { status: 'cancelled' };
+        if (found?.hold_token) {
+          payload.hold_token = found.hold_token;
+        }
+        await pb.collection('bookings').update(id, payload);
       }
 
       // 2. Save blackout period

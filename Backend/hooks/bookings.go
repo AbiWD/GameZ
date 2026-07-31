@@ -129,18 +129,18 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 
 	// 2. BEFORE UPDATE: Field Whitelist & Auth Check
 	app.OnRecordUpdateRequest("bookings").BindFunc(func(e *core.RecordRequestEvent) error {
-		// Admin bypass for staff overriding fields
-		if e.HasSuperuserAuth() {
+		info, err := e.RequestInfo()
+		if err != nil {
+			return apis.NewBadRequestError("Invalid request", err)
+		}
+
+		// Admin / Staff / Manager bypass for lounge staff overriding fields
+		if e.HasSuperuserAuth() || (info.Auth != nil && info.Auth.Collection() != nil && info.Auth.Collection().Name == "staff_accounts") {
 			return e.Next()
 		}
 
 		record := e.Record
 		original := record.Original()
-
-		info, err := e.RequestInfo()
-		if err != nil {
-			return apis.NewBadRequestError("Invalid request", err)
-		}
 
 		// Authenticated Customer or Hold Token Verification
 		isOwner := false
