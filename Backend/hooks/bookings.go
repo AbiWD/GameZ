@@ -206,6 +206,15 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 				</div>`, price)
 		}
 
+		ctaButton := ""
+		if badgeText == "CANCELLED" {
+			ctaButton = `<div style="text-align: center; margin-top: 24px;">
+				<a href="http://localhost:4173/" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #a855f7 0%, #06b6d4 100%); color: #ffffff; padding: 12px 28px; border-radius: 10px; font-weight: 700; font-size: 13px; text-decoration: none; box-shadow: 0 4px 14px rgba(168,85,247,0.4);">
+					🎮 Book Next Session / Reschedule Online
+				</a>
+			</div>`
+		}
+
 		return fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
@@ -254,15 +263,17 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 								</table>
 							</div>
 
-							<p style="color: #cbd5e1; font-size: 12px; margin: 0; text-align: center;">
-								Show this booking reference code to cafe staff upon arrival for instant check-in.
+							%s
+
+							<p style="color: #94a3b8; font-size: 12px; margin-top: 20px; text-align: center;">
+								Need help? Contact GameZ Lounge Support at <a href="mailto:support@gamezcafe.com" style="color: #06b6d4;">support@gamezcafe.com</a>
 							</p>
 						</td>
 					</tr>
 					<!-- Footer -->
 					<tr>
 						<td align="center" style="background-color: #0f0d17; padding: 20px; color: #64748b; font-size: 11px; border-top: 1px solid rgba(255,255,255,0.05);">
-							&copy; 2026 GameZ Mangaluru. All rights reserved. | <a href="http://localhost:8080" style="color: #06b6d4; text-decoration: none;">gamez.in</a>
+							&copy; 2026 GameZ Mangaluru. All rights reserved. | <a href="http://localhost:4173" style="color: #06b6d4; text-decoration: none;">gamez.in</a>
 						</td>
 					</tr>
 				</table>
@@ -270,7 +281,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 		</tr>
 	</table>
 </body>
-</html>`, badgeColor, badgeColor, badgeColor, badgeText, title, subtitle, ref, stationName, startTime, priceStr)
+</html>`, badgeColor, badgeColor, badgeColor, badgeText, title, subtitle, ref, stationName, startTime, priceStr, ctaButton)
 	}
 
 	// Helper to extract clean Booking Reference (#OT-8412) and Station Name

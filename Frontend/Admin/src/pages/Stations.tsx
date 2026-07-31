@@ -17,7 +17,7 @@ import * as LucideIcons from 'lucide-react';
 import { Gamepad2 } from 'lucide-react';
 
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X, DoorOpen, CalendarX, Clock, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X, DoorOpen, CalendarX, Clock, AlertTriangle, Phone, MessageSquare, AlertCircle, ShieldAlert } from 'lucide-react';
 
 import { useProperty } from '@/contexts/PropertyContext';
 import { usePropertyFilter } from '@/hooks/usePropertyFilter';
@@ -83,10 +83,26 @@ const Stations = () => {
   const [allStations, setAllStations] = useState<Station[]>([]); // Raw dashboard stats data
   const [stationTypes, setStationTypes] = useState<StationType[]>([]);
   
+interface ConflictingBooking {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  station_name: string;
+  start_time: string;
+  end_time: string;
+  total_price: number;
+}
+
   // Blackouts State
   const [blackouts, setBlackouts] = useState<BlackoutPeriod[]>([]);
   const [loadingBlackouts, setLoadingBlackouts] = useState(false);
   const [blackoutDialogOpen, setBlackoutDialogOpen] = useState(false);
+  const [blackoutStep, setBlackoutStep] = useState<'form' | 'conflicts'>('form');
+  const [conflictingBookings, setConflictingBookings] = useState<ConflictingBooking[]>([]);
+  const [selectedBookingIds, setSelectedBookingIds] = useState<string[]>([]);
+  const [checkingConflicts, setCheckingConflicts] = useState(false);
+  const [savingBlackout, setSavingBlackout] = useState(false);
   const [blackoutFormData, setBlackoutFormData] = useState({
     reason: '',
     start_time: '',
@@ -209,18 +225,95 @@ const Stations = () => {
       toast({ title: 'Error', description: 'Please fill in all blackout period fields.', variant: 'destructive' });
       return;
     }
+
+    const bStart = new Date(blackoutFormData.start_time).getTime();
+    const bEnd = new Date(blackoutFormData.end_time).getTime();
+    if (bEnd <= bStart) {
+      toast({ title: 'Error', description: 'End time must be after start time.', variant: 'destructive' });
+      return;
+    }
+
     try {
+      setCheckingConflicts(true);
+      // Fetch all confirmed/pending bookings
+      const bookings = await pb.collection('bookings').getFullList({
+        expand: 'assigned_station_id',
+      });
+
+      const conflicts: ConflictingBooking[] = [];
+
+      for (const bk of bookings) {
+        if (bk.status === 'cancelled' || bk.status === 'expired' || bk.status === 'completed') continue;
+        const bkStart = new Date(bk.start_time).getTime();
+        const bkEnd = new Date(bk.end_time).getTime();
+
+        // Check time overlap
+        if (bkStart < bEnd && bkEnd > bStart) {
+          const stName = bk.expand?.assigned_station_id?.station_type || bk.expand?.assigned_station_id?.station_number || 'Gaming Station';
+          conflicts.push({
+            id: bk.id,
+            name: bk.name || 'Gamer Customer',
+            phone: bk.phone || '',
+            email: bk.email || '',
+            station_name: stName,
+            start_time: bk.start_time,
+            end_time: bk.end_time,
+            total_price: bk.total_price || 0,
+          });
+        }
+      }
+
+      if (conflicts.length > 0) {
+        setConflictingBookings(conflicts);
+        setSelectedBookingIds(conflicts.map(c => c.id));
+        setBlackoutStep('conflicts');
+      } else {
+        // No conflicts! Save immediately.
+        await executeSaveBlackoutWithCancellations([]);
+      }
+    } catch (error: any) {
+      console.error('Error checking blackout conflicts:', error);
+      toast({ title: 'Error', description: error.message || 'Failed to check booking conflicts', variant: 'destructive' });
+    } finally {
+      setCheckingConflicts(false);
+    }
+  };
+
+  const executeSaveBlackoutWithCancellations = async (idsToCancel: string[]) => {
+    try {
+      setSavingBlackout(true);
+
+      // 1. Cancel selected bookings (this triggers the backend email hook with refund notice + reschedule link!)
+      for (const id of idsToCancel) {
+        await pb.collection('bookings').update(id, {
+          status: 'cancelled'
+        });
+      }
+
+      // 2. Save blackout period
       await pb.collection('blackout_periods').create({
         ...blackoutFormData,
         property_id: activeProperty?.id
       });
-      toast({ title: 'Success', description: 'Blackout period added successfully' });
+
+      toast({
+        title: 'Blackout Period Saved! 🚀',
+        description: idsToCancel.length > 0
+          ? `${idsToCancel.length} customer booking(s) cancelled & sent refund email with reschedule link!`
+          : 'Blackout period added successfully with 0 booking conflicts.',
+      });
+
       setBlackoutDialogOpen(false);
+      setBlackoutStep('form');
+      setConflictingBookings([]);
+      setSelectedBookingIds([]);
       setBlackoutFormData({ reason: '', start_time: '', end_time: '' });
       fetchBlackouts();
     } catch (error: any) {
       console.error('Error saving blackout period:', error);
       toast({ title: 'Error', description: error.message || 'Failed to save blackout period', variant: 'destructive' });
+    } finally {
+      setSavingBlackout(false);
     }
   };
 
@@ -973,54 +1066,191 @@ const Stations = () => {
                     <Plus className="w-4 h-4" /> Add Blackout Period
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="rounded-3xl border border-border bg-card max-w-md">
+                <DialogContent className={`rounded-3xl border border-border bg-card ${blackoutStep === 'conflicts' ? 'max-w-2xl' : 'max-w-md'}`}>
                   <DialogHeader>
-                    <DialogTitle className="text-foreground">Add Blackout Period</DialogTitle>
-                    <DialogDescription className="text-muted-foreground">
-                      Prevent online bookings during specified dates and times.
+                    <DialogTitle className="text-foreground">
+                      {blackoutStep === 'conflicts' ? '⚠️ Review Booking Conflicts' : 'Add Blackout Period'}
+                    </DialogTitle>
+                    <DialogDescription className="text-muted-foreground text-xs">
+                      {blackoutStep === 'conflicts'
+                        ? 'Pre-booked paid sessions found during this blackout period. Review and contact customers before executing cancellations.'
+                        : 'Prevent online and offline bookings during specified dates and times.'}
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleBlackoutSubmit} className="space-y-4 pt-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="reason" className="text-xs font-bold text-muted-foreground">Reason / Event Name</Label>
-                      <Input
-                        id="reason"
-                        placeholder="e.g. FIFA eSports Tournament, Deep Cleaning, Holiday Closure"
-                        value={blackoutFormData.reason}
-                        onChange={(e) => setBlackoutFormData({ ...blackoutFormData, reason: e.target.value })}
-                        required
-                        className="rounded-xl bg-secondary border-border"
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                  {blackoutStep === 'form' ? (
+                    <form onSubmit={handleBlackoutSubmit} className="space-y-4 pt-2">
                       <div className="space-y-2">
-                        <Label htmlFor="start_time" className="text-xs font-bold text-muted-foreground">Start Time</Label>
+                        <Label htmlFor="reason" className="text-xs font-bold text-muted-foreground">Reason / Event Name</Label>
                         <Input
-                          id="start_time"
-                          type="datetime-local"
-                          value={blackoutFormData.start_time}
-                          onChange={(e) => setBlackoutFormData({ ...blackoutFormData, start_time: e.target.value })}
+                          id="reason"
+                          placeholder="e.g. FIFA eSports Tournament, Deep Cleaning, Holiday Closure"
+                          value={blackoutFormData.reason}
+                          onChange={(e) => setBlackoutFormData({ ...blackoutFormData, reason: e.target.value })}
                           required
-                          className="rounded-xl bg-secondary border-border text-xs"
+                          className="rounded-xl bg-secondary border-border"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="end_time" className="text-xs font-bold text-muted-foreground">End Time</Label>
-                        <Input
-                          id="end_time"
-                          type="datetime-local"
-                          value={blackoutFormData.end_time}
-                          onChange={(e) => setBlackoutFormData({ ...blackoutFormData, end_time: e.target.value })}
-                          required
-                          className="rounded-xl bg-secondary border-border text-xs"
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="start_time" className="text-xs font-bold text-muted-foreground">Start Time</Label>
+                          <Input
+                            id="start_time"
+                            type="datetime-local"
+                            value={blackoutFormData.start_time}
+                            onChange={(e) => setBlackoutFormData({ ...blackoutFormData, start_time: e.target.value })}
+                            required
+                            className="rounded-xl bg-secondary border-border text-xs"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="end_time" className="text-xs font-bold text-muted-foreground">End Time</Label>
+                          <Input
+                            id="end_time"
+                            type="datetime-local"
+                            value={blackoutFormData.end_time}
+                            onChange={(e) => setBlackoutFormData({ ...blackoutFormData, end_time: e.target.value })}
+                            required
+                            className="rounded-xl bg-secondary border-border text-xs"
+                          />
+                        </div>
+                      </div>
+                      <div className="pt-4 flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => setBlackoutDialogOpen(false)} className="rounded-xl border-border">Cancel</Button>
+                        <Button type="submit" disabled={checkingConflicts} className="rounded-xl font-semibold">
+                          {checkingConflicts ? 'Checking Conflicts...' : 'Check Conflicts & Save Blackout'}
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="space-y-4 pt-2">
+                      {/* Customer Relationship Phone Call Hint Banner */}
+                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-xs space-y-1.5 text-amber-700 dark:text-amber-300">
+                        <div className="flex items-center gap-2 font-bold text-sm text-amber-600 dark:text-amber-400">
+                          <Phone className="w-4 h-4 animate-bounce" />
+                          Proactive Customer Relationship Tip
+                        </div>
+                        <p className="text-[12px] leading-relaxed">
+                          Please call or message the customer(s) below before cancelling! A quick 30-second phone call builds lounge loyalty and prevents negative feedback during emergency closures.
+                        </p>
+                      </div>
+
+                      <div className="text-xs font-semibold text-muted-foreground flex justify-between items-center">
+                        <span>{conflictingBookings.length} Conflicting Paid Session(s) Found</span>
+                        <span className="text-[11px] text-primary">Email with Refund Notice & Reschedule Button will be sent</span>
+                      </div>
+
+                      <div className="border border-border rounded-xl overflow-hidden max-h-60 overflow-y-auto text-xs">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-10">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedBookingIds.length === conflictingBookings.length}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedBookingIds(conflictingBookings.map(c => c.id));
+                                    } else {
+                                      setSelectedBookingIds([]);
+                                    }
+                                  }}
+                                  className="rounded border-border"
+                                />
+                              </TableHead>
+                              <TableHead>Customer</TableHead>
+                              <TableHead>Station & Time</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead className="text-right">Reach Out</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {conflictingBookings.map((b) => {
+                              const isChecked = selectedBookingIds.includes(b.id);
+                              const cleanPhone = b.phone.replace(/[^0-9]/g, '');
+                              return (
+                                <TableRow key={b.id} className={isChecked ? 'bg-destructive/5' : ''}>
+                                  <TableCell>
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedBookingIds([...selectedBookingIds, b.id]);
+                                        } else {
+                                          setSelectedBookingIds(selectedBookingIds.filter(id => id !== b.id));
+                                        }
+                                      }}
+                                      className="rounded border-border"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="font-medium">
+                                    <div>{b.name}</div>
+                                    <div className="text-[10px] text-muted-foreground">{b.phone || b.email}</div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="font-semibold text-primary">{b.station_name}</div>
+                                    <div className="text-[10px] text-muted-foreground">
+                                      {new Date(b.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(b.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                                    ₹{b.total_price}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      {b.phone && (
+                                        <>
+                                          <a
+                                            href={`tel:${b.phone}`}
+                                            className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-semibold transition-colors"
+                                            title="Call Customer"
+                                          >
+                                            <Phone className="w-3 h-3" /> Call
+                                          </a>
+                                          <a
+                                            href={`https://wa.me/${cleanPhone}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 font-semibold transition-colors"
+                                            title="WhatsApp Message"
+                                          >
+                                            <MessageSquare className="w-3 h-3" /> WA
+                                          </a>
+                                        </>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      <div className="pt-3 flex justify-between items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setBlackoutStep('form')}
+                          className="rounded-xl border-border text-xs"
+                        >
+                          Back to Dates
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          disabled={savingBlackout}
+                          onClick={() => executeSaveBlackoutWithCancellations(selectedBookingIds)}
+                          className="rounded-xl font-semibold text-xs"
+                        >
+                          {savingBlackout
+                            ? 'Processing Cancellations & Emailing...'
+                            : `Cancel ${selectedBookingIds.length} Selected & Apply Blackout`}
+                        </Button>
                       </div>
                     </div>
-                    <div className="pt-4 flex justify-end gap-2">
-                      <Button type="button" variant="outline" onClick={() => setBlackoutDialogOpen(false)} className="rounded-xl border-border">Cancel</Button>
-                      <Button type="submit" className="rounded-xl font-semibold">Save Blackout</Button>
-                    </div>
-                  </form>
+                  )}
                 </DialogContent>
               </Dialog>
             </div>
