@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Clock, Users, Play, CalendarPlus } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Users, Play, CalendarPlus, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import pb from '@/lib/pocketbase';
 import { toast } from 'sonner';
