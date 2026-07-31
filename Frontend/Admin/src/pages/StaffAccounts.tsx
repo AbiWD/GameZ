@@ -36,7 +36,7 @@ const StaffAccounts = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const records = await pb.collection('_superusers').getFullList({
+      const records = await pb.collection('staff_accounts').getFullList({
         sort: '-created',
       });
       setUsers(records as unknown as StaffUser[]);
@@ -61,7 +61,7 @@ const StaffAccounts = () => {
 
     try {
       setSaving(true);
-      await pb.collection('_superusers').create(formData);
+      await pb.collection('staff_accounts').create(formData);
       
       toast({ title: "Account created successfully" });
       setIsDialogOpen(false);
@@ -80,7 +80,7 @@ const StaffAccounts = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await pb.collection('_superusers').delete(id);
+      await pb.collection('staff_accounts').delete(id);
       toast({ title: "Account deleted successfully" });
       fetchUsers();
     } catch (error: any) {

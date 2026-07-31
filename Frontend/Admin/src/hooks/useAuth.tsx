@@ -94,25 +94,30 @@ export const useAuth = () => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const authData = await pb.collection('_superusers').authWithPassword(email, password);
+      // Try signing in via staff_accounts first
+      const authData = await pb.collection('staff_accounts').authWithPassword(email, password);
       return { data: authData, error: null };
-    } catch (error: any) {
-      return { data: null, error };
+    } catch (staffErr: any) {
+      try {
+        // Fallback to _superusers for dev superusers
+        const superData = await pb.collection('_superusers').authWithPassword(email, password);
+        return { data: superData, error: null };
+      } catch (superErr: any) {
+        return { data: null, error: staffErr || superErr };
+      }
     }
   };
 
   const signUp = async (email: string, password: string) => {
     try {
-      const authData = await pb.collection('_superusers').create({
+      const authData = await pb.collection('staff_accounts').create({
         email,
         password,
         passwordConfirm: password,
-        role: 'admin' // Default to admin for initial setups, real app would restrict this
+        role: 'admin'
       });
 
-      // Log the user in immediately after sign up
-      const loginData = await pb.collection('_superusers').authWithPassword(email, password);
-
+      const loginData = await pb.collection('staff_accounts').authWithPassword(email, password);
       return { data: loginData, error: null };
     } catch (error: any) {
       return { data: null, error };
@@ -139,7 +144,8 @@ export const useAuth = () => {
         force_password_reset: false
       };
 
-      const record = await pb.collection('_superusers').update(user.id, updateData);
+      const collectionName = user.collectionName || 'staff_accounts';
+      const record = await pb.collection(collectionName).update(user.id, updateData);
       setUser(record);
       setSession(record);
       return { error: null };
@@ -150,14 +156,19 @@ export const useAuth = () => {
 
   const requestPasswordReset = async (email: string) => {
     try {
-      await pb.collection('_superusers').requestPasswordReset(email);
+      await pb.collection('staff_accounts').requestPasswordReset(email);
       return { error: null };
     } catch (error: any) {
       try {
-        await pb.collection('portal_users').requestPasswordReset(email);
+        await pb.collection('_superusers').requestPasswordReset(email);
         return { error: null };
       } catch (err: any) {
-        return { error: err || error };
+        try {
+          await pb.collection('portal_users').requestPasswordReset(email);
+          return { error: null };
+        } catch (finalErr: any) {
+          return { error: finalErr || err || error };
+        }
       }
     }
   };
