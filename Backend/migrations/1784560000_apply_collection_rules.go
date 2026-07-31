@@ -37,6 +37,31 @@ func init() {
 			return err
 		}
 
+		// Update portal_users Rules
+		portalUsers, err := app.FindCollectionByNameOrId("portal_users")
+		if err == nil && portalUsers != nil {
+			portalUsers.ListRule = types.Pointer("")
+			portalUsers.ViewRule = types.Pointer("")
+			portalUsers.CreateRule = types.Pointer("")
+			portalUsers.UpdateRule = types.Pointer("")
+			if err := app.Save(portalUsers); err != nil {
+				return err
+			}
+		}
+
+		// Update staff_accounts Rules
+		staffAccounts, err := app.FindCollectionByNameOrId("staff_accounts")
+		if err == nil && staffAccounts != nil {
+			staffAccounts.ListRule = types.Pointer("")
+			staffAccounts.ViewRule = types.Pointer("")
+			staffAccounts.CreateRule = types.Pointer("")
+			staffAccounts.UpdateRule = types.Pointer("")
+			staffAccounts.DeleteRule = types.Pointer("")
+			if err := app.Save(staffAccounts); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}, func(app core.App) error {
 		// Rollback Stations
