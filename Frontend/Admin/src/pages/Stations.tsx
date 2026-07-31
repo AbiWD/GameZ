@@ -1175,7 +1175,7 @@ interface ConflictingBooking {
                                     <Phone className="w-3.5 h-3.5" /> Call
                                   </a>
                                   <a
-                                    href={`https://wa.me/${cleanPhone}`}
+                                    href={`https://wa.me/${cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone}?text=${encodeURIComponent(`Hi ${b.name}, this is GameZ Gaming Lounge regarding your ${b.station_name} booking. We have an urgent update regarding your reservation.`)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-xl bg-green-500/10 text-green-600 font-semibold active:scale-95 transition-transform"
@@ -1259,7 +1259,7 @@ interface ConflictingBooking {
                                             <Phone className="w-3 h-3" /> Call
                                           </a>
                                           <a
-                                            href={`https://wa.me/${cleanPhone}`}
+                                            href={`https://wa.me/${cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone}?text=${encodeURIComponent(`Hi ${b.name}, this is GameZ Gaming Lounge regarding your ${b.station_name} booking. We have an urgent update regarding your reservation.`)}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 font-semibold transition-colors"
