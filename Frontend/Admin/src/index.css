@@ -38,9 +38,9 @@ All colors MUST be HSL.
     --destructive: 349 100% 58%; /* #FF3B30 */
     --destructive-foreground: 0 0% 100%;
 
-    /* Filter BG #FAFAFC for borders and inputs */
-    --border: 240 14% 90%; 
-    --input: 240 14% 98%; /* #FAFAFC */
+    /* Filter BG for borders and inputs */
+    --border: 240 6% 83%; /* Crisp visible border #CBD5E1 */
+    --input: 240 6% 83%; /* Crisp visible input border */
     --ring: 210 100% 45%; /* #0071E3 */
 
     /* Sleek, standard Apple rounding */

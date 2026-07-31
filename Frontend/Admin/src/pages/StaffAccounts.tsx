@@ -143,7 +143,7 @@ const StaffAccounts = () => {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="John Doe"
-                      className="pl-9 border-slate-300 dark:border-slate-700 shadow-sm"
+                      className="pl-9"
                     />
                   </div>
                 </div>
@@ -155,7 +155,7 @@ const StaffAccounts = () => {
                       id="email"
                       type="email"
                       required
-                      className="pl-9 border-slate-300 dark:border-slate-700 shadow-sm"
+                      className="pl-9"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="staff@gamez.in"
@@ -169,7 +169,7 @@ const StaffAccounts = () => {
                     onValueChange={(val) => setFormData({ ...formData, role: val })}
                     disabled={userRole === 'manager'}
                   >
-                    <SelectTrigger className="border-slate-300 dark:border-slate-700 shadow-sm">
+                    <SelectTrigger>
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -190,7 +190,7 @@ const StaffAccounts = () => {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       required
-                      className="pl-9 pr-10 border-slate-300 dark:border-slate-700 shadow-sm"
+                      className="pl-9 pr-10"
                       minLength={8}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -213,7 +213,7 @@ const StaffAccounts = () => {
                       id="passwordConfirm"
                       type={showConfirmPassword ? "text" : "password"}
                       required
-                      className="pl-9 pr-10 border-slate-300 dark:border-slate-700 shadow-sm"
+                      className="pl-9 pr-10"
                       minLength={8}
                       value={formData.passwordConfirm}
                       onChange={(e) => setFormData({ ...formData, passwordConfirm: e.target.value })}
