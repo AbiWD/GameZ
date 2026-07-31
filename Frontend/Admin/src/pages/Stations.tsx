@@ -17,7 +17,7 @@ import * as LucideIcons from 'lucide-react';
 import { Gamepad2 } from 'lucide-react';
 
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X, DoorOpen, CalendarX, Clock, AlertTriangle, Phone, MessageSquare, AlertCircle, ShieldAlert, Lock } from 'lucide-react';
+import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, ChevronRight, Sparkles, Image as ImageIcon, X, DoorOpen, CalendarX, Clock, AlertTriangle, Phone, MessageSquare, AlertCircle, ShieldAlert, Lock, Mail } from 'lucide-react';
 
 import { useProperty } from '@/contexts/PropertyContext';
 import { usePropertyFilter } from '@/hooks/usePropertyFilter';
@@ -1188,7 +1188,7 @@ interface ConflictingBooking {
                                 <div><span className="font-semibold text-primary">{b.station_name}</span></div>
                                 <div>{new Date(b.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(b.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                               </div>
-                              {b.phone && (
+                              {b.phone ? (
                                 <div className="flex items-center gap-2 pt-1 pl-6">
                                   <a
                                     href={`tel:${b.phone}`}
@@ -1205,7 +1205,16 @@ interface ConflictingBooking {
                                     <WhatsAppIcon className="w-3.5 h-3.5" /> WhatsApp
                                   </a>
                                 </div>
-                              )}
+                              ) : b.email ? (
+                                <div className="pt-1 pl-6">
+                                  <a
+                                    href={`mailto:${b.email}?subject=${encodeURIComponent(`Urgent: GameZ Lounge Booking Update (${b.station_name})`)}&body=${encodeURIComponent(`Hi ${b.name},\n\nThis is GameZ Gaming Lounge regarding your ${b.station_name} booking. We have an urgent update regarding your reservation.`)}`}
+                                    className="w-full inline-flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-xl bg-sky-500/10 text-sky-600 font-semibold active:scale-95 transition-transform"
+                                  >
+                                    <Mail className="w-3.5 h-3.5" /> Email Customer
+                                  </a>
+                                </div>
+                              ) : null}
                             </div>
                           );
                         })}
@@ -1271,7 +1280,7 @@ interface ConflictingBooking {
                                   </TableCell>
                                   <TableCell className="text-right">
                                     <div className="flex items-center justify-end gap-1.5">
-                                      {b.phone && (
+                                      {b.phone ? (
                                         <>
                                           <a
                                             href={`tel:${b.phone}`}
@@ -1290,7 +1299,15 @@ interface ConflictingBooking {
                                             <WhatsAppIcon className="w-3 h-3" /> WA
                                           </a>
                                         </>
-                                      )}
+                                      ) : b.email ? (
+                                        <a
+                                          href={`mailto:${b.email}?subject=${encodeURIComponent(`Urgent: GameZ Lounge Booking Update (${b.station_name})`)}&body=${encodeURIComponent(`Hi ${b.name},\n\nThis is GameZ Gaming Lounge regarding your ${b.station_name} booking. We have an urgent update regarding your reservation.`)}`}
+                                          className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 font-semibold transition-colors"
+                                          title="Send Email"
+                                        >
+                                          <Mail className="w-3 h-3" /> Email
+                                        </a>
+                                      ) : null}
                                     </div>
                                   </TableCell>
                                 </TableRow>
