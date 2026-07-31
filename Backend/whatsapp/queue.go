@@ -45,7 +45,8 @@ func InitNotificationQueue(app core.App, svc *WhatsAppService) (*NotificationQue
 	if dataDir == "" {
 		dataDir = "pb_data"
 	}
-	dbPath := filepath.Join(dataDir, "whatsapp_session.db")
+	// Separate DB file strictly for notification queue & logs
+	dbPath := filepath.Join(dataDir, "notification_queue.db")
 	_ = os.MkdirAll(filepath.Dir(dbPath), 0755)
 
 	dbURI := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", dbPath)
@@ -146,13 +147,18 @@ func (q *NotificationQueue) workerLoop() {
 	ticker := time.NewTicker(1500 * time.Millisecond) // 1.5s pacing
 	defer ticker.Stop()
 
-	for range ticker.C {
-		job, ok := q.fetchNextJob()
-		if !ok {
-			continue
+	for {
+		select {
+		case job := <-q.jobChan:
+			// Instant trigger when job is enqueued!
+			q.processJob(job)
+		case <-ticker.C:
+			// Fallback ticker poll for pending/backoff jobs
+			job, ok := q.fetchNextJob()
+			if ok {
+				q.processJob(job)
+			}
 		}
-
-		q.processJob(job)
 	}
 }
 
@@ -161,8 +167,11 @@ func (q *NotificationQueue) fetchNextJob() (NotificationJob, bool) {
 	defer q.mu.Unlock()
 
 	var job NotificationJob
+	// Select pending jobs that have not exceeded 3 attempts and are ready for retry (5-min backoff if attempts > 0)
 	query := `SELECT id, booking_id, notif_type, recipient_phone, recipient_email, text_payload, email_html, email_subject, attempts
-	FROM notification_queue WHERE status = 'pending' ORDER BY id ASC LIMIT 1`
+	FROM notification_queue
+	WHERE status = 'pending' AND attempts < 3 AND (updated_at IS NULL OR updated_at < datetime('now', '-300 seconds'))
+	ORDER BY id ASC LIMIT 1`
 
 	err := q.db.QueryRow(query).Scan(
 		&job.ID, &job.BookingID, &job.NotifType, &job.RecipientPhone, &job.RecipientEmail,
@@ -215,7 +224,16 @@ func (q *NotificationQueue) processJob(job NotificationJob) {
 				_ = tx.Commit()
 			}
 		} else {
-			_, _ = q.db.Exec("UPDATE notification_queue SET status = 'failed', attempts = attempts + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?", job.ID)
+			// Double failure (WhatsApp + Email both failed)
+			newAttempts := job.Attempts + 1
+			if newAttempts >= 3 {
+				_, _ = q.db.Exec("UPDATE notification_queue SET status = 'failed', attempts = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", newAttempts, job.ID)
+				q.app.Logger().Error("NOTIFICATION", fmt.Sprintf("🚨 CRITICAL: Both WhatsApp and Email failed for booking %s after %d attempts. Email err: %v", job.BookingID, newAttempts, emailErr))
+			} else {
+				// Re-mark pending for backoff retry
+				_, _ = q.db.Exec("UPDATE notification_queue SET status = 'pending', attempts = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", newAttempts, job.ID)
+				q.app.Logger().Warn("NOTIFICATION", fmt.Sprintf("Both WhatsApp and Email failed for booking %s (attempt %d/3). Will retry in 5 mins.", job.BookingID, newAttempts))
+			}
 		}
 	}
 }
@@ -230,9 +248,14 @@ func (q *NotificationQueue) sendEmailFallback(job NotificationJob) error {
 		subject = "GameZ Lounge Notification"
 	}
 
+	senderAddress := q.app.Settings().Meta.SenderAddress
+	if senderAddress == "" {
+		return fmt.Errorf("SenderAddress is unconfigured")
+	}
+
 	msg := &mailer.Message{
 		From: mail.Address{
-			Address: q.app.Settings().Meta.SenderAddress,
+			Address: senderAddress,
 			Name:    q.app.Settings().Meta.SenderName,
 		},
 		To: []mail.Address{
@@ -259,7 +282,6 @@ func (q *NotificationQueue) sweepStuckProcessingJobs() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	// Find jobs in 'processing' state older than 60 seconds
 	rows, err := q.db.Query(`SELECT id, booking_id, notif_type FROM notification_queue
 	WHERE status = 'processing' AND updated_at < datetime('now', '-60 seconds')`)
 	if err != nil {
@@ -274,28 +296,27 @@ func (q *NotificationQueue) sweepStuckProcessingJobs() {
 			continue
 		}
 
-		// Check if already in notification_logs
 		var count int
 		_ = q.db.QueryRow("SELECT COUNT(*) FROM notification_logs WHERE booking_id = ? AND notif_type = ?", bID, nType).Scan(&count)
 		if count > 0 {
-			// Already delivered! Mark sent without re-firing
 			_, _ = q.db.Exec("UPDATE notification_queue SET status = 'sent', updated_at = CURRENT_TIMESTAMP WHERE id = ?", id)
 		} else {
-			// Re-enqueue as pending
 			_, _ = q.db.Exec("UPDATE notification_queue SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE id = ?", id)
 		}
 	}
 }
 
 func (q *NotificationQueue) purgeOldSentJobs() {
-	// Purge sent/sent_via_fallback jobs older than 30 days
 	_, _ = q.db.Exec("DELETE FROM notification_queue WHERE status IN ('sent', 'sent_via_fallback') AND updated_at < datetime('now', '-30 days')")
 }
 
-// Bounded Worker Pool (Max 10 Concurrent) for Parallel Emergency Blackout Email Dispatch
+// Bounded Worker Pool (Max 10 Concurrent) for Parallel Emergency Blackout Email Dispatch with Error Tracking
 func (q *NotificationQueue) DispatchParallelBlackoutEmails(jobs []NotificationJob) {
-	sem := make(chan struct{}, 10) // Bounded concurrency limit = 10
+	sem := make(chan struct{}, 10)
 	var wg sync.WaitGroup
+
+	var successCount, failCount int64
+	var countMu sync.Mutex
 
 	for _, j := range jobs {
 		wg.Add(1)
@@ -305,9 +326,19 @@ func (q *NotificationQueue) DispatchParallelBlackoutEmails(jobs []NotificationJo
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			_ = q.sendEmailFallback(job)
+			err := q.sendEmailFallback(job)
+			countMu.Lock()
+			if err == nil {
+				successCount++
+			} else {
+				failCount++
+				q.app.Logger().Error("BLACKOUT", fmt.Sprintf("Failed to send blackout emergency email to %s for booking %s: %v", job.RecipientEmail, job.BookingID, err))
+			}
+			countMu.Unlock()
 		}()
 	}
 
 	wg.Wait()
+	q.app.Logger().Info("BLACKOUT", fmt.Sprintf("Blackout emergency email dispatch finished: %d succeeded, %d failed.", successCount, failCount))
 }
+

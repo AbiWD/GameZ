@@ -28,13 +28,14 @@ import (
 )
 
 type WhatsAppService struct {
-	app       core.App
-	container *sqlstore.Container
-	client    *whatsmeow.Client
-	qrChan    <-chan whatsmeow.QRChannelItem
-	currentQR string
-	mu        sync.RWMutex
-	log       waLog.Logger
+	app        core.App
+	container  *sqlstore.Container
+	client     *whatsmeow.Client
+	qrChan     <-chan whatsmeow.QRChannelItem
+	currentQR  string
+	alertSent  bool
+	mu         sync.RWMutex
+	log        waLog.Logger
 }
 
 var (
@@ -49,6 +50,7 @@ func InitWhatsAppService(app core.App) (*WhatsAppService, error) {
 		if dataDir == "" {
 			dataDir = "pb_data"
 		}
+		// Dedicated isolated DB file for whatsmeow session keys only
 		dbPath := filepath.Join(dataDir, "whatsapp_session.db")
 		_ = os.MkdirAll(filepath.Dir(dbPath), 0755)
 
@@ -145,14 +147,20 @@ func (s *WhatsAppService) eventHandler(evt interface{}) {
 	case *waEvents.Connected:
 		s.mu.Lock()
 		s.currentQR = ""
+		s.alertSent = false
 		s.mu.Unlock()
 		s.app.Logger().Info("WHATSAPP", "WhatsApp Web client connected successfully")
 	case *waEvents.LoggedOut:
 		s.mu.Lock()
 		s.currentQR = ""
+		shouldAlert := !s.alertSent
+		s.alertSent = true
 		s.mu.Unlock()
+
 		s.app.Logger().Warn("WHATSAPP", "WhatsApp client logged out remotely!")
-		s.sendAdminDisconnectAlert()
+		if shouldAlert {
+			s.sendAdminDisconnectAlert()
+		}
 	case *waEvents.PairSuccess:
 		s.app.Logger().Info("WHATSAPP", fmt.Sprintf("WhatsApp pairing successful with JID: %s", v.ID.String()))
 	}
@@ -233,7 +241,14 @@ func (s *WhatsAppService) heartbeatLoop() {
 	for range ticker.C {
 		currentlyConnected := s.IsConnected()
 		if wasConnected && !currentlyConnected {
-			s.sendAdminDisconnectAlert()
+			s.mu.Lock()
+			shouldAlert := !s.alertSent
+			s.alertSent = true
+			s.mu.Unlock()
+
+			if shouldAlert {
+				s.sendAdminDisconnectAlert()
+			}
 		}
 		wasConnected = currentlyConnected
 	}
@@ -242,7 +257,8 @@ func (s *WhatsAppService) heartbeatLoop() {
 func (s *WhatsAppService) sendAdminDisconnectAlert() {
 	adminEmail := s.app.Settings().Meta.SenderAddress
 	if adminEmail == "" {
-		adminEmail = "abhilashbangera97@gmail.com"
+		s.app.Logger().Error("WHATSAPP", "Cannot send disconnect alert: SenderAddress is unconfigured")
+		return
 	}
 
 	subject := "🚨 GameZ Notice: Lounge WhatsApp Disconnected"
@@ -262,7 +278,7 @@ func (s *WhatsAppService) sendAdminDisconnectAlert() {
 
 	msg := &mailer.Message{
 		From: mail.Address{
-			Address: s.app.Settings().Meta.SenderAddress,
+			Address: adminEmail,
 			Name:    "GameZ Alert",
 		},
 		To: []mail.Address{
@@ -272,5 +288,9 @@ func (s *WhatsAppService) sendAdminDisconnectAlert() {
 		HTML:    body,
 	}
 
-	_ = s.app.NewMailClient().Send(msg)
+	if err := s.app.NewMailClient().Send(msg); err != nil {
+		s.app.Logger().Error("WHATSAPP", fmt.Sprintf("Failed to send disconnect alert email: %v", err))
+	} else {
+		s.app.Logger().Info("WHATSAPP", "Disconnect alert email sent to admin successfully")
+	}
 }
