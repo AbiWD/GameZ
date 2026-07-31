@@ -232,7 +232,7 @@ const StaffAccounts = () => {
               <TableBody>
                 {users.filter(u => userRole === 'admin' ? true : u.role === 'staff').map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.email}</TableCell>
+                    <TableCell className="font-medium">{user.email || user.name || '-'}</TableCell>
                     <TableCell>{user.name || '-'}</TableCell>
                     <TableCell>
                       {user.role === 'admin' || user.email === 'sysadmin@gamez.in' ? (
@@ -250,7 +250,7 @@ const StaffAccounts = () => {
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {new Date(user.created).toLocaleDateString()}
+                      {user.created && !isNaN(new Date(user.created).getTime()) ? new Date(user.created).toLocaleDateString() : 'Active'}
                     </TableCell>
                     <TableCell className="text-right">
                       {pb.authStore.model?.id !== user.id && (
