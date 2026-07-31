@@ -150,7 +150,7 @@ export function AdminSidebar() {
                   <>
                     <div className="grid flex-1 text-left text-sm leading-tight ml-2">
                       <span className="truncate font-semibold">{user?.name || "User"}</span>
-                      <span className="truncate text-xs text-muted-foreground">{userRole === 'admin' ? 'Administrator' : 'Staff Member'}</span>
+                      <span className="truncate text-xs text-muted-foreground">{userRole === 'admin' ? 'Administrator' : userRole === 'manager' ? 'Manager' : 'Staff Member'}</span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4 text-muted-foreground" />
                   </>
