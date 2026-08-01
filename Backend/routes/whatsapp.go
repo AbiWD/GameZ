@@ -80,6 +80,24 @@ func RegisterWhatsAppRoutes(se *core.ServeEvent, app core.App) {
 		})
 	})
 
+	// POST /api/whatsapp/qr - Force fresh QR channel generation
+	waGroup.POST("/qr", func(e *core.RequestEvent) error {
+		if whatsapp.GlobalService == nil {
+			return e.JSON(http.StatusServiceUnavailable, map[string]string{"error": "WhatsApp service unavailable"})
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := whatsapp.GlobalService.ReconnectQR(ctx); err != nil {
+			return e.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+		connected, phone, qr := whatsapp.GlobalService.GetStatus()
+		return e.JSON(http.StatusOK, map[string]any{
+			"connected": connected,
+			"phone":     phone,
+			"qr":        qr,
+		})
+	})
+
 	// POST /api/whatsapp/disconnect
 	waGroup.POST("/disconnect", func(e *core.RequestEvent) error {
 		if whatsapp.GlobalService != nil {

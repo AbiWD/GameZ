@@ -217,16 +217,34 @@ export default function WhatsAppSettings() {
                         <QrCode className="h-8 w-8" />
                       </div>
                       <p className="text-xs text-muted-foreground font-medium">WhatsApp Account Disconnected</p>
-                      <Button
-                        onClick={() => {
-                          setShowQr(true);
-                          fetchStatus(true);
-                        }}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-lg shadow-md gap-1.5"
-                      >
-                        <QrCode className="h-4 w-4" />
-                        Generate QR Code
-                      </Button>
+                  <Button
+                    onClick={async () => {
+                      setShowQr(true);
+                      setLoading(true);
+                      try {
+                        const res = await fetch('/api/whatsapp/qr', {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '',
+                          },
+                        });
+                        if (res.ok) {
+                          const data = await res.json();
+                          setConnected(data.connected);
+                          setPhone(data.phone);
+                          setQrCode(data.qr);
+                        }
+                      } catch (err) {
+                        console.error('Failed to generate QR:', err);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-lg shadow-md gap-1.5"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    Generate QR Code
+                  </Button>
                     </div>
                   ) : qrCode ? (
                     <>
