@@ -143,6 +143,9 @@ func RegisterWhatsAppRoutes(se *core.ServeEvent, app core.App) {
 			return e.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}
 
-		return e.JSON(http.StatusOK, map[string]string{"status": "test_message_sent"})
+		return e.JSON(http.StatusOK, map[string]any{
+			"status":  "test_message_sent",
+			"success": true,
+		})
 	})
 }

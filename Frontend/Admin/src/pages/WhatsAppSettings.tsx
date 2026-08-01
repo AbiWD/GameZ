@@ -124,7 +124,7 @@ export default function WhatsAppSettings() {
       });
 
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (res.ok && (data.success || data.status === "test_message_sent")) {
         toast({
           title: "WhatsApp Message Sent! 🚀",
           description: `Test ticket message dispatched to ${testPhone}`,
