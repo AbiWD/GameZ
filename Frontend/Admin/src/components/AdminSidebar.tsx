@@ -22,25 +22,25 @@ const navigationSections = [
   {
     label: 'Overview',
     items: [
-      { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
-      { title: 'Analytics', url: '/admin/analytics', icon: BarChart2 },
+      { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+      { title: 'Analytics', url: '/analytics', icon: BarChart2 },
     ]
   },
   {
     label: 'Front Desk',
     items: [
-      { title: 'Create Booking', url: '/admin/create-booking', icon: PlusCircle },
-      { title: 'All Bookings', url: '/admin/bookings', icon: Calendar },
-      { title: 'Customers', url: '/admin/customers', icon: Contact },
+      { title: 'Create Booking', url: '/create-booking', icon: PlusCircle },
+      { title: 'All Bookings', url: '/bookings', icon: Calendar },
+      { title: 'Customers', url: '/customers', icon: Contact },
     ]
   },
   {
     label: 'Management',
     items: [
-      { title: 'Stations', url: '/admin/stations', icon: Gamepad2 },
-      { title: 'Branches', url: '/admin/properties', icon: Building2 },
-      { title: 'Staff Accounts', url: '/admin/staff', icon: UserCheck },
-      { title: 'WhatsApp', url: '/admin/whatsapp', icon: MessageSquare },
+      { title: 'Stations', url: '/stations', icon: Gamepad2 },
+      { title: 'Branches', url: '/properties', icon: Building2 },
+      { title: 'Staff Accounts', url: '/staff', icon: UserCheck },
+      { title: 'WhatsApp', url: '/whatsapp', icon: MessageSquare },
     ]
   },
   {
