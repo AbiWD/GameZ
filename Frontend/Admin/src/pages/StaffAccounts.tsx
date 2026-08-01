@@ -117,24 +117,24 @@ const StaffAccounts = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Staff Accounts</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Staff Accounts</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Manage employee access and roles.
             </p>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="w-full sm:w-auto gap-2 rounded-xl">
                 <UserPlus className="w-4 h-4" />
                 Add Account
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="w-[95vw] max-w-full sm:max-w-[425px] rounded-2xl sm:rounded-3xl p-4 sm:p-6">
               <DialogHeader>
                 <DialogTitle>Create New Account</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-xs">
                   Add a new staff or admin user. They can log in immediately.
                 </DialogDescription>
               </DialogHeader>
@@ -148,7 +148,7 @@ const StaffAccounts = () => {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="John Doe"
-                      className="pl-9"
+                      className="pl-9 rounded-xl"
                     />
                   </div>
                 </div>
@@ -160,7 +160,7 @@ const StaffAccounts = () => {
                       id="email"
                       type="email"
                       required
-                      className="pl-9"
+                      className="pl-9 rounded-xl"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="staff@gamez.in"
@@ -174,7 +174,7 @@ const StaffAccounts = () => {
                     onValueChange={(val) => setFormData({ ...formData, role: val })}
                     disabled={userRole === 'manager'}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="rounded-xl">
                       <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -195,7 +195,7 @@ const StaffAccounts = () => {
                       id="password"
                       type={showPassword ? "text" : "password"}
                       required
-                      className="pl-9 pr-10"
+                      className="pl-9 pr-10 rounded-xl"
                       minLength={8}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -218,7 +218,7 @@ const StaffAccounts = () => {
                       id="passwordConfirm"
                       type={showConfirmPassword ? "text" : "password"}
                       required
-                      className="pl-9 pr-10"
+                      className="pl-9 pr-10 rounded-xl"
                       minLength={8}
                       value={formData.passwordConfirm}
                       onChange={(e) => setFormData({ ...formData, passwordConfirm: e.target.value })}
@@ -233,9 +233,9 @@ const StaffAccounts = () => {
                     </button>
                   </div>
                 </div>
-                <div className="pt-4 flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit" disabled={saving}>
+                <div className="pt-4 flex flex-col sm:flex-row justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-xl border-border w-full sm:w-auto">Cancel</Button>
+                  <Button type="submit" disabled={saving} className="rounded-xl w-full sm:w-auto font-semibold">
                     {saving ? 'Creating...' : 'Create Account'}
                   </Button>
                 </div>
@@ -244,71 +244,132 @@ const StaffAccounts = () => {
           </Dialog>
         </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Active Users</CardTitle>
-          <CardDescription>
+      <Card className="rounded-2xl border-border shadow-sm overflow-hidden">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl font-bold">Active Users</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             {userRole === 'manager' ? 'Staff accounts under your management.' : 'All accounts with access to the GameZ Admin Panel.'}
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0">
           {loading ? (
             <div className="py-8 text-center text-muted-foreground">Loading accounts...</div>
           ) : users.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">No accounts found.</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-secondary/40 border-border">
+                      <TableHead className="font-bold text-foreground">Email</TableHead>
+                      <TableHead className="font-bold text-foreground">Name</TableHead>
+                      <TableHead className="font-bold text-foreground">Role</TableHead>
+                      <TableHead className="font-bold text-foreground">Created</TableHead>
+                      <TableHead className="font-bold text-foreground text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id} className="border-border">
+                        <TableCell className="font-medium text-foreground">{user.email || user.name || '-'}</TableCell>
+                        <TableCell className="text-foreground">{user.name || '-'}</TableCell>
+                        <TableCell>
+                          {user.role === 'admin' || user.email === 'sysadmin@gamez.in' ? (
+                            <Badge variant="default" className="bg-primary hover:bg-primary/90 gap-1">
+                              <ShieldAlert className="w-3 h-3" /> Admin
+                            </Badge>
+                          ) : user.role === 'manager' ? (
+                            <Badge variant="default" className="bg-purple-600 hover:bg-purple-700 gap-1">
+                              <ShieldAlert className="w-3 h-3" /> Manager
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="gap-1">
+                              <CheckCircle2 className="w-3 h-3" /> Staff
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs font-mono">
+                          {user.created && !isNaN(new Date(user.created).getTime()) ? new Date(user.created).toLocaleDateString() : 'Active'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {pb.authStore.model?.id !== user.id && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 h-8 w-8 rounded-full">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="rounded-3xl border border-border bg-card">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="text-foreground">Revoke Access</AlertDialogTitle>
+                                  <AlertDialogDescription className="text-muted-foreground">
+                                    Are you sure you want to delete the account for <strong>{user.email}</strong>? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="rounded-xl border-border">Cancel</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl"
+                                    onClick={() => handleDelete(user.id)}
+                                  >
+                                    Delete Account
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="block md:hidden space-y-3">
                 {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.email || user.name || '-'}</TableCell>
-                    <TableCell>{user.name || '-'}</TableCell>
-                    <TableCell>
-                      {user.role === 'admin' || user.email === 'sysadmin@gamez.in' ? (
-                        <Badge variant="default" className="bg-primary hover:bg-primary/90 gap-1">
-                          <ShieldAlert className="w-3 h-3" /> Admin
-                        </Badge>
-                      ) : user.role === 'manager' ? (
-                        <Badge variant="default" className="bg-purple-600 hover:bg-purple-700 gap-1">
-                          <ShieldAlert className="w-3 h-3" /> Manager
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Staff
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {user.created && !isNaN(new Date(user.created).getTime()) ? new Date(user.created).toLocaleDateString() : 'Active'}
-                    </TableCell>
-                    <TableCell className="text-right">
+                  <div key={user.id} className="p-4 rounded-2xl border border-border bg-card/60 shadow-sm space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-1 min-w-0">
+                        <p className="font-bold text-foreground text-sm truncate">{user.email || user.name || '-'}</p>
+                        {user.name && <p className="text-xs text-muted-foreground">{user.name}</p>}
+                        <div className="pt-0.5">
+                          {user.role === 'admin' || user.email === 'sysadmin@gamez.in' ? (
+                            <Badge variant="default" className="bg-primary hover:bg-primary/90 gap-1 text-[11px] py-0.5">
+                              <ShieldAlert className="w-3 h-3" /> Admin
+                            </Badge>
+                          ) : user.role === 'manager' ? (
+                            <Badge variant="default" className="bg-purple-600 hover:bg-purple-700 gap-1 text-[11px] py-0.5">
+                              <ShieldAlert className="w-3 h-3" /> Manager
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="gap-1 text-[11px] py-0.5">
+                              <CheckCircle2 className="w-3 h-3" /> Staff
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
                       {pb.authStore.model?.id !== user.id && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
+                            <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 shrink-0 h-8 w-8 rounded-full">
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                          <AlertDialogContent className="w-[95vw] max-w-lg rounded-3xl border border-border bg-card">
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Revoke Access</AlertDialogTitle>
-                              <AlertDialogDescription>
+                              <AlertDialogTitle className="text-foreground">Revoke Access</AlertDialogTitle>
+                              <AlertDialogDescription className="text-muted-foreground">
                                 Are you sure you want to delete the account for <strong>{user.email}</strong>? This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                              <AlertDialogCancel className="rounded-xl border-border w-full sm:w-auto">Cancel</AlertDialogCancel>
                               <AlertDialogAction 
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl w-full sm:w-auto"
                                 onClick={() => handleDelete(user.id)}
                               >
                                 Delete Account
@@ -317,11 +378,18 @@ const StaffAccounts = () => {
                           </AlertDialogContent>
                         </AlertDialog>
                       )}
-                    </TableCell>
-                  </TableRow>
+                    </div>
+
+                    <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground font-mono">
+                      <span className="text-[10px] uppercase font-sans font-bold text-muted-foreground/70">Account Created</span>
+                      <span className="font-semibold text-foreground text-[11px]">
+                        {user.created && !isNaN(new Date(user.created).getTime()) ? new Date(user.created).toLocaleDateString() : 'Active'}
+                      </span>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
