@@ -21,6 +21,7 @@ export default function WhatsAppSettings() {
   const [qrCode, setQrCode] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [disconnecting, setDisconnecting] = useState<boolean>(false);
+  const [showQr, setShowQr] = useState<boolean>(false);
   
   // Test Message Form State
   const [testPhone, setTestPhone] = useState<string>('');
@@ -45,7 +46,7 @@ export default function WhatsAppSettings() {
         if (isManual) {
           toast({
             title: "Status Refreshed 🔄",
-            description: data.connected ? `Connected to ${data.phone || 'WhatsApp'}` : "WhatsApp is currently disconnected.",
+            description: data.connected ? `Connected to ${data.phone || 'WhatsApp'}` : "WhatsApp connection checked.",
           });
         }
       }
@@ -76,6 +77,7 @@ export default function WhatsAppSettings() {
           title: "WhatsApp Disconnected",
           description: "Lounge WhatsApp session logged out successfully.",
         });
+        setShowQr(false);
         fetchStatus(false);
       } else {
         toast({
@@ -207,6 +209,28 @@ export default function WhatsAppSettings() {
                     </Button>
                   </div>
                 </div>
+              ) : !showQr ? (
+                <div className="flex flex-col items-center justify-center py-8 px-4 border border-dashed border-border/80 rounded-xl bg-background/50 text-center space-y-4">
+                  <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20 shadow-sm">
+                    <QrCode className="h-7 w-7" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-foreground text-base">Pair Lounge WhatsApp Account</h3>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+                      Click the button below to generate a fresh QR code and link your lounge's official WhatsApp Business device.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setShowQr(true);
+                      fetchStatus(true);
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-6 py-2.5 rounded-xl shadow-md gap-2"
+                  >
+                    <QrCode className="h-4 w-4" />
+                    Generate Pairing QR Code
+                  </Button>
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center p-6 border border-dashed border-border/80 rounded-xl bg-background/50 space-y-4">
                   {qrCode ? (
@@ -214,13 +238,21 @@ export default function WhatsAppSettings() {
                       <div className="p-3 bg-white rounded-xl shadow-lg border border-gray-200">
                         <img src={qrCode} alt="WhatsApp Pairing QR Code" className="w-56 h-56 object-contain" />
                       </div>
-                      <div className="text-center space-y-1">
+                      <div className="text-center space-y-2">
                         <p className="text-sm font-semibold flex items-center justify-center gap-1 text-primary">
                           <QrCode className="h-4 w-4" /> Scan with WhatsApp Linked Devices
                         </p>
                         <p className="text-xs text-muted-foreground max-w-xs">
                           Open WhatsApp → Menu/Settings → Linked Devices → Link a Device
                         </p>
+                        <div className="pt-1 flex items-center justify-center gap-2">
+                          <Button variant="outline" size="sm" onClick={() => fetchStatus(true)} className="text-xs">
+                            <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh QR Code
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setShowQr(false)} className="text-xs text-muted-foreground">
+                            Hide QR Code
+                          </Button>
+                        </div>
                       </div>
                     </>
                   ) : (
