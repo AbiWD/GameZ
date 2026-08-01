@@ -27,6 +27,8 @@ import { Station, Booking } from '../types';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { usePricing } from '../hooks/useStations';
 import { useBookings, useCreateBooking } from '../hooks/useBookings';
+import pb from '../lib/pocketbase';
+import { parseTimeToDecimal } from '../lib/utils';
 import { stationsApi } from '../api/stations';
 import { bookingsApi } from '../api/bookings';
 import { AuthModal } from '../components/AuthModal';
@@ -117,6 +119,80 @@ export default function Book({ setRoute }: BookProps) {
     '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM',
     '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM', '09:00 PM', '10:00 PM'
   ];
+
+  // Blackout periods state & helpers
+  const [blackoutPeriods, setBlackoutPeriods] = useState<any[]>([]);
+
+  useEffect(() => {
+    pb.collection('blackout_periods').getFullList()
+      .then(setBlackoutPeriods)
+      .catch(() => setBlackoutPeriods([]));
+  }, []);
+
+  const getSlotBlackoutInfo = (slot: string) => {
+    if (!bookingDate || !blackoutPeriods.length) return { isBlackedOut: false };
+
+    const startHour = parseTimeToDecimal(slot);
+    const reqStart = new Date(bookingDate);
+    reqStart.setHours(Math.floor(startHour), (startHour % 1) * 60, 0, 0);
+    const reqEnd = new Date(reqStart.getTime() + durationHours * 3600000);
+
+    for (const b of blackoutPeriods) {
+      const bStart = new Date(b.start_time);
+      const bEnd = new Date(b.end_time);
+      if (reqStart < bEnd && bStart < reqEnd) {
+        return { isBlackedOut: true, reason: b.reason || 'Store Closure / Blackout' };
+      }
+    }
+    return { isBlackedOut: false };
+  };
+
+  const getDayBlackoutInfo = (dateStr: string) => {
+    if (!dateStr || !blackoutPeriods.length) return { isFullyBlackedOut: false };
+
+    for (const b of blackoutPeriods) {
+      const bStart = new Date(b.start_time);
+      const bEnd = new Date(b.end_time);
+
+      const opStart = new Date(dateStr);
+      opStart.setHours(11, 0, 0, 0);
+      const opEnd = new Date(dateStr);
+      opEnd.setHours(23, 0, 0, 0);
+
+      if (bStart <= opStart && bEnd >= opEnd) {
+        return { isFullyBlackedOut: true, reason: b.reason || 'Store Closure' };
+      }
+    }
+
+    const allSlotsBlackedOut = timeSlots.every(slot => {
+      const startHour = parseTimeToDecimal(slot);
+      const reqStart = new Date(dateStr);
+      reqStart.setHours(Math.floor(startHour), (startHour % 1) * 60, 0, 0);
+      const reqEnd = new Date(reqStart.getTime() + 1 * 3600000);
+      return blackoutPeriods.some(b => {
+        const bStart = new Date(b.start_time);
+        const bEnd = new Date(b.end_time);
+        return reqStart < bEnd && bStart < reqEnd;
+      });
+    });
+
+    if (allSlotsBlackedOut) {
+      const reason = blackoutPeriods[0]?.reason || 'Store Closure';
+      return { isFullyBlackedOut: true, reason };
+    }
+
+    return { isFullyBlackedOut: false };
+  };
+
+  // Automatically clear startTime if selected slot becomes blacked out
+  useEffect(() => {
+    if (startTime) {
+      const info = getSlotBlackoutInfo(startTime);
+      if (info.isBlackedOut) {
+        setStartTime('');
+      }
+    }
+  }, [bookingDate, durationHours, blackoutPeriods]);
 
   // Initialize form defaults on load
   useEffect(() => {
@@ -448,7 +524,13 @@ export default function Book({ setRoute }: BookProps) {
                                   today.setHours(0, 0, 0, 0);
                                   const max = new Date(today);
                                   max.setDate(max.getDate() + 30);
-                                  return date < today || date > max;
+                                  if (date < today || date > max) return true;
+
+                                  const year = date.getFullYear();
+                                  const month = String(date.getMonth() + 1).padStart(2, '0');
+                                  const day = String(date.getDate()).padStart(2, '0');
+                                  const dStr = `${year}-${month}-${day}`;
+                                  return getDayBlackoutInfo(dStr).isFullyBlackedOut;
                                 }}
                                 className="border-cyber-purple/30"
                               />
@@ -505,31 +587,62 @@ export default function Book({ setRoute }: BookProps) {
                       <label className="block text-xs font-mono uppercase text-gray-400 font-semibold">
                         Select Available Start Time Slot
                       </label>
+
+                      {/* Full Store Closure Alert Banner */}
+                      {getDayBlackoutInfo(bookingDate).isFullyBlackedOut && (
+                        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 space-y-1 my-2">
+                          <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-red-400">
+                            <ShieldAlert className="w-4 h-4 text-red-500 animate-pulse shrink-0" />
+                            Store Closed on Selected Date
+                          </div>
+                          <p className="text-xs text-gray-300">
+                            The lounge is closed on <span className="font-mono text-white font-semibold">{bookingDate}</span> due to: <strong className="text-red-400 font-semibold">{getDayBlackoutInfo(bookingDate).reason}</strong>. Please select another date.
+                          </p>
+                        </div>
+                      )}
                       
                       <div className="grid grid-cols-3 gap-2 max-h-[290px] overflow-y-auto pr-1">
                         {timeSlots.map((slot) => {
                           const isSelected = startTime === slot;
+                          const blackoutInfo = getSlotBlackoutInfo(slot);
+                          const isBlackedOut = blackoutInfo.isBlackedOut;
+
                           return (
                             <button
                               key={slot}
                               id={`time-slot-${slot.replace(/[\s:]/g, '-')}`}
                               type="button"
-                              onClick={() => setStartTime(slot)}
-                              className={`py-3 px-2 rounded-xl text-xs font-mono text-center border transition-all cursor-pointer ${
-                                isSelected
-                                  ? 'bg-cyber-purple border-cyber-purple text-white font-bold shadow-md shadow-cyber-purple/10'
-                                  : 'bg-cyber-lightgray border-white/5 text-gray-300 hover:border-cyber-purple/40 hover:text-white'
+                              disabled={isBlackedOut}
+                              onClick={() => !isBlackedOut && setStartTime(slot)}
+                              className={`py-2.5 px-2 rounded-xl text-xs font-mono text-center border transition-all ${
+                                isBlackedOut
+                                  ? 'bg-red-950/20 border-red-500/30 text-red-400/60 cursor-not-allowed opacity-50'
+                                  : isSelected
+                                  ? 'bg-cyber-purple border-cyber-purple text-white font-bold shadow-md shadow-cyber-purple/10 cursor-pointer'
+                                  : 'bg-cyber-lightgray border-white/5 text-gray-300 hover:border-cyber-purple/40 hover:text-white cursor-pointer'
                               }`}
+                              title={isBlackedOut ? `Closed: ${blackoutInfo.reason}` : undefined}
                             >
-                              <Clock className="inline-block h-3.5 w-3.5 mr-1 -mt-0.5" />
-                              {slot}
+                              <div className="flex items-center justify-center gap-1">
+                                {isBlackedOut ? (
+                                  <Lock className="h-3 w-3 text-red-400 shrink-0" />
+                                ) : (
+                                  <Clock className="h-3.5 w-3.5 shrink-0" />
+                                )}
+                                <span className={isBlackedOut ? 'line-through' : ''}>{slot}</span>
+                              </div>
+                              {isBlackedOut && (
+                                <span className="block text-[9px] text-red-400 font-semibold no-underline mt-0.5 uppercase tracking-wide">
+                                  Closed
+                                </span>
+                              )}
                             </button>
                           );
                         })}
                       </div>
 
                       {/* Live Collision Conflict Alert block */}
-                      {slotConflict.conflict && (
+                      {slotConflict.conflict && !getDayBlackoutInfo(bookingDate).isFullyBlackedOut && (
                         <motion.div
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
