@@ -149,7 +149,7 @@ func (s *WhatsAppService) eventHandler(evt interface{}) {
 		s.currentQR = ""
 		s.alertSent = false
 		s.mu.Unlock()
-		s.app.Logger().Info("WHATSAPP", "WhatsApp Web client connected successfully")
+		s.app.Logger().Info("WhatsApp Web client connected successfully", "module", "WHATSAPP")
 	case *waEvents.LoggedOut:
 		s.mu.Lock()
 		s.currentQR = ""
@@ -157,12 +157,12 @@ func (s *WhatsAppService) eventHandler(evt interface{}) {
 		s.alertSent = true
 		s.mu.Unlock()
 
-		s.app.Logger().Warn("WHATSAPP", "WhatsApp client logged out remotely!")
+		s.app.Logger().Warn("WhatsApp client logged out remotely!", "module", "WHATSAPP")
 		if shouldAlert {
 			s.sendAdminDisconnectAlert()
 		}
 	case *waEvents.PairSuccess:
-		s.app.Logger().Info("WHATSAPP", fmt.Sprintf("WhatsApp pairing successful with JID: %s", v.ID.String()))
+		s.app.Logger().Info(fmt.Sprintf("WhatsApp pairing successful with JID: %s", v.ID.String()), "module", "WHATSAPP")
 	}
 }
 
@@ -290,8 +290,8 @@ func (s *WhatsAppService) sendAdminDisconnectAlert() {
 	}
 
 	if err := s.app.NewMailClient().Send(msg); err != nil {
-		s.app.Logger().Error("WHATSAPP", fmt.Sprintf("Failed to send disconnect alert email to %s: %v", adminEmail, err))
+		s.app.Logger().Error("Failed to send disconnect alert email to admin", "admin_email", adminEmail, "error", err)
 	} else {
-		s.app.Logger().Info("WHATSAPP", fmt.Sprintf("Disconnect alert email sent to admin %s successfully", adminEmail))
+		s.app.Logger().Info("Disconnect alert email sent to admin successfully", "admin_email", adminEmail)
 	}
 }

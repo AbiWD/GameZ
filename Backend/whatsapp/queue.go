@@ -200,10 +200,10 @@ func (q *NotificationQueue) processJob(job NotificationJob) {
 			_, _ = tx.Exec("UPDATE notification_queue SET status = 'sent', updated_at = CURRENT_TIMESTAMP WHERE id = ?", job.ID)
 			_ = tx.Commit()
 		}
-		q.app.Logger().Info("WHATSAPP", fmt.Sprintf("WhatsApp ticket sent to %s for booking %s", job.RecipientPhone, job.BookingID))
+		q.app.Logger().Info("WhatsApp ticket sent successfully", "phone", job.RecipientPhone, "booking_id", job.BookingID)
 	} else {
 		// WhatsApp send FAILED! Trigger per-send Cyber Email fallback
-		q.app.Logger().Warn("WHATSAPP", fmt.Sprintf("WhatsApp send failed for %s (%v). Triggering Email fallback...", job.RecipientPhone, waErr))
+		q.app.Logger().Warn("WhatsApp send failed. Triggering Email fallback...", "phone", job.RecipientPhone, "error", waErr)
 
 		emailErr := q.sendEmailFallback(job)
 		if emailErr == nil {
@@ -218,11 +218,11 @@ func (q *NotificationQueue) processJob(job NotificationJob) {
 			newAttempts := job.Attempts + 1
 			if newAttempts >= 3 {
 				_, _ = q.db.Exec("UPDATE notification_queue SET status = 'failed', attempts = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", newAttempts, job.ID)
-				q.app.Logger().Error("NOTIFICATION", fmt.Sprintf("🚨 CRITICAL: Both WhatsApp and Email failed for booking %s after %d attempts. Email err: %v", job.BookingID, newAttempts, emailErr))
+				q.app.Logger().Error("Both WhatsApp and Email failed for booking", "booking_id", job.BookingID, "attempts", newAttempts, "error", emailErr)
 			} else {
 				// Re-mark pending for backoff retry
 				_, _ = q.db.Exec("UPDATE notification_queue SET status = 'pending', attempts = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", newAttempts, job.ID)
-				q.app.Logger().Warn("NOTIFICATION", fmt.Sprintf("Both WhatsApp and Email failed for booking %s (attempt %d/3). Will retry in 5 mins.", job.BookingID, newAttempts))
+				q.app.Logger().Warn("Both WhatsApp and Email failed for booking. Will retry in 5 mins.", "booking_id", job.BookingID, "attempt", newAttempts)
 			}
 		}
 	}
@@ -294,6 +294,9 @@ func (q *NotificationQueue) sweepStuckProcessingJobs() {
 			_, _ = q.db.Exec("UPDATE notification_queue SET status = 'pending', updated_at = CURRENT_TIMESTAMP WHERE id = ?", id)
 		}
 	}
+	if err := rows.Err(); err != nil {
+		q.app.Logger().Error("Error scanning stuck processing jobs", "error", err)
+	}
 }
 
 func (q *NotificationQueue) purgeOldSentJobs() {
@@ -322,13 +325,13 @@ func (q *NotificationQueue) DispatchParallelBlackoutEmails(jobs []NotificationJo
 				successCount++
 			} else {
 				failCount++
-				q.app.Logger().Error("BLACKOUT", fmt.Sprintf("Failed to send blackout emergency email to %s for booking %s: %v", job.RecipientEmail, job.BookingID, err))
+				q.app.Logger().Error("Failed to send blackout emergency email", "email", job.RecipientEmail, "booking_id", job.BookingID, "error", err)
 			}
 			countMu.Unlock()
 		}()
 	}
 
 	wg.Wait()
-	q.app.Logger().Info("BLACKOUT", fmt.Sprintf("Blackout emergency email dispatch finished: %d succeeded, %d failed.", successCount, failCount))
+	q.app.Logger().Info("Blackout emergency email dispatch complete", "success", successCount, "failed", failCount)
 }
 
