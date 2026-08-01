@@ -50,7 +50,7 @@ func InitNotificationQueue(app core.App, svc *WhatsAppService) (*NotificationQue
 	dbPath := filepath.Join(dataDir, "notification_queue.db")
 	_ = os.MkdirAll(filepath.Dir(dbPath), 0755)
 
-	dbURI := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", dbPath)
+	dbURI := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", dbPath)
 	db, err := sql.Open("sqlite", dbURI)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open notification queue DB: %w", err)

@@ -54,7 +54,7 @@ func InitWhatsAppService(app core.App) (*WhatsAppService, error) {
 		dbPath := filepath.Join(dataDir, "whatsapp_session.db")
 		_ = os.MkdirAll(filepath.Dir(dbPath), 0755)
 
-		dbURI := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", dbPath)
+		dbURI := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", dbPath)
 
 		logger := waLog.Stdout("WA", "WARN", true)
 
