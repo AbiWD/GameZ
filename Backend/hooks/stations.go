@@ -16,7 +16,7 @@ func RegisterStationHooks(app *pocketbase.PocketBase) {
 
 	// Ensure API access rules for admin collections
 	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
-		cols := []string{"blackout_periods", "stations", "station_types", "tier_prices"}
+		cols := []string{"blackout_periods", "stations", "station_types", "tier_prices", "staff_accounts"}
 		for _, name := range cols {
 			col, err := app.FindCollectionByNameOrId(name)
 			if err == nil && col != nil {

@@ -41,13 +41,14 @@ const StaffAccounts = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const roleFilter = userRole === 'admin' ? '' : 'role = "staff"';
+      const roleFilter = (userRole === 'admin' || !userRole) ? '' : 'role = "staff"';
       const records = await pb.collection('staff_accounts').getFullList({
-        filter: roleFilter || undefined,
-        sort: '-created'
+        filter: roleFilter ? roleFilter : undefined,
+        requestKey: null
       });
       setUsers(records as unknown as StaffUser[]);
     } catch (error: any) {
+      console.error('Error fetching staff accounts:', error);
       toast({
         title: 'Error fetching staff accounts',
         description: error.message || 'Something went wrong while processing your request.',
