@@ -58,6 +58,8 @@ func InitWhatsAppService(app core.App) (*WhatsAppService, error) {
 
 		logger := waLog.Stdout("WA", "WARN", true)
 
+		waStore.DeviceProps.Os = proto.String("macOS")
+		waStore.DeviceProps.PlatformType = waProto.DeviceProps_CHROME.Enum()
 		b := false
 		waStore.DeviceProps.RequireFullSync = &b
 
@@ -228,6 +230,9 @@ func (s *WhatsAppService) Disconnect() error {
 		ctx := context.Background()
 		_ = s.client.Logout(ctx)
 		s.client.Disconnect()
+		if s.client.Store != nil {
+			_ = s.client.Store.Delete(ctx)
+		}
 	}
 	s.currentQR = ""
 	return nil
