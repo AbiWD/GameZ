@@ -132,16 +132,23 @@ export default function Book({ setRoute }: BookProps) {
   const getSlotBlackoutInfo = (slot: string) => {
     if (!bookingDate || !blackoutPeriods.length) return { isBlackedOut: false };
 
+    const [yr, mo, dy] = bookingDate.split('-').map(Number);
     const startHour = parseTimeToDecimal(slot);
-    const reqStart = new Date(bookingDate);
-    reqStart.setHours(Math.floor(startHour), (startHour % 1) * 60, 0, 0);
+    const reqStart = new Date(yr, mo - 1, dy, Math.floor(startHour), (startHour % 1) * 60, 0, 0);
     const reqEnd = new Date(reqStart.getTime() + durationHours * 3600000);
 
     for (const b of blackoutPeriods) {
       const bStart = new Date(b.start_time);
       const bEnd = new Date(b.end_time);
       if (reqStart < bEnd && bStart < reqEnd) {
-        return { isBlackedOut: true, reason: b.reason || 'Store Closure / Blackout' };
+        const bStartStr = bStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const bEndStr = bEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return { 
+          isBlackedOut: true, 
+          reason: b.reason || 'Store Closure / Blackout',
+          bStartStr,
+          bEndStr
+        };
       }
     }
     return { isBlackedOut: false };
@@ -150,14 +157,13 @@ export default function Book({ setRoute }: BookProps) {
   const getDayBlackoutInfo = (dateStr: string) => {
     if (!dateStr || !blackoutPeriods.length) return { isFullyBlackedOut: false };
 
+    const [yr, mo, dy] = dateStr.split('-').map(Number);
     for (const b of blackoutPeriods) {
       const bStart = new Date(b.start_time);
       const bEnd = new Date(b.end_time);
 
-      const opStart = new Date(dateStr);
-      opStart.setHours(11, 0, 0, 0);
-      const opEnd = new Date(dateStr);
-      opEnd.setHours(23, 0, 0, 0);
+      const opStart = new Date(yr, mo - 1, dy, 11, 0, 0, 0);
+      const opEnd = new Date(yr, mo - 1, dy, 23, 0, 0, 0);
 
       if (bStart <= opStart && bEnd >= opEnd) {
         return { isFullyBlackedOut: true, reason: b.reason || 'Store Closure' };
@@ -166,8 +172,7 @@ export default function Book({ setRoute }: BookProps) {
 
     const allSlotsBlackedOut = timeSlots.every(slot => {
       const startHour = parseTimeToDecimal(slot);
-      const reqStart = new Date(dateStr);
-      reqStart.setHours(Math.floor(startHour), (startHour % 1) * 60, 0, 0);
+      const reqStart = new Date(yr, mo - 1, dy, Math.floor(startHour), (startHour % 1) * 60, 0, 0);
       const reqEnd = new Date(reqStart.getTime() + 1 * 3600000);
       return blackoutPeriods.some(b => {
         const bStart = new Date(b.start_time);
@@ -621,7 +626,7 @@ export default function Book({ setRoute }: BookProps) {
                                   ? 'bg-cyber-purple border-cyber-purple text-white font-bold shadow-md shadow-cyber-purple/10 cursor-pointer'
                                   : 'bg-cyber-lightgray border-white/5 text-gray-300 hover:border-cyber-purple/40 hover:text-white cursor-pointer'
                               }`}
-                              title={isBlackedOut ? `Closed: ${blackoutInfo.reason}` : undefined}
+                              title={isBlackedOut ? `Closed: ${durationHours}h play duration overlaps blackout starting at ${blackoutInfo.bStartStr} (${blackoutInfo.reason})` : undefined}
                             >
                               <div className="flex items-center justify-center gap-1">
                                 {isBlackedOut ? (
