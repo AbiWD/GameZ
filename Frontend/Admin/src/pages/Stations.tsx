@@ -1241,14 +1241,12 @@ interface ConflictingBooking {
                               </TableHead>
                               <TableHead>Customer</TableHead>
                               <TableHead>Station & Time</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead className="text-right">Reach Out</TableHead>
+                              <TableHead className="text-right">Amount</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {conflictingBookings.map((b) => {
                               const isChecked = selectedBookingIds.includes(b.id);
-                              const cleanPhone = b.phone.replace(/[^0-9]/g, '');
                               return (
                                 <TableRow key={b.id} className={isChecked ? 'bg-destructive/5' : ''}>
                                   <TableCell>
@@ -1275,40 +1273,8 @@ interface ConflictingBooking {
                                       {new Date(b.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(b.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </div>
                                   </TableCell>
-                                  <TableCell className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                                  <TableCell className="font-mono text-emerald-600 dark:text-emerald-400 font-bold text-right">
                                     ₹{b.total_price}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    <div className="flex items-center justify-end gap-1.5">
-                                      {b.phone ? (
-                                        <>
-                                          <a
-                                            href={`tel:${b.phone}`}
-                                            className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-semibold transition-colors"
-                                            title="Call Customer"
-                                          >
-                                            <Phone className="w-3 h-3" /> Call
-                                          </a>
-                                          <a
-                                            href={`https://wa.me/${cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone}?text=${encodeURIComponent(`Hi ${b.name}, this is GameZ Gaming Lounge regarding your ${b.station_name} booking. We have an urgent update regarding your reservation.`)}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 font-semibold transition-colors"
-                                            title="WhatsApp Message"
-                                          >
-                                            <WhatsAppIcon className="w-3 h-3" /> WA
-                                          </a>
-                                        </>
-                                      ) : b.email ? (
-                                        <a
-                                          href={`mailto:${b.email}?subject=${encodeURIComponent(`Urgent: GameZ Lounge Booking Update (${b.station_name})`)}&body=${encodeURIComponent(`Hi ${b.name},\n\nThis is GameZ Gaming Lounge regarding your ${b.station_name} booking. We have an urgent update regarding your reservation.`)}`}
-                                          className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg bg-sky-500/10 text-sky-600 hover:bg-sky-500/20 font-semibold transition-colors"
-                                          title="Send Email"
-                                        >
-                                          <Mail className="w-3 h-3" /> Email
-                                        </a>
-                                      ) : null}
-                                    </div>
                                   </TableCell>
                                 </TableRow>
                               );

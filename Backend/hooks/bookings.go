@@ -199,21 +199,32 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 
 	// Helper to generate unified PocketBase-styled Cyber HTML Email
 	buildCyberEmailHTML := func(title, subtitle, badgeText, badgeColor, ref, stationName, startTime string, price float64) string {
+		siteURL := app.Settings().Meta.AppURL
+		if siteURL == "" {
+			siteURL = "http://localhost:4173"
+		}
+
 		priceStr := ""
 		if price > 0 {
-			priceStr = fmt.Sprintf(`<div style="display: flex; justify-content: space-between; padding: 8px 0;">
-					<span style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase;">AMOUNT PAID</span>
-					<span style="color: #4ade80; font-family: monospace; font-weight: 700; font-size: 14px;">₹%.2f</span>
-				</div>`, price)
+			priceStr = fmt.Sprintf(`<tr>
+										<td style="color: #94a3b8; font-size: 12px; font-weight: 600; text-transform: uppercase; padding: 6px 0; border-top: 1px solid rgba(255,255,255,0.05);">AMOUNT PAID</td>
+										<td align="right" style="color: #4ade80; font-family: monospace; font-weight: 700; font-size: 14px; padding: 6px 0; border-top: 1px solid rgba(255,255,255,0.05);">₹%.2f</td>
+									</tr>`, price)
 		}
 
 		ctaButton := ""
 		if badgeText == "CANCELLED" {
-			ctaButton = `<div style="text-align: center; margin-top: 24px;">
-				<a href="http://localhost:4173/" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #a855f7 0%, #06b6d4 100%); color: #ffffff; padding: 12px 28px; border-radius: 10px; font-weight: 700; font-size: 13px; text-decoration: none; box-shadow: 0 4px 14px rgba(168,85,247,0.4);">
-					🎮 Book Next Session / Reschedule Online
+			ctaButton = fmt.Sprintf(`<div style="text-align: center; margin-top: 24px;">
+				<a href="%s" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #a855f7 0%%, #06b6d4 100%%); color: #ffffff; padding: 12px 28px; border-radius: 10px; font-weight: 700; font-size: 13px; text-decoration: none; box-shadow: 0 4px 14px rgba(168,85,247,0.4);">
+					🎮 Visit GameZ Website
 				</a>
-			</div>`
+			</div>`, siteURL)
+		} else {
+			ctaButton = fmt.Sprintf(`<div style="text-align: center; margin-top: 24px;">
+				<a href="%s" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%%, #06b6d4 100%%); color: #ffffff; padding: 12px 28px; border-radius: 10px; font-weight: 700; font-size: 13px; text-decoration: none; box-shadow: 0 4px 14px rgba(34,197,94,0.4);">
+					🎮 Visit GameZ Website
+				</a>
+			</div>`, siteURL)
 		}
 
 		return fmt.Sprintf(`<!DOCTYPE html>
@@ -274,7 +285,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 					<!-- Footer -->
 					<tr>
 						<td align="center" style="background-color: #0f0d17; padding: 20px; color: #64748b; font-size: 11px; border-top: 1px solid rgba(255,255,255,0.05);">
-							&copy; 2026 GameZ Mangaluru. All rights reserved. | <a href="http://localhost:4173" style="color: #06b6d4; text-decoration: none;">gamez.in</a>
+							&copy; 2026 GameZ Mangaluru. All rights reserved. | <a href="%s" style="color: #06b6d4; text-decoration: none;">gamez.in</a>
 						</td>
 					</tr>
 				</table>
@@ -282,7 +293,20 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 		</tr>
 	</table>
 </body>
-</html>`, badgeColor, badgeColor, badgeColor, badgeText, title, subtitle, ref, stationName, startTime, priceStr, ctaButton)
+</html>`, badgeColor, badgeColor, badgeColor, badgeText, title, subtitle, ref, stationName, startTime, priceStr, ctaButton, siteURL)
+	}
+
+	istLoc, err := time.LoadLocation("Asia/Kolkata")
+	if err != nil {
+		istLoc = time.FixedZone("IST", 5*3600+30*60)
+	}
+
+	formatBookingTime := func(rec *core.Record) string {
+		dt := rec.GetDateTime("start_time")
+		if dt.IsZero() {
+			return ""
+		}
+		return dt.Time().In(istLoc).Format("02 Jan 2006, 03:04 PM IST")
 	}
 
 	// Helper to extract clean Booking Reference (#OT-8412) and Station Name
@@ -311,7 +335,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 		return ref, stationName
 	}
 
-	// 3. AFTER CREATE: Send Confirmation Email
+	// 3. AFTER CREATE: Send Confirmation Email & Enqueue WhatsApp Message
 	app.OnRecordAfterCreateSuccess("bookings").BindFunc(func(e *core.RecordEvent) error {
 		email := e.Record.GetString("email")
 		status := e.Record.GetString("status")
@@ -322,7 +346,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 		}
 
 		ref, stationName := getRefAndStationName(e.Record)
-		startTime := e.Record.GetDateTime("start_time").Time().Format("2006-01-02 15:04")
+		startTime := formatBookingTime(e.Record)
 		price := e.Record.GetFloat("total_price")
 
 		title := "Booking Confirmed!"
@@ -333,6 +357,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 
 		htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationName, startTime, price)
 
+		// 1. Send Email Notification
 		message := &mailer.Message{
 			From: mail.Address{
 				Address: app.Settings().Meta.SenderAddress,
@@ -360,6 +385,15 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 			}
 		}()
 
+		// 2. Dispatch WhatsApp Ticket via Outbox Queue
+		if (status == "confirmed" || status == "pending") && whatsapp.GlobalQueue != nil {
+			phone := e.Record.GetString("phone")
+			if phone != "" {
+				waText := fmt.Sprintf("🎮 *GameZ Booking Confirmed!*\n\nRef: *#%s*\nStation: %s\nTime: %s\nTotal: ₹%.0f\n\nShow this ticket at front desk for instant check-in!", ref, stationName, startTime, price)
+				_ = whatsapp.GlobalQueue.Enqueue(e.Record.Id, "booking_confirmation", phone, email, waText, htmlBody, subject)
+			}
+		}
+
 		return e.Next()
 	})
 
@@ -373,7 +407,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 		}
 
 		ref, stationName := getRefAndStationName(e.Record)
-		startTime := e.Record.GetDateTime("start_time").Time().Format("2006-01-02 15:04")
+		startTime := formatBookingTime(e.Record)
 		price := e.Record.GetFloat("total_price")
 
 		if status == "confirmed" {

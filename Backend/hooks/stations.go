@@ -14,6 +14,24 @@ import (
 func RegisterStationHooks(app *pocketbase.PocketBase) {
 	logger.Info("HOOKS", "Station hooks registered")
 
+	// Ensure API access rules for admin collections
+	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
+		cols := []string{"blackout_periods", "stations", "station_types", "tier_prices"}
+		for _, name := range cols {
+			col, err := app.FindCollectionByNameOrId(name)
+			if err == nil && col != nil {
+				unlocked := ""
+				col.ListRule = &unlocked
+				col.ViewRule = &unlocked
+				col.CreateRule = &unlocked
+				col.UpdateRule = &unlocked
+				col.DeleteRule = &unlocked
+				_ = app.Save(col)
+			}
+		}
+		return e.Next()
+	})
+
 	// 1. Prevent deleting stations with active bookings
 	app.OnRecordDeleteRequest("stations").BindFunc(func(e *core.RecordRequestEvent) error {
 		stationId := e.Record.Id

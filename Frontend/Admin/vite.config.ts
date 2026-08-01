@@ -17,7 +17,24 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [
+    react(), 
+    mode === "development" && componentTagger(),
+    {
+      name: 'redirect-admin-no-slash',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url === '/admin') {
+            res.statusCode = 301;
+            res.setHeader('Location', '/admin/');
+            res.end();
+            return;
+          }
+          next();
+        });
+      }
+    }
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

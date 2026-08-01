@@ -54,14 +54,12 @@ func InitWhatsAppService(app core.App) (*WhatsAppService, error) {
 		dbPath := filepath.Join(dataDir, "whatsapp_session.db")
 		_ = os.MkdirAll(filepath.Dir(dbPath), 0755)
 
-		dbURI := fmt.Sprintf("file:%s?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)", dbPath)
+		dbURI := fmt.Sprintf("file:%s?_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)&_pragma=busy_timeout(10000)", dbPath)
 
-		logger := waLog.Stdout("WA", "WARN", true)
+		logger := waLog.Stdout("WA", "DEBUG", true)
 
 		waStore.DeviceProps.Os = proto.String("macOS")
 		waStore.DeviceProps.PlatformType = waProto.DeviceProps_CHROME.Enum()
-		b := false
-		waStore.DeviceProps.RequireFullSync = &b
 
 		ctx := context.Background()
 		container, connErr := sqlstore.New(ctx, "sqlite", dbURI, logger)
@@ -102,7 +100,7 @@ func (s *WhatsAppService) Start(ctx context.Context) error {
 	defer s.mu.Unlock()
 
 	if s.client.Store.ID == nil {
-		qrChan, err := s.client.GetQRChannel(ctx)
+		qrChan, err := s.client.GetQRChannel(context.Background())
 		if err != nil {
 			return fmt.Errorf("failed to get QR channel: %w", err)
 		}
@@ -113,7 +111,7 @@ func (s *WhatsAppService) Start(ctx context.Context) error {
 			return fmt.Errorf("failed to connect whatsapp client: %w", err)
 		}
 
-		go s.handleQRChannel()
+		go s.handleQRChannel(qrChan)
 	} else {
 		err := s.client.Connect()
 		if err != nil {
@@ -126,8 +124,8 @@ func (s *WhatsAppService) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *WhatsAppService) handleQRChannel() {
-	for evt := range s.qrChan {
+func (s *WhatsAppService) handleQRChannel(ch <-chan whatsmeow.QRChannelItem) {
+	for evt := range ch {
 		if evt.Event == "code" {
 			png, err := qrcode.Encode(evt.Code, qrcode.Medium, 256)
 			if err == nil {
@@ -142,6 +140,12 @@ func (s *WhatsAppService) handleQRChannel() {
 			s.mu.Unlock()
 		}
 	}
+	s.mu.Lock()
+	if s.qrChan == ch {
+		s.qrChan = nil
+		s.currentQR = ""
+	}
+	s.mu.Unlock()
 }
 
 func (s *WhatsAppService) eventHandler(evt interface{}) {
@@ -149,12 +153,14 @@ func (s *WhatsAppService) eventHandler(evt interface{}) {
 	case *waEvents.Connected:
 		s.mu.Lock()
 		s.currentQR = ""
+		s.qrChan = nil
 		s.alertSent = false
 		s.mu.Unlock()
 		s.app.Logger().Info("WhatsApp Web client connected successfully", "module", "WHATSAPP")
 	case *waEvents.LoggedOut:
 		s.mu.Lock()
 		s.currentQR = ""
+		s.qrChan = nil
 		shouldAlert := !s.alertSent
 		s.alertSent = true
 		s.mu.Unlock()
@@ -164,6 +170,9 @@ func (s *WhatsAppService) eventHandler(evt interface{}) {
 			s.sendAdminDisconnectAlert()
 		}
 	case *waEvents.PairSuccess:
+		s.mu.Lock()
+		s.qrChan = nil
+		s.mu.Unlock()
 		s.app.Logger().Info(fmt.Sprintf("WhatsApp pairing successful with JID: %s", v.ID.String()), "module", "WHATSAPP")
 	}
 }
@@ -192,6 +201,8 @@ func (s *WhatsAppService) resetDeviceClientLocked(ctx context.Context) error {
 	newDevice := s.container.NewDevice()
 	s.client = whatsmeow.NewClient(newDevice, s.log)
 	s.client.AddEventHandler(s.eventHandler)
+	s.qrChan = nil // Invalidate stale channel reference so ReconnectQR doesn't wrongly "reuse" it
+	s.currentQR = ""
 	return nil
 }
 
@@ -207,11 +218,20 @@ func (s *WhatsAppService) ReconnectQR(ctx context.Context) error {
 		return nil
 	}
 
+	// Reuse active unpaired device session — whatsmeow QR channel auto-refreshes codes without changing keys
+	if s.client.Store != nil && s.client.Store.ID == nil && s.qrChan != nil {
+		if !s.client.IsConnected() {
+			s.log.Infof("Client disconnected during session reuse, reconnecting...")
+			_ = s.client.Connect()
+		}
+		return nil
+	}
+
 	if err := s.resetDeviceClientLocked(ctx); err != nil {
 		return fmt.Errorf("failed to reset device store: %w", err)
 	}
 
-	qrChan, err := s.client.GetQRChannel(ctx)
+	qrChan, err := s.client.GetQRChannel(context.Background())
 	if err != nil {
 		_ = s.client.Connect()
 		return fmt.Errorf("failed to get QR channel: %w", err)
@@ -225,7 +245,7 @@ func (s *WhatsAppService) ReconnectQR(ctx context.Context) error {
 		return fmt.Errorf("failed to connect for QR channel: %w", err)
 	}
 
-	go s.handleQRChannel()
+	go s.handleQRChannel(qrChan)
 	return nil
 }
 

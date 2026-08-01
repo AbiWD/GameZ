@@ -175,19 +175,19 @@ export default function WhatsAppSettings() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6 p-6">
+      <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <WhatsAppLogo className="h-7 w-7 text-emerald-500" />
-              WhatsApp Business Integration
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight flex items-center gap-2">
+              <WhatsAppLogo className="h-6 w-6 sm:h-7 sm:w-7 text-emerald-500 flex-shrink-0" />
+              <span>WhatsApp Business Integration</span>
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Pair your lounge's WhatsApp Business phone to dispatch instant tickets, blackout alerts, and session reminders
             </p>
           </div>
-          <Button variant="outline" onClick={() => fetchStatus(true)} disabled={loading} size="sm">
+          <Button variant="outline" onClick={() => fetchStatus(true)} disabled={loading} size="sm" className="w-full sm:w-auto self-start sm:self-auto">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh Status
           </Button>
@@ -196,7 +196,7 @@ export default function WhatsAppSettings() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Status & QR Scanner Card */}
           <Card className="border-border/50 bg-card/60 backdrop-blur-xl">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2">
               <div>
                 <CardTitle className="text-lg font-semibold flex items-center gap-2">
                   <Smartphone className="h-5 w-5 text-primary" />
@@ -221,32 +221,40 @@ export default function WhatsAppSettings() {
 
             <CardContent className="space-y-6 pt-4">
               {connected ? (
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center space-y-4">
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 sm:p-6 text-center space-y-4 max-w-full overflow-hidden">
                   <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400">
                     <CheckCircle2 className="h-7 w-7" />
                   </div>
-                  <div>
-                    <h3 className="font-bold text-emerald-400 text-lg">Lounge WhatsApp Active</h3>
-                    <p className="text-xs text-muted-foreground mt-1">Paired Phone: <span className="font-mono text-foreground font-semibold">{phone || 'Registered'}</span></p>
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-emerald-400 text-base sm:text-lg">Lounge WhatsApp Active</h3>
+                    <p className="text-xs text-muted-foreground break-all">
+                      Paired Phone: <span className="font-mono text-foreground font-semibold inline-block">{phone || 'Registered'}</span>
+                    </p>
                   </div>
-                  <div className="pt-2">
-                    <Button variant="destructive" size="sm" onClick={handleDisconnect} disabled={disconnecting}>
-                      <LogOut className="h-4 w-4 mr-2" />
-                      {disconnecting ? 'Disconnecting...' : 'Disconnect Lounge WhatsApp'}
+                  <div className="pt-2 flex justify-center">
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={handleDisconnect} 
+                      disabled={disconnecting}
+                      className="w-full sm:w-auto max-w-full text-xs sm:text-sm py-2 px-4 h-auto whitespace-normal"
+                    >
+                      <LogOut className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <span>{disconnecting ? 'Disconnecting...' : 'Disconnect Lounge WhatsApp'}</span>
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center p-6 border border-dashed border-border/80 rounded-xl bg-background/50 space-y-4">
+                <div className="flex flex-col items-center justify-center p-4 sm:p-6 border border-dashed border-border/80 rounded-xl bg-background/50 space-y-4 w-full">
                   {!showQr ? (
-                    <div className="w-56 h-56 rounded-xl bg-card border-2 border-dashed border-emerald-500/40 flex flex-col items-center justify-center p-4 text-center space-y-3 shadow-inner">
+                    <div className="w-full max-w-[224px] h-56 rounded-xl bg-card border-2 border-dashed border-emerald-500/40 flex flex-col items-center justify-center p-4 text-center space-y-3 shadow-inner">
                       <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-500">
                         <QrCode className="h-8 w-8" />
                       </div>
                       <p className="text-xs text-muted-foreground font-medium">WhatsApp Account Disconnected</p>
                       <Button
                         onClick={handleGenerateQr}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-lg shadow-md gap-1.5"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-lg shadow-md gap-1.5 w-full"
                       >
                         <QrCode className="h-4 w-4" />
                         Generate QR Code
@@ -254,17 +262,17 @@ export default function WhatsAppSettings() {
                     </div>
                   ) : qrCode ? (
                     <>
-                      <div className="p-3 bg-white rounded-xl shadow-lg border border-gray-200">
-                        <img src={qrCode} alt="WhatsApp Pairing QR Code" className="w-56 h-56 object-contain" />
+                      <div className="p-3 bg-white rounded-xl shadow-lg border border-gray-200 max-w-full">
+                        <img src={qrCode} alt="WhatsApp Pairing QR Code" className="w-48 h-48 sm:w-56 sm:h-56 object-contain" />
                       </div>
-                      <div className="text-center space-y-2">
+                      <div className="text-center space-y-2 w-full">
                         <p className="text-sm font-semibold flex items-center justify-center gap-1 text-primary">
                           <QrCode className="h-4 w-4" /> Scan with WhatsApp Linked Devices
                         </p>
-                        <p className="text-xs text-muted-foreground max-w-xs">
+                        <p className="text-xs text-muted-foreground max-w-xs mx-auto">
                           Open WhatsApp → Menu/Settings → Linked Devices → Link a Device
                         </p>
-                        <div className="pt-1 flex items-center justify-center gap-2">
+                        <div className="pt-1 flex flex-wrap items-center justify-center gap-2">
                           <Button variant="outline" size="sm" onClick={handleGenerateQr} className="text-xs">
                             <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh QR Code
                           </Button>
@@ -275,7 +283,7 @@ export default function WhatsAppSettings() {
                       </div>
                     </>
                   ) : (
-                    <div className="w-56 h-56 rounded-xl bg-card border border-border flex flex-col items-center justify-center p-4 text-center space-y-3">
+                    <div className="w-full max-w-[224px] h-56 rounded-xl bg-card border border-border flex flex-col items-center justify-center p-4 text-center space-y-3">
                       <RefreshCw className="h-7 w-7 animate-spin mx-auto text-emerald-500" />
                       <p className="text-xs text-muted-foreground font-medium">Generating WhatsApp QR code...</p>
                       <Button variant="outline" size="sm" onClick={handleGenerateQr} className="text-xs mt-1">

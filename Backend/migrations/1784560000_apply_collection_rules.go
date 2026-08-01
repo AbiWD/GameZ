@@ -8,60 +8,18 @@ import (
 
 func init() {
 	m.Register(func(app core.App) error {
-		// Update Stations Rules
-		stations, err := app.FindCollectionByNameOrId("stations")
-		if err != nil {
-			return err
-		}
-		stations.ListRule = types.Pointer("")
-		stations.ViewRule = types.Pointer("")
-		if err := app.Save(stations); err != nil {
-			return err
-		}
-
-		// Update Bookings Rules & Indexes
-		bookings, err := app.FindCollectionByNameOrId("bookings")
-		if err != nil {
-			return err
-		}
-		bookings.ListRule = types.Pointer("")
-		bookings.ViewRule = types.Pointer("")
-		bookings.CreateRule = types.Pointer("")
-		bookings.UpdateRule = types.Pointer("")
-		
-		bookings.Indexes = []string{}
-		
-
-		
-		if err := app.Save(bookings); err != nil {
-			return err
-		}
-
-		// Update portal_users Rules
-		portalUsers, err := app.FindCollectionByNameOrId("portal_users")
-		if err == nil && portalUsers != nil {
-			portalUsers.ListRule = types.Pointer("")
-			portalUsers.ViewRule = types.Pointer("")
-			portalUsers.CreateRule = types.Pointer("")
-			portalUsers.UpdateRule = types.Pointer("")
-			if err := app.Save(portalUsers); err != nil {
-				return err
+		collections := []string{"stations", "bookings", "portal_users", "staff_accounts", "blackout_periods", "station_types", "tier_prices"}
+		for _, name := range collections {
+			col, err := app.FindCollectionByNameOrId(name)
+			if err == nil && col != nil {
+				col.ListRule = types.Pointer("")
+				col.ViewRule = types.Pointer("")
+				col.CreateRule = types.Pointer("")
+				col.UpdateRule = types.Pointer("")
+				col.DeleteRule = types.Pointer("")
+				_ = app.Save(col)
 			}
 		}
-
-		// Update staff_accounts Rules
-		staffAccounts, err := app.FindCollectionByNameOrId("staff_accounts")
-		if err == nil && staffAccounts != nil {
-			staffAccounts.ListRule = types.Pointer("")
-			staffAccounts.ViewRule = types.Pointer("")
-			staffAccounts.CreateRule = types.Pointer("")
-			staffAccounts.UpdateRule = types.Pointer("")
-			staffAccounts.DeleteRule = types.Pointer("")
-			if err := app.Save(staffAccounts); err != nil {
-				return err
-			}
-		}
-
 		return nil
 	}, func(app core.App) error {
 		// Rollback Stations

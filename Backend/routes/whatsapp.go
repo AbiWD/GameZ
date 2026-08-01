@@ -90,6 +90,20 @@ func RegisterWhatsAppRoutes(se *core.ServeEvent, app core.App) {
 		if err := whatsapp.GlobalService.ReconnectQR(ctx); err != nil {
 			return e.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		}
+
+		// Wait up to 4s for whatsmeow WebSocket to receive & encode the first QR frame
+		for i := 0; i < 40; i++ {
+			c, p, qr := whatsapp.GlobalService.GetStatus()
+			if qr != "" || c {
+				return e.JSON(http.StatusOK, map[string]any{
+					"connected": c,
+					"phone":     p,
+					"qr":        qr,
+				})
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+
 		connected, phone, qr := whatsapp.GlobalService.GetStatus()
 		return e.JSON(http.StatusOK, map[string]any{
 			"connected": connected,

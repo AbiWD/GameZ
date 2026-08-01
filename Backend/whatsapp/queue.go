@@ -208,29 +208,15 @@ func (q *NotificationQueue) processJob(job NotificationJob) {
 		}
 		q.app.Logger().Info("WhatsApp ticket sent successfully", "phone", job.RecipientPhone, "booking_id", job.BookingID)
 	} else {
-		// WhatsApp send FAILED! Trigger per-send Cyber Email fallback
-		q.app.Logger().Warn("WhatsApp send failed. Triggering Email fallback...", "phone", job.RecipientPhone, "error", waErr)
-
-		emailErr := q.sendEmailFallback(job)
-		if emailErr == nil {
-			tx, err := q.db.Begin()
-			if err == nil {
-				_, _ = tx.Exec("INSERT OR IGNORE INTO notification_logs (booking_id, notif_type, channel) VALUES (?, ?, 'email')", job.BookingID, job.NotifType)
-				_, _ = tx.Exec("UPDATE notification_queue SET status = 'sent_via_fallback', updated_at = CURRENT_TIMESTAMP WHERE id = ?", job.ID)
-				_ = tx.Commit()
-			}
-		} else {
-			// Double failure (WhatsApp + Email both failed)
-			newAttempts := job.Attempts + 1
-			if newAttempts >= 3 {
-				_, _ = q.db.Exec("UPDATE notification_queue SET status = 'failed', attempts = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", newAttempts, job.ID)
-				q.app.Logger().Error("Both WhatsApp and Email failed for booking", "booking_id", job.BookingID, "attempts", newAttempts, "error", emailErr)
-			} else {
-				// Re-mark pending for backoff retry
-				_, _ = q.db.Exec("UPDATE notification_queue SET status = 'pending', attempts = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", newAttempts, job.ID)
-				q.app.Logger().Warn("Both WhatsApp and Email failed for booking. Will retry in 5 mins.", "booking_id", job.BookingID, "attempt", newAttempts)
-			}
+		// WhatsApp send FAILED / DISCONNECTED
+		// Email was already sent directly by PocketBase hooks, so mark skipped to avoid duplicate emails!
+		tx, err := q.db.Begin()
+		if err == nil {
+			_, _ = tx.Exec("INSERT OR IGNORE INTO notification_logs (booking_id, notif_type, channel) VALUES (?, ?, 'whatsapp_skipped')", job.BookingID, job.NotifType)
+			_, _ = tx.Exec("UPDATE notification_queue SET status = 'skipped_whatsapp_offline', updated_at = CURRENT_TIMESTAMP WHERE id = ?", job.ID)
+			_ = tx.Commit()
 		}
+		q.app.Logger().Warn("WhatsApp disconnected/unavailable — skipped WhatsApp send (primary email already sent)", "booking_id", job.BookingID, "phone", job.RecipientPhone)
 	}
 }
 
