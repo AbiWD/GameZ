@@ -8,9 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import pb from '@/lib/pocketbase';
 import { useAuth } from '@/hooks/useAuth';
-import { Search, Users, Phone, Mail, Award, Clock, IndianRupee, Loader2 } from 'lucide-react';
+import { Search, Users, Phone, Mail, Award, Clock, IndianRupee, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-
+import { escapePbFilterValue } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 interface Customer {
@@ -43,8 +43,20 @@ interface Booking {
 const Customers = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'regular' | 'vip' | 'banned'>('all');
+  
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Metrics state
+  const [stats, setStats] = useState({ total: 0, vipCount: 0, regularCount: 0, totalRevenue: 0 });
+
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerBookings, setCustomerBookings] = useState<Booking[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
@@ -53,15 +65,69 @@ const Customers = () => {
   const { userRole } = useAuth();
   const { toast } = useToast();
 
+  // Debounce search input to protect PocketBase DB
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(searchQuery), 350);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Reset to page 1 on filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, statusFilter]);
+
+  // Fetch paginated customers from PocketBase with server-side filters
   useEffect(() => {
     fetchCustomers();
+  }, [page, debouncedSearch, statusFilter]);
+
+  // Fetch overall statistics once on mount
+  useEffect(() => {
+    fetchStats();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      const allRecords = await pb.collection('portal_users').getFullList({ requestKey: null });
+      const total = allRecords.length;
+      const vipCount = allRecords.filter(c => c.status === 'vip').length;
+      const regularCount = allRecords.filter(c => c.status === 'regular' || !c.status).length;
+      const totalRevenue = allRecords.reduce((sum, c) => sum + (c.total_spent || 0), 0);
+      setStats({ total, vipCount, regularCount, totalRevenue });
+    } catch (e) {
+      console.error('Failed to fetch stats:', e);
+    }
+  };
 
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const records = await pb.collection('portal_users').getFullList();
-      setCustomers(records as unknown as Customer[]);
+      let filterConditions: string[] = [];
+
+      if (debouncedSearch) {
+        const safeSearch = escapePbFilterValue(debouncedSearch);
+        filterConditions.push(`(name ~ "${safeSearch}" || phone ~ "${safeSearch}" || email ~ "${safeSearch}")`);
+      }
+
+      if (statusFilter === 'regular') {
+        filterConditions.push(`(status = "regular" || status = "")`);
+      } else if (statusFilter === 'vip') {
+        filterConditions.push(`status = "vip"`);
+      } else if (statusFilter === 'banned') {
+        filterConditions.push(`status = "banned"`);
+      }
+
+      const filterStr = filterConditions.join(' && ');
+
+      const result = await pb.collection('portal_users').getList(page, 10, {
+        filter: filterStr,
+        sort: '-created',
+        requestKey: null
+      });
+
+      setCustomers(result.items as unknown as Customer[]);
+      setTotalPages(result.totalPages);
+      setTotalItems(result.totalItems);
     } catch (error) {
       console.error("Failed to fetch customers:", error);
     } finally {
@@ -124,22 +190,6 @@ const Customers = () => {
     }
   };
 
-  const totalRevenue = customers.reduce((sum, c) => sum + (c.total_spent || 0), 0);
-  const vipCount = customers.filter(c => c.status === 'vip').length;
-  const regularCount = customers.filter(c => c.status === 'regular' || !c.status).length;
-
-  const filteredCustomers = customers.filter(c => {
-    const matchesSearch = c.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      c.phone?.includes(searchQuery) || 
-      c.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (!matchesSearch) return false;
-
-    if (statusFilter === 'all') return true;
-    if (statusFilter === 'regular') return c.status === 'regular' || !c.status;
-    return c.status === statusFilter;
-  });
-
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -158,7 +208,7 @@ const Customers = () => {
           <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Total Gamers</p>
-              <h3 className="text-2xl font-bold text-foreground">{customers.length}</h3>
+              <h3 className="text-2xl font-bold text-foreground">{stats.total}</h3>
             </div>
             <div className="p-3 bg-primary/10 rounded-xl text-primary">
               <Users className="w-6 h-6" />
@@ -168,7 +218,7 @@ const Customers = () => {
           <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex items-center justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">VIP Members</p>
-              <h3 className="text-2xl font-bold text-amber-500">{vipCount}</h3>
+              <h3 className="text-2xl font-bold text-amber-500">{stats.vipCount}</h3>
             </div>
             <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500">
               <Award className="w-6 h-6" />
@@ -179,7 +229,7 @@ const Customers = () => {
             <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Lifetime Value</p>
-                <h3 className="text-2xl font-bold text-emerald-500">₹{totalRevenue.toLocaleString()}</h3>
+                <h3 className="text-2xl font-bold text-emerald-500">₹{stats.totalRevenue.toLocaleString()}</h3>
               </div>
               <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500">
                 <IndianRupee className="w-6 h-6" />
@@ -209,7 +259,7 @@ const Customers = () => {
                     statusFilter === 'all' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  All ({customers.length})
+                  All ({stats.total})
                 </button>
                 <button
                   onClick={() => setStatusFilter('regular')}
@@ -217,7 +267,7 @@ const Customers = () => {
                     statusFilter === 'regular' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  Regular ({regularCount})
+                  Regular ({stats.regularCount})
                 </button>
                 <button
                   onClick={() => setStatusFilter('vip')}
@@ -225,7 +275,7 @@ const Customers = () => {
                     statusFilter === 'vip' ? 'bg-amber-500 text-white shadow-sm' : 'text-muted-foreground hover:text-amber-500'
                   }`}
                 >
-                  VIP ({vipCount})
+                  VIP ({stats.vipCount})
                 </button>
                 <button
                   onClick={() => setStatusFilter('banned')}
@@ -233,7 +283,7 @@ const Customers = () => {
                     statusFilter === 'banned' ? 'bg-destructive text-destructive-foreground shadow-sm' : 'text-muted-foreground hover:text-destructive'
                   }`}
                 >
-                  Banned ({customers.filter(c => c.status === 'banned').length})
+                  Banned ({stats.total - stats.vipCount - stats.regularCount})
                 </button>
               </div>
             </div>
@@ -242,24 +292,25 @@ const Customers = () => {
               <div className="mt-4">
                 <TableSkeleton columns={5} rows={7} />
               </div>
-            ) : filteredCustomers.length === 0 ? (
+            ) : customers.length === 0 ? (
               <div className="p-12 text-center text-muted-foreground">
                 No customers found matching your search.
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-secondary/20">
-                    <TableRow>
-                      <TableHead className="font-bold pl-12 py-6">Name</TableHead>
-                      <TableHead className="font-bold py-6">Contact</TableHead>
-                      {userRole !== 'staff' && <TableHead className="font-bold text-right py-6">Lifetime Value</TableHead>}
-                      <TableHead className="font-bold text-center py-6">Visits</TableHead>
-                      <TableHead className="font-bold text-right pr-10 py-6">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredCustomers.map((customer) => (
+              <>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-secondary/20">
+                      <TableRow>
+                        <TableHead className="font-bold pl-12 py-6">Name</TableHead>
+                        <TableHead className="font-bold py-6">Contact</TableHead>
+                        {userRole !== 'staff' && <TableHead className="font-bold text-right py-6">Lifetime Value</TableHead>}
+                        <TableHead className="font-bold text-center py-6">Visits</TableHead>
+                        <TableHead className="font-bold text-right pr-10 py-6">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {customers.map((customer) => (
                       <TableRow 
                         key={customer.id} 
                         className="cursor-pointer hover:bg-secondary/40 transition-colors"
@@ -312,6 +363,37 @@ const Customers = () => {
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Server-Side Pagination Bar */}
+              <div className="p-4 border-t border-border bg-secondary/10 flex flex-col sm:flex-row justify-between items-center gap-3">
+                <p className="text-xs text-muted-foreground font-medium">
+                  Showing <span className="font-bold text-foreground">{customers.length}</span> of <span className="font-bold text-foreground">{totalItems}</span> customers
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page <= 1 || loading}
+                    className="h-8 rounded-lg text-xs gap-1"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" /> Previous
+                  </Button>
+                  <span className="text-xs font-semibold text-foreground px-2">
+                    Page {page} of {totalPages || 1}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page >= totalPages || loading}
+                    className="h-8 rounded-lg text-xs gap-1"
+                  >
+                    Next <ChevronRight className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </>
             )}
           </CardContent>
         </Card>
