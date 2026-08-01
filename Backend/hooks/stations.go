@@ -47,7 +47,15 @@ func RegisterStationHooks(app *pocketbase.PocketBase) {
 			}
 		}
 
-		cols := []string{"blackout_periods", "stations", "station_types", "tier_prices", "staff_accounts"}
+		// Ensure fields exist in portal_users collection schema
+		if portalCol, err := app.FindCollectionByNameOrId("portal_users"); err == nil && portalCol != nil {
+			if portalCol.Fields.GetByName("created") == nil {
+				portalCol.Fields.Add(&core.AutodateField{Name: "created", OnCreate: true, OnUpdate: false})
+				_ = app.Save(portalCol)
+			}
+		}
+
+		cols := []string{"blackout_periods", "stations", "station_types", "tier_prices", "staff_accounts", "portal_users"}
 		for _, name := range cols {
 			col, err := app.FindCollectionByNameOrId(name)
 			if err == nil && col != nil {

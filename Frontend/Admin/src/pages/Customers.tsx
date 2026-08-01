@@ -121,7 +121,6 @@ const Customers = () => {
 
       const result = await pb.collection('portal_users').getList(page, 10, {
         filter: filterStr,
-        sort: '-created',
         requestKey: null
       });
 
