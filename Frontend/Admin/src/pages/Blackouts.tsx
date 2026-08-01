@@ -373,80 +373,158 @@ const Blackouts = () => {
                 <p className="text-xs max-w-sm mx-auto text-muted-foreground">All stations are open for online customer reservations according to standard operating hours.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-secondary/40 border-border hover:bg-secondary/40">
-                      <TableHead className="font-bold text-foreground">Reason / Event</TableHead>
-                      <TableHead className="font-bold text-foreground">Start Time</TableHead>
-                      <TableHead className="font-bold text-foreground">End Time</TableHead>
-                      <TableHead className="font-bold text-foreground">Status</TableHead>
-                      <TableHead className="font-bold text-foreground text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {blackouts.map((b) => {
-                      const now = new Date();
-                      const sTime = new Date(b.start_time);
-                      const eTime = new Date(b.end_time);
-                      const isActive = now >= sTime && now <= eTime;
-                      const isUpcoming = now < sTime;
+              <>
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-secondary/40 border-border hover:bg-secondary/40">
+                        <TableHead className="font-bold text-foreground">Reason / Event</TableHead>
+                        <TableHead className="font-bold text-foreground">Start Time</TableHead>
+                        <TableHead className="font-bold text-foreground">End Time</TableHead>
+                        <TableHead className="font-bold text-foreground">Status</TableHead>
+                        <TableHead className="font-bold text-foreground text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {blackouts.map((b) => {
+                        const now = new Date();
+                        const sTime = new Date(b.start_time);
+                        const eTime = new Date(b.end_time);
+                        const isActive = now >= sTime && now <= eTime;
+                        const isUpcoming = now < sTime;
 
-                      return (
-                        <TableRow key={b.id} className="border-border">
-                          <TableCell className="font-bold text-foreground">{b.reason}</TableCell>
-                          <TableCell className="text-xs font-mono text-muted-foreground">
-                            {new Date(b.start_time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                          </TableCell>
-                          <TableCell className="text-xs font-mono text-muted-foreground">
-                            {new Date(b.end_time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                          </TableCell>
-                          <TableCell>
-                            {isActive ? (
-                              <Badge variant="default" className="bg-rose-500/10 text-rose-600 border border-rose-500/20 gap-1 font-semibold">
-                                <AlertTriangle className="w-3 h-3" /> Active Now
-                              </Badge>
-                            ) : isUpcoming ? (
-                              <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border border-amber-500/20 gap-1 font-semibold">
-                                <Clock className="w-3 h-3" /> Scheduled
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-muted-foreground border-border capitalize">
-                                Passed
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {isAdminOrOwner && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10">
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="rounded-3xl border border-border bg-card">
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle className="text-foreground">Delete Blackout Period</AlertDialogTitle>
-                                    <AlertDialogDescription className="text-muted-foreground">
-                                      Are you sure you want to delete the blackout for "{b.reason}"? Online bookings will resume for this time window.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel className="rounded-xl border-border">Cancel</AlertDialogCancel>
-                                    <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => handleBlackoutDelete(b.id)}>
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+                        return (
+                          <TableRow key={b.id} className="border-border">
+                            <TableCell className="font-bold text-foreground">{b.reason}</TableCell>
+                            <TableCell className="text-xs font-mono text-muted-foreground">
+                              {new Date(b.start_time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                            </TableCell>
+                            <TableCell className="text-xs font-mono text-muted-foreground">
+                              {new Date(b.end_time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                            </TableCell>
+                            <TableCell>
+                              {isActive ? (
+                                <Badge variant="default" className="bg-rose-500/10 text-rose-600 border border-rose-500/20 gap-1 font-semibold">
+                                  <AlertTriangle className="w-3 h-3" /> Active Now
+                                </Badge>
+                              ) : isUpcoming ? (
+                                <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border border-amber-500/20 gap-1 font-semibold">
+                                  <Clock className="w-3 h-3" /> Scheduled
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-muted-foreground border-border capitalize">
+                                  Passed
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {isAdminOrOwner && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10">
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="rounded-3xl border border-border bg-card">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle className="text-foreground">Delete Blackout Period</AlertDialogTitle>
+                                      <AlertDialogDescription className="text-muted-foreground">
+                                        Are you sure you want to delete the blackout for "{b.reason}"? Online bookings will resume for this time window.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel className="rounded-xl border-border">Cancel</AlertDialogCancel>
+                                      <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => handleBlackoutDelete(b.id)}>
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="block md:hidden space-y-3 p-3">
+                  {blackouts.map((b) => {
+                    const now = new Date();
+                    const sTime = new Date(b.start_time);
+                    const eTime = new Date(b.end_time);
+                    const isActive = now >= sTime && now <= eTime;
+                    const isUpcoming = now < sTime;
+
+                    return (
+                      <div key={b.id} className="p-4 rounded-2xl border border-border bg-card/60 shadow-sm space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="space-y-1">
+                            <h3 className="font-bold text-foreground text-sm leading-tight">{b.reason}</h3>
+                            <div>
+                              {isActive ? (
+                                <Badge variant="default" className="bg-rose-500/10 text-rose-600 border border-rose-500/20 gap-1 font-semibold text-[11px] py-0.5">
+                                  <AlertTriangle className="w-3 h-3" /> Active Now
+                                </Badge>
+                              ) : isUpcoming ? (
+                                <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border border-amber-500/20 gap-1 font-semibold text-[11px] py-0.5">
+                                  <Clock className="w-3 h-3" /> Scheduled
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-muted-foreground border-border capitalize text-[11px] py-0.5">
+                                  Passed
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          {isAdminOrOwner && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10 shrink-0">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="rounded-3xl border border-border bg-card w-[95vw] max-w-lg">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="text-foreground">Delete Blackout Period</AlertDialogTitle>
+                                  <AlertDialogDescription className="text-muted-foreground">
+                                    Are you sure you want to delete the blackout for "{b.reason}"? Online bookings will resume for this time window.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                                  <AlertDialogCancel className="rounded-xl border-border w-full sm:w-auto">Cancel</AlertDialogCancel>
+                                  <AlertDialogAction className="rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground w-full sm:w-auto" onClick={() => handleBlackoutDelete(b.id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs pt-2.5 border-t border-border/60 font-mono text-muted-foreground">
+                          <div>
+                            <span className="text-[10px] uppercase font-sans font-bold text-muted-foreground/70 block">Start Time</span>
+                            <span className="font-semibold text-foreground text-[11px]">
+                              {new Date(b.start_time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] uppercase font-sans font-bold text-muted-foreground/70 block">End Time</span>
+                            <span className="font-semibold text-foreground text-[11px]">
+                              {new Date(b.end_time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
