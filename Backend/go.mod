@@ -8,6 +8,7 @@ require (
 	github.com/pocketbase/pocketbase v0.39.8
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.mau.fi/whatsmeow v0.0.0-20260730092514-662ad1dc6900
+	google.golang.org/protobuf v1.36.11
 	modernc.org/sqlite v1.54.0
 )
 
@@ -48,7 +49,6 @@ require (
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
 	modernc.org/libc v1.74.1 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
