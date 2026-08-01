@@ -209,31 +209,26 @@ export default function WhatsAppSettings() {
                     </Button>
                   </div>
                 </div>
-              ) : !showQr ? (
-                <div className="flex flex-col items-center justify-center py-8 px-4 border border-dashed border-border/80 rounded-xl bg-background/50 text-center space-y-4">
-                  <div className="mx-auto w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center border border-emerald-500/20 shadow-sm">
-                    <QrCode className="h-7 w-7" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-foreground text-base">Pair Lounge WhatsApp Account</h3>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                      Click the button below to generate a fresh QR code and link your lounge's official WhatsApp Business device.
-                    </p>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      setShowQr(true);
-                      fetchStatus(true);
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-6 py-2.5 rounded-xl shadow-md gap-2"
-                  >
-                    <QrCode className="h-4 w-4" />
-                    Generate Pairing QR Code
-                  </Button>
-                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center p-6 border border-dashed border-border/80 rounded-xl bg-background/50 space-y-4">
-                  {qrCode ? (
+                  {!showQr ? (
+                    <div className="w-56 h-56 rounded-xl bg-card border-2 border-dashed border-emerald-500/40 flex flex-col items-center justify-center p-4 text-center space-y-3 shadow-inner">
+                      <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-500">
+                        <QrCode className="h-8 w-8" />
+                      </div>
+                      <p className="text-xs text-muted-foreground font-medium">WhatsApp Account Disconnected</p>
+                      <Button
+                        onClick={() => {
+                          setShowQr(true);
+                          fetchStatus(true);
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-lg shadow-md gap-1.5"
+                      >
+                        <QrCode className="h-4 w-4" />
+                        Generate QR Code
+                      </Button>
+                    </div>
+                  ) : qrCode ? (
                     <>
                       <div className="p-3 bg-white rounded-xl shadow-lg border border-gray-200">
                         <img src={qrCode} alt="WhatsApp Pairing QR Code" className="w-56 h-56 object-contain" />
@@ -256,9 +251,9 @@ export default function WhatsAppSettings() {
                       </div>
                     </>
                   ) : (
-                    <div className="py-12 text-center space-y-3">
-                      <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">Generating fresh WhatsApp QR code...</p>
+                    <div className="w-56 h-56 rounded-xl bg-card border border-border flex flex-col items-center justify-center p-4 text-center space-y-3">
+                      <RefreshCw className="h-8 w-8 animate-spin mx-auto text-emerald-500" />
+                      <p className="text-xs text-muted-foreground">Generating fresh WhatsApp QR code...</p>
                     </div>
                   )}
 
