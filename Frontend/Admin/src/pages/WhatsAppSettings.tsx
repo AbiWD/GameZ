@@ -29,7 +29,8 @@ export default function WhatsAppSettings() {
   
   const { toast } = useToast();
 
-  const fetchStatus = async () => {
+  const fetchStatus = async (isManual = false) => {
+    if (isManual) setLoading(true);
     try {
       const res = await fetch('/api/whatsapp/status', {
         headers: {
@@ -41,6 +42,12 @@ export default function WhatsAppSettings() {
         setConnected(data.connected);
         setPhone(data.phone);
         setQrCode(data.qr);
+        if (isManual) {
+          toast({
+            title: "Status Refreshed 🔄",
+            description: data.connected ? `Connected to ${data.phone || 'WhatsApp'}` : "WhatsApp is currently disconnected.",
+          });
+        }
       }
     } catch (err) {
       console.error('Failed to fetch WhatsApp status:', err);
@@ -50,8 +57,8 @@ export default function WhatsAppSettings() {
   };
 
   useEffect(() => {
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 5000); // 5s REST polling contract
+    fetchStatus(false);
+    const interval = setInterval(() => fetchStatus(false), 5000); // 5s REST polling contract
     return () => clearInterval(interval);
   }, []);
 
@@ -69,7 +76,7 @@ export default function WhatsAppSettings() {
           title: "WhatsApp Disconnected",
           description: "Lounge WhatsApp session logged out successfully.",
         });
-        fetchStatus();
+        fetchStatus(false);
       } else {
         toast({
           title: "Disconnect Failed",
@@ -146,15 +153,12 @@ export default function WhatsAppSettings() {
             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
               <WhatsAppLogo className="h-7 w-7 text-emerald-500" />
               WhatsApp Business Integration
-              <Badge variant="outline" className="ml-2 bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                <Zap className="h-3 w-3 mr-1" /> Native Go Engine
-              </Badge>
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Pair your lounge's WhatsApp Business phone to dispatch instant tickets, blackout alerts, and session reminders with 0 third-party fees.
+              Pair your lounge's WhatsApp Business phone to dispatch instant tickets, blackout alerts, and session reminders
             </p>
           </div>
-          <Button variant="outline" onClick={fetchStatus} disabled={loading} size="sm">
+          <Button variant="outline" onClick={() => fetchStatus(true)} disabled={loading} size="sm">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh Status
           </Button>
