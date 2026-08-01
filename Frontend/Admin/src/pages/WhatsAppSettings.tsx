@@ -30,6 +30,29 @@ export default function WhatsAppSettings() {
   
   const { toast } = useToast();
 
+  const handleGenerateQr = async () => {
+    setShowQr(true);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/whatsapp/qr', {
+        method: 'POST',
+        headers: {
+          'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '',
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setConnected(data.connected);
+        setPhone(data.phone);
+        setQrCode(data.qr);
+      }
+    } catch (err) {
+      console.error('Failed to generate QR:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchStatus = async (isManual = false) => {
     if (isManual) setLoading(true);
     try {
@@ -43,6 +66,9 @@ export default function WhatsAppSettings() {
         setConnected(data.connected);
         setPhone(data.phone);
         setQrCode(data.qr);
+        if (data.connected) {
+          setShowQr(false);
+        }
         if (isManual) {
           toast({
             title: "Status Refreshed 🔄",
@@ -218,34 +244,13 @@ export default function WhatsAppSettings() {
                         <QrCode className="h-8 w-8" />
                       </div>
                       <p className="text-xs text-muted-foreground font-medium">WhatsApp Account Disconnected</p>
-                  <Button
-                    onClick={async () => {
-                      setShowQr(true);
-                      setLoading(true);
-                      try {
-                        const res = await fetch('/api/whatsapp/qr', {
-                          method: 'POST',
-                          headers: {
-                            'Authorization': pb.authStore.token ? `Bearer ${pb.authStore.token}` : '',
-                          },
-                        });
-                        if (res.ok) {
-                          const data = await res.json();
-                          setConnected(data.connected);
-                          setPhone(data.phone);
-                          setQrCode(data.qr);
-                        }
-                      } catch (err) {
-                        console.error('Failed to generate QR:', err);
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-lg shadow-md gap-1.5"
-                  >
-                    <QrCode className="h-4 w-4" />
-                    Generate QR Code
-                  </Button>
+                      <Button
+                        onClick={handleGenerateQr}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-4 py-2 rounded-lg shadow-md gap-1.5"
+                      >
+                        <QrCode className="h-4 w-4" />
+                        Generate QR Code
+                      </Button>
                     </div>
                   ) : qrCode ? (
                     <>
@@ -260,7 +265,7 @@ export default function WhatsAppSettings() {
                           Open WhatsApp → Menu/Settings → Linked Devices → Link a Device
                         </p>
                         <div className="pt-1 flex items-center justify-center gap-2">
-                          <Button variant="outline" size="sm" onClick={() => fetchStatus(true)} className="text-xs">
+                          <Button variant="outline" size="sm" onClick={handleGenerateQr} className="text-xs">
                             <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh QR Code
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => setShowQr(false)} className="text-xs text-muted-foreground">
@@ -271,8 +276,11 @@ export default function WhatsAppSettings() {
                     </>
                   ) : (
                     <div className="w-56 h-56 rounded-xl bg-card border border-border flex flex-col items-center justify-center p-4 text-center space-y-3">
-                      <RefreshCw className="h-8 w-8 animate-spin mx-auto text-emerald-500" />
-                      <p className="text-xs text-muted-foreground">Generating fresh WhatsApp QR code...</p>
+                      <RefreshCw className="h-7 w-7 animate-spin mx-auto text-emerald-500" />
+                      <p className="text-xs text-muted-foreground font-medium">Generating WhatsApp QR code...</p>
+                      <Button variant="outline" size="sm" onClick={handleGenerateQr} className="text-xs mt-1">
+                        <RefreshCw className="h-3.5 w-3.5 mr-1" /> Retry Generation
+                      </Button>
                     </div>
                   )}
 

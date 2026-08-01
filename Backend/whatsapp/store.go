@@ -176,10 +176,15 @@ func (s *WhatsAppService) ReconnectQR(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.client != nil && s.client.Store.ID == nil {
+	if s.client != nil {
 		s.client.Disconnect()
+		// If store ID exists but device is not logged in, clear device store to allow new QR pairing
+		if !s.client.IsLoggedIn() && s.client.Store.ID != nil {
+			_ = s.client.Store.Delete(ctx)
+		}
 		qrChan, err := s.client.GetQRChannel(ctx)
 		if err != nil {
+			_ = s.client.Connect()
 			return fmt.Errorf("failed to get QR channel: %w", err)
 		}
 		s.qrChan = qrChan
