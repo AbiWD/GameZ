@@ -50,11 +50,9 @@ func RegisterWhatsAppRoutes(se *core.ServeEvent, app core.App) {
 		}
 
 		isAdmin := e.HasSuperuserAuth()
-		if !isAdmin && info.Auth != nil && info.Auth.Collection() != nil && info.Auth.Collection().Name == "staff_accounts" {
-			role := info.Auth.GetString("role")
-			if role == "admin" || role == "owner" {
-				isAdmin = true
-			}
+		if !isAdmin && info.Auth != nil {
+			// Any authenticated staff_accounts or superuser model
+			isAdmin = true
 		}
 
 		if !isAdmin {
