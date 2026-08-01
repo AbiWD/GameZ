@@ -1,4 +1,4 @@
-import { LayoutDashboard, Calendar, PlusCircle, LogOut, Bed, UserCheck, Building2, Globe, Settings, BarChart2, Gamepad2, Contact, ChevronsUpDown } from 'lucide-react';
+import { LayoutDashboard, Calendar, PlusCircle, LogOut, Bed, UserCheck, Building2, Globe, Settings, BarChart2, Gamepad2, Contact, ChevronsUpDown, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { NavLink } from '@/components/NavLink';
