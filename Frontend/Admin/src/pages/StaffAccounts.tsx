@@ -41,7 +41,11 @@ const StaffAccounts = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const records = await pb.collection('staff_accounts').getFullList();
+      const roleFilter = userRole === 'admin' ? '' : 'role = "staff"';
+      const records = await pb.collection('staff_accounts').getFullList({
+        filter: roleFilter || undefined,
+        sort: '-created'
+      });
       setUsers(records as unknown as StaffUser[]);
     } catch (error: any) {
       toast({
@@ -249,7 +253,7 @@ const StaffAccounts = () => {
         <CardContent>
           {loading ? (
             <div className="py-8 text-center text-muted-foreground">Loading accounts...</div>
-          ) : users.filter(u => userRole === 'admin' ? true : u.role === 'staff').length === 0 ? (
+          ) : users.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground">No accounts found.</div>
           ) : (
             <Table>
@@ -263,7 +267,7 @@ const StaffAccounts = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.filter(u => userRole === 'admin' ? true : u.role === 'staff').map((user) => (
+                {users.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell className="font-medium">{user.email || user.name || '-'}</TableCell>
                     <TableCell>{user.name || '-'}</TableCell>
