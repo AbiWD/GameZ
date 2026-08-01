@@ -18,6 +18,7 @@ import StaffAccounts from "./pages/StaffAccounts";
 import Setup from "./pages/Setup";
 import Customers from "./pages/Customers";
 import WhatsAppSettings from "./pages/WhatsAppSettings";
+import Blackouts from "./pages/Blackouts";
 
 import { PropertyProvider } from "@/contexts/PropertyContext";
 
@@ -62,6 +63,9 @@ const App = () => (
 
             <Route path="/whatsapp" element={<WhatsAppSettings />} />
             <Route path="/admin/whatsapp" element={<WhatsAppSettings />} />
+
+            <Route path="/blackouts" element={<Blackouts />} />
+            <Route path="/admin/blackouts" element={<Blackouts />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
