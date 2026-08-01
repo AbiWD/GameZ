@@ -136,7 +136,7 @@ func (s *WhatsAppService) handleQRChannel() {
 				s.currentQR = "data:image/png;base64," + b64
 				s.mu.Unlock()
 			}
-		} else {
+		} else if evt.Event == "success" || evt.Event == "timeout" {
 			s.mu.Lock()
 			s.currentQR = ""
 			s.mu.Unlock()
@@ -174,6 +174,27 @@ func (s *WhatsAppService) IsConnected() bool {
 	return s.client != nil && s.client.IsConnected() && s.client.IsLoggedIn()
 }
 
+func (s *WhatsAppService) resetDeviceClientLocked(ctx context.Context) error {
+	if s.client != nil {
+		s.client.Disconnect()
+		if s.client.Store != nil {
+			_ = s.client.Store.Delete(ctx)
+		}
+	}
+
+	devices, err := s.container.GetAllDevices(ctx)
+	if err == nil {
+		for _, dev := range devices {
+			_ = dev.Delete(ctx)
+		}
+	}
+
+	newDevice := s.container.NewDevice()
+	s.client = whatsmeow.NewClient(newDevice, s.log)
+	s.client.AddEventHandler(s.eventHandler)
+	return nil
+}
+
 func (s *WhatsAppService) ReconnectQR(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -186,10 +207,8 @@ func (s *WhatsAppService) ReconnectQR(ctx context.Context) error {
 		return nil
 	}
 
-	s.client.Disconnect()
-
-	if s.client.Store != nil && s.client.Store.ID == nil {
-		_ = s.client.Store.Delete(ctx)
+	if err := s.resetDeviceClientLocked(ctx); err != nil {
+		return fmt.Errorf("failed to reset device store: %w", err)
 	}
 
 	qrChan, err := s.client.GetQRChannel(ctx)
@@ -227,14 +246,11 @@ func (s *WhatsAppService) Disconnect() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	ctx := context.Background()
 	if s.client != nil {
-		ctx := context.Background()
 		_ = s.client.Logout(ctx)
-		s.client.Disconnect()
-		if s.client.Store != nil {
-			_ = s.client.Store.Delete(ctx)
-		}
 	}
+	_ = s.resetDeviceClientLocked(ctx)
 	s.currentQR = ""
 	return nil
 }
