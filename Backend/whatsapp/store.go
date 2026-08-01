@@ -260,7 +260,10 @@ func (s *WhatsAppService) sendAdminDisconnectAlert() {
 		senderAddress = "noreply@gamez.com"
 	}
 
-	adminEmail := "abhilashbangera97@gmail.com" // Superuser owner inbox
+	adminEmail := os.Getenv("ADMIN_ALERT_EMAIL")
+	if adminEmail == "" {
+		adminEmail = "abhilashbangera97@gmail.com"
+	}
 
 	subject := "🚨 GameZ Notice: Lounge WhatsApp Disconnected"
 	body := `<!DOCTYPE html>
