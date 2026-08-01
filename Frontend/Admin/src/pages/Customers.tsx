@@ -203,35 +203,35 @@ const Customers = () => {
         </div>
 
         {/* Metric Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex items-center justify-between">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-sm flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Total Gamers</p>
-              <h3 className="text-2xl font-bold text-foreground">{stats.total}</h3>
+              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mb-0.5 sm:mb-1">Total Gamers</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-foreground">{stats.total}</h3>
             </div>
-            <div className="p-3 bg-primary/10 rounded-xl text-primary">
-              <Users className="w-6 h-6" />
+            <div className="p-2.5 sm:p-3 bg-primary/10 rounded-xl text-primary">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex items-center justify-between">
+          <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-sm flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">VIP Members</p>
-              <h3 className="text-2xl font-bold text-amber-500">{stats.vipCount}</h3>
+              <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mb-0.5 sm:mb-1">VIP Members</p>
+              <h3 className="text-xl sm:text-2xl font-bold text-amber-500">{stats.vipCount}</h3>
             </div>
-            <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500">
-              <Award className="w-6 h-6" />
+            <div className="p-2.5 sm:p-3 bg-amber-500/10 rounded-xl text-amber-500">
+              <Award className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
           </div>
 
           {userRole !== 'staff' && (
-            <div className="bg-card border border-border rounded-2xl p-5 shadow-sm flex items-center justify-between">
+            <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-sm flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Lifetime Value</p>
-                <h3 className="text-2xl font-bold text-emerald-500">₹{stats.totalRevenue.toLocaleString()}</h3>
+                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground mb-0.5 sm:mb-1">Lifetime Value</p>
+                <h3 className="text-xl sm:text-2xl font-bold text-emerald-500">₹{stats.totalRevenue.toLocaleString()}</h3>
               </div>
-              <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500">
-                <IndianRupee className="w-6 h-6" />
+              <div className="p-2.5 sm:p-3 bg-emerald-500/10 rounded-xl text-emerald-500">
+                <IndianRupee className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
             </div>
           )}
@@ -239,22 +239,22 @@ const Customers = () => {
 
         <Card className="border-border shadow-sm rounded-2xl overflow-hidden">
           <CardContent className="p-0">
-            <div className="p-4 border-b border-border bg-secondary/30 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
+            <div className="p-3 sm:p-4 border-b border-border bg-secondary/30 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 sm:gap-4">
               <div className="relative w-full max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search by name, phone, or email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 rounded-xl bg-background border-border"
+                  className="pl-9 rounded-xl bg-background border-border text-xs sm:text-sm"
                 />
               </div>
 
-              {/* Status Filter Tabs */}
-              <div className="flex items-center gap-1.5 bg-background border border-border p-1 rounded-xl">
+              {/* Status Filter Tabs - Mobile Horizontal Scroll */}
+              <div className="flex items-center gap-1 bg-background border border-border p-1 rounded-xl overflow-x-auto no-scrollbar max-w-full">
                 <button
                   onClick={() => setStatusFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
                     statusFilter === 'all' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -262,7 +262,7 @@ const Customers = () => {
                 </button>
                 <button
                   onClick={() => setStatusFilter('regular')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
                     statusFilter === 'regular' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -270,7 +270,7 @@ const Customers = () => {
                 </button>
                 <button
                   onClick={() => setStatusFilter('vip')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
                     statusFilter === 'vip' ? 'bg-amber-500 text-white shadow-sm' : 'text-muted-foreground hover:text-amber-500'
                   }`}
                 >
@@ -278,7 +278,7 @@ const Customers = () => {
                 </button>
                 <button
                   onClick={() => setStatusFilter('banned')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap shrink-0 ${
                     statusFilter === 'banned' ? 'bg-destructive text-destructive-foreground shadow-sm' : 'text-muted-foreground hover:text-destructive'
                   }`}
                 >
@@ -297,7 +297,8 @@ const Customers = () => {
               </div>
             ) : (
               <>
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-secondary/20">
                       <TableRow>
@@ -363,37 +364,98 @@ const Customers = () => {
                 </Table>
               </div>
 
-              {/* Server-Side Pagination Bar */}
-              <div className="p-4 border-t border-border bg-secondary/10 flex flex-col sm:flex-row justify-between items-center gap-3">
-                <p className="text-xs text-muted-foreground font-medium">
-                  Showing <span className="font-bold text-foreground">{customers.length}</span> of <span className="font-bold text-foreground">{totalItems}</span> customers
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page <= 1 || loading}
-                    className="h-8 rounded-lg text-xs gap-1"
+              {/* Mobile Card View */}
+              <div className="block md:hidden space-y-3 p-3">
+                {customers.map((customer) => (
+                  <div 
+                    key={customer.id} 
+                    onClick={() => handleRowClick(customer)}
+                    className="p-4 rounded-2xl border border-border bg-card/60 shadow-sm space-y-3 cursor-pointer active:scale-[0.99] transition-all hover:border-primary/40"
                   >
-                    <ChevronLeft className="w-3.5 h-3.5" /> Previous
-                  </Button>
-                  <span className="text-xs font-semibold text-foreground px-2">
-                    Page {page} of {totalPages || 1}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page >= totalPages || loading}
-                    className="h-8 rounded-lg text-xs gap-1"
-                  >
-                    Next <ChevronRight className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h3 className="font-bold text-foreground text-sm">{customer.name || 'Unnamed Guest'}</h3>
+                        <div className="mt-1">
+                          {customer.status === 'vip' ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                              <Award className="w-3 h-3 mr-1" /> VIP
+                            </span>
+                          ) : customer.status === 'banned' ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                              Banned
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-400">
+                              Regular
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {userRole !== 'staff' && (
+                        <div className="text-right">
+                          <span className="text-[10px] uppercase font-sans font-bold text-muted-foreground/70 block">Spent</span>
+                          <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                            ₹{(customer.total_spent || 0).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1 text-xs text-muted-foreground pt-1">
+                      {customer.phone && (
+                        <div className="flex items-center gap-1.5">
+                          <Phone className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+                          <span>{customer.phone}</span>
+                        </div>
+                      )}
+                      {customer.email && !customer.email.endsWith('@guest.gamez.in') && !customer.email.startsWith('walkin_') && !customer.email.startsWith('guest_') && (
+                        <div className="flex items-center gap-1.5 truncate">
+                          <Mail className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+                          <span className="truncate">{customer.email}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="text-[11px]">Visits: <strong className="text-foreground font-semibold">{customer.total_visits || 0}</strong></span>
+                      <span className="text-[11px] text-primary font-semibold">View Details →</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </>
             )}
+
+            {/* Server-Side Pagination Bar */}
+            <div className="p-4 border-t border-border bg-secondary/10 flex flex-col sm:flex-row justify-between items-center gap-3">
+              <p className="text-xs text-muted-foreground font-medium">
+                Showing <span className="font-bold text-foreground">{customers.length}</span> of <span className="font-bold text-foreground">{totalItems}</span> customers
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page <= 1 || loading}
+                  className="h-8 rounded-lg text-xs gap-1"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" /> Previous
+                </Button>
+                <span className="text-xs font-semibold text-foreground px-2">
+                  Page {page} of {totalPages || 1}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages || loading}
+                  className="h-8 rounded-lg text-xs gap-1"
+                >
+                  Next <ChevronRight className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
