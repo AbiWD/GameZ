@@ -8,14 +8,18 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/apis"
+	"github.com/pocketbase/pocketbase/tools/security"
 	"gamez-backend/logger"
 )
 
 func RegisterStationHooks(app *pocketbase.PocketBase) {
 	logger.Info("HOOKS", "Station hooks registered")
 
-	// Ensure API access rules for admin collections
+	// Ensure API access rules for admin collections and fix blackout_periods schema
 	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
+		// Ensure property_id column exists in physical SQLite table for blackout_periods
+		_, _ = app.DB().NewQuery("ALTER TABLE blackout_periods ADD COLUMN property_id TEXT DEFAULT ''").Execute()
+
 		cols := []string{"blackout_periods", "stations", "station_types", "tier_prices", "staff_accounts"}
 		for _, name := range cols {
 			col, err := app.FindCollectionByNameOrId(name)
@@ -28,6 +32,14 @@ func RegisterStationHooks(app *pocketbase.PocketBase) {
 				col.DeleteRule = &unlocked
 				_ = app.Save(col)
 			}
+		}
+		return e.Next()
+	})
+
+	// Auto-assign ID if missing for blackout_periods
+	app.OnRecordCreateRequest("blackout_periods").BindFunc(func(e *core.RecordRequestEvent) error {
+		if e.Record.Id == "" {
+			e.Record.Set("id", security.RandomString(15))
 		}
 		return e.Next()
 	})

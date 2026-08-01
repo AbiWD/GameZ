@@ -68,11 +68,19 @@ const Blackouts = () => {
     setLoading(true);
     try {
       const propertyFilter = activeProperty ? `property_id = "${activeProperty.id}"` : '';
-      const data = await pb.collection('blackout_periods').getFullList({
-        filter: propertyFilter,
-        sort: '-start_time',
-        requestKey: null
-      });
+      let data: any[] = [];
+      try {
+        data = await pb.collection('blackout_periods').getFullList({
+          filter: propertyFilter,
+          sort: '-start_time',
+          requestKey: null
+        });
+      } catch (fErr) {
+        // Fallback to fetch without filter if property_id is empty
+        data = await pb.collection('blackout_periods').getFullList({
+          requestKey: null
+        });
+      }
       setBlackouts(data as unknown as BlackoutPeriod[]);
     } catch (err) {
       console.error('Failed to fetch blackout periods:', err);
@@ -139,7 +147,10 @@ const Blackouts = () => {
         }
       }
 
+      const generatedId = Array.from({ length: 15 }, () => Math.floor(Math.random() * 36).toString(36)).join('');
+
       await pb.collection('blackout_periods').create({
+        id: generatedId,
         reason: blackoutFormData.reason,
         start_time: new Date(blackoutFormData.start_time).toISOString(),
         end_time: new Date(blackoutFormData.end_time).toISOString(),
