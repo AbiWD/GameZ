@@ -178,48 +178,49 @@ func (s *WhatsAppService) ReconnectQR(ctx context.Context) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.client != nil {
-		s.client.Disconnect()
-		// If store ID exists but device is not logged in, clear device store to allow new QR pairing
-		if !s.client.IsLoggedIn() && s.client.Store.ID != nil {
-			_ = s.client.Store.Delete(ctx)
-		}
-		qrChan, err := s.client.GetQRChannel(ctx)
-		if err != nil {
-			_ = s.client.Connect()
-			return fmt.Errorf("failed to get QR channel: %w", err)
-		}
-		s.qrChan = qrChan
-		s.currentQR = ""
-		err = s.client.Connect()
-		if err != nil {
-			return fmt.Errorf("failed to connect for QR channel: %w", err)
-		}
-		go s.handleQRChannel()
+	if s.client == nil {
+		return fmt.Errorf("whatsapp client uninitialized")
 	}
+
+	if s.client.IsConnected() && s.client.IsLoggedIn() {
+		return nil
+	}
+
+	s.client.Disconnect()
+
+	if s.client.Store != nil && s.client.Store.ID == nil {
+		_ = s.client.Store.Delete(ctx)
+	}
+
+	qrChan, err := s.client.GetQRChannel(ctx)
+	if err != nil {
+		_ = s.client.Connect()
+		return fmt.Errorf("failed to get QR channel: %w", err)
+	}
+
+	s.qrChan = qrChan
+	s.currentQR = ""
+
+	err = s.client.Connect()
+	if err != nil {
+		return fmt.Errorf("failed to connect for QR channel: %w", err)
+	}
+
+	go s.handleQRChannel()
 	return nil
 }
 
 func (s *WhatsAppService) GetStatus() (bool, string, string) {
 	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	connected := s.client != nil && s.client.IsConnected() && s.client.IsLoggedIn()
 	phone := ""
 	if connected && s.client.Store.ID != nil {
 		phone = s.client.Store.ID.User
 	}
-	qr := s.currentQR
-	s.mu.RUnlock()
 
-	// If disconnected and QR code is empty/expired, auto-trigger a fresh QR channel in background
-	if !connected && qr == "" && s.client != nil && s.client.Store.ID == nil {
-		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			_ = s.ReconnectQR(ctx)
-		}()
-	}
-
-	return connected, phone, qr
+	return connected, phone, s.currentQR
 }
 
 func (s *WhatsAppService) Disconnect() error {
