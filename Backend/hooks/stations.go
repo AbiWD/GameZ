@@ -17,8 +17,35 @@ func RegisterStationHooks(app *pocketbase.PocketBase) {
 
 	// Ensure API access rules for admin collections and fix blackout_periods schema
 	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
-		// Ensure property_id column exists in physical SQLite table for blackout_periods
+		// Ensure physical SQLite columns exist for blackout_periods
+		_, _ = app.DB().NewQuery("ALTER TABLE blackout_periods ADD COLUMN start_time TEXT DEFAULT ''").Execute()
+		_, _ = app.DB().NewQuery("ALTER TABLE blackout_periods ADD COLUMN end_time TEXT DEFAULT ''").Execute()
 		_, _ = app.DB().NewQuery("ALTER TABLE blackout_periods ADD COLUMN property_id TEXT DEFAULT ''").Execute()
+		_, _ = app.DB().NewQuery("ALTER TABLE blackout_periods ADD COLUMN reason TEXT DEFAULT ''").Execute()
+
+		// Ensure fields exist in blackout_periods collection schema
+		if blackoutCol, err := app.FindCollectionByNameOrId("blackout_periods"); err == nil && blackoutCol != nil {
+			changed := false
+			if blackoutCol.Fields.GetByName("reason") == nil {
+				blackoutCol.Fields.Add(&core.TextField{Name: "reason"})
+				changed = true
+			}
+			if blackoutCol.Fields.GetByName("start_time") == nil {
+				blackoutCol.Fields.Add(&core.DateField{Name: "start_time"})
+				changed = true
+			}
+			if blackoutCol.Fields.GetByName("end_time") == nil {
+				blackoutCol.Fields.Add(&core.DateField{Name: "end_time"})
+				changed = true
+			}
+			if blackoutCol.Fields.GetByName("property_id") == nil {
+				blackoutCol.Fields.Add(&core.TextField{Name: "property_id"})
+				changed = true
+			}
+			if changed {
+				_ = app.Save(blackoutCol)
+			}
+		}
 
 		cols := []string{"blackout_periods", "stations", "station_types", "tier_prices", "staff_accounts"}
 		for _, name := range cols {

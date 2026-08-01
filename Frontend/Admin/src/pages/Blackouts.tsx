@@ -169,8 +169,10 @@ const Blackouts = () => {
       setBlackoutFormData({ reason: '', start_time: '', end_time: '' });
       fetchBlackouts();
     } catch (err: any) {
-      console.error('Failed to save blackout period:', err);
-      toast({ title: 'Error', description: err?.message || 'Failed to save blackout period.', variant: 'destructive' });
+      console.error('Failed to save blackout period full error:', err, err?.data);
+      const fieldErrors = err?.data ? Object.entries(err.data).map(([field, item]: [string, any]) => `${field}: ${item?.message || item}`).join(', ') : '';
+      const errMsg = fieldErrors ? `Validation Error: ${fieldErrors}` : (err?.message || 'Failed to save blackout period.');
+      toast({ title: 'Error', description: errMsg, variant: 'destructive' });
     } finally {
       setSavingBlackout(false);
     }
