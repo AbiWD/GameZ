@@ -58,29 +58,6 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
               <p className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-widest mt-0.5">Admin Portal</p>
             </div>
           </div>
-
-          {properties.length > 0 && activeProperty && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <div className="flex items-center gap-2 bg-background px-3 md:px-5 py-2 md:py-2.5 rounded-full shadow-sm hover:shadow-md border border-border cursor-pointer hover:bg-accent transition-all select-none">
-                  <Building2 className="w-4 h-4 text-primary shrink-0" />
-                  <span className="font-semibold text-xs md:text-sm max-w-[100px] sm:max-w-[180px] truncate">{activeProperty.name}</span>
-                  <ChevronDown className="w-4 h-4 text-muted-foreground md:ml-1 shrink-0" />
-                </div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[220px] rounded-xl border-border shadow-lg p-2">
-                {properties.map(prop => (
-                  <DropdownMenuItem 
-                    key={prop.id} 
-                    onClick={() => setActivePropertyById(prop.id)}
-                    className={`cursor-pointer rounded-lg mb-1 p-3 transition-colors ${activeProperty.id === prop.id ? 'bg-primary/10 text-primary font-semibold' : 'text-foreground/80 hover:text-foreground'}`}
-                  >
-                    {prop.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
         </header>
         <main className="p-4 md:p-6 flex-1 w-full">{children}</main>
       </div>
