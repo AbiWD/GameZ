@@ -216,13 +216,13 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 		if badgeText == "CANCELLED" {
 			ctaButton = fmt.Sprintf(`<div style="text-align: center; margin-top: 24px;">
 				<a href="%s" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #a855f7 0%%, #06b6d4 100%%); color: #ffffff; padding: 12px 28px; border-radius: 10px; font-weight: 700; font-size: 13px; text-decoration: none; box-shadow: 0 4px 14px rgba(168,85,247,0.4);">
-					🎮 Visit GameZ Website
+					🎮 Visit GameZ
 				</a>
 			</div>`, siteURL)
 		} else {
 			ctaButton = fmt.Sprintf(`<div style="text-align: center; margin-top: 24px;">
 				<a href="%s" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #22c55e 0%%, #06b6d4 100%%); color: #ffffff; padding: 12px 28px; border-radius: 10px; font-weight: 700; font-size: 13px; text-decoration: none; box-shadow: 0 4px 14px rgba(34,197,94,0.4);">
-					🎮 Visit GameZ Website
+					🎮 Visit GameZ
 				</a>
 			</div>`, siteURL)
 		}

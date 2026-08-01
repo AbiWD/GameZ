@@ -553,7 +553,7 @@ const Dashboard = () => {
                   {activeBooking.name || (activeBooking.source === 'website' ? 'Online Customer' : 'Walk-in Player')}
                   {activeBooking.source === 'website' && (
                     <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-purple-100 text-purple-700 border border-purple-200">
-                      Website
+                      Online Customer
                     </span>
                   )}
                 </div>
