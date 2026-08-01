@@ -31,11 +31,12 @@ type NotificationJob struct {
 }
 
 type NotificationQueue struct {
-	app     core.App
-	db      *sql.DB
-	svc     *WhatsAppService
-	jobChan chan struct{} // Signal channel to wake up worker instantly
-	mu      sync.Mutex
+	app      core.App
+	db       *sql.DB
+	svc      *WhatsAppService
+	jobChan  chan struct{} // Signal channel to wake up worker instantly
+	lastSend time.Time
+	mu       sync.Mutex
 }
 
 var GlobalQueue *NotificationQueue
@@ -133,21 +134,26 @@ func (q *NotificationQueue) Enqueue(bookingID, notifType, phone, email, textPayl
 }
 
 func (q *NotificationQueue) workerLoop() {
-	ticker := time.NewTicker(1500 * time.Millisecond) // 1.5s pacing
+	ticker := time.NewTicker(1500 * time.Millisecond)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-q.jobChan:
-			// Instant wake up signal: fetch next job with status='processing' lock
-			if job, ok := q.fetchNextJob(); ok {
-				q.processJob(job)
-			}
 		case <-ticker.C:
-			// Fallback ticker poll for pending/backoff jobs
-			if job, ok := q.fetchNextJob(); ok {
-				q.processJob(job)
+		}
+
+		if job, ok := q.fetchNextJob(); ok {
+			// Enforce 1.5s minimum pacing floor between consecutive WhatsApp sends
+			if wait := 1500*time.Millisecond - time.Since(q.lastSend); wait > 0 {
+				time.Sleep(wait)
 			}
+
+			q.processJob(job)
+
+			q.mu.Lock()
+			q.lastSend = time.Now()
+			q.mu.Unlock()
 		}
 	}
 }
