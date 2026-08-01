@@ -255,11 +255,12 @@ func (s *WhatsAppService) heartbeatLoop() {
 }
 
 func (s *WhatsAppService) sendAdminDisconnectAlert() {
-	adminEmail := s.app.Settings().Meta.SenderAddress
-	if adminEmail == "" {
-		s.app.Logger().Error("WHATSAPP", "Cannot send disconnect alert: SenderAddress is unconfigured")
-		return
+	senderAddress := s.app.Settings().Meta.SenderAddress
+	if senderAddress == "" {
+		senderAddress = "noreply@gamez.com"
 	}
+
+	adminEmail := "abhilashbangera97@gmail.com" // Superuser owner inbox
 
 	subject := "🚨 GameZ Notice: Lounge WhatsApp Disconnected"
 	body := `<!DOCTYPE html>
@@ -278,7 +279,7 @@ func (s *WhatsAppService) sendAdminDisconnectAlert() {
 
 	msg := &mailer.Message{
 		From: mail.Address{
-			Address: adminEmail,
+			Address: senderAddress,
 			Name:    "GameZ Alert",
 		},
 		To: []mail.Address{
@@ -289,8 +290,8 @@ func (s *WhatsAppService) sendAdminDisconnectAlert() {
 	}
 
 	if err := s.app.NewMailClient().Send(msg); err != nil {
-		s.app.Logger().Error("WHATSAPP", fmt.Sprintf("Failed to send disconnect alert email: %v", err))
+		s.app.Logger().Error("WHATSAPP", fmt.Sprintf("Failed to send disconnect alert email to %s: %v", adminEmail, err))
 	} else {
-		s.app.Logger().Info("WHATSAPP", "Disconnect alert email sent to admin successfully")
+		s.app.Logger().Info("WHATSAPP", fmt.Sprintf("Disconnect alert email sent to admin %s successfully", adminEmail))
 	}
 }

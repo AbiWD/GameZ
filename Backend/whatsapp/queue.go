@@ -34,7 +34,7 @@ type NotificationQueue struct {
 	app     core.App
 	db      *sql.DB
 	svc     *WhatsAppService
-	jobChan chan NotificationJob
+	jobChan chan struct{} // Signal channel to wake up worker instantly
 	mu      sync.Mutex
 }
 
@@ -90,7 +90,7 @@ func InitNotificationQueue(app core.App, svc *WhatsAppService) (*NotificationQue
 		app:     app,
 		db:      db,
 		svc:     svc,
-		jobChan: make(chan NotificationJob, 1000),
+		jobChan: make(chan struct{}, 1000),
 	}
 
 	GlobalQueue = q
@@ -104,40 +104,29 @@ func InitNotificationQueue(app core.App, svc *WhatsAppService) (*NotificationQue
 
 func (q *NotificationQueue) Enqueue(bookingID, notifType, phone, email, textPayload, emailHTML, emailSubject string) error {
 	q.mu.Lock()
-	defer q.mu.Unlock()
 
 	// Check if this (booking_id, notif_type) has already been logged in notification_logs
 	var count int
 	_ = q.db.QueryRow("SELECT COUNT(*) FROM notification_logs WHERE booking_id = ? AND notif_type = ?", bookingID, notifType).Scan(&count)
 	if count > 0 {
+		q.mu.Unlock()
 		return nil // Idempotent skip: already processed
 	}
 
 	query := `INSERT INTO notification_queue (booking_id, notif_type, recipient_phone, recipient_email, text_payload, email_html, email_subject, status)
 	VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`
 
-	res, err := q.db.Exec(query, bookingID, notifType, phone, email, textPayload, emailHTML, emailSubject)
+	_, err := q.db.Exec(query, bookingID, notifType, phone, email, textPayload, emailHTML, emailSubject)
+	q.mu.Unlock()
+
 	if err != nil {
 		return fmt.Errorf("failed to enqueue notification: %w", err)
 	}
 
-	jobID, _ := res.LastInsertId()
-	job := NotificationJob{
-		ID:             jobID,
-		BookingID:      bookingID,
-		NotifType:      notifType,
-		RecipientPhone: phone,
-		RecipientEmail: email,
-		TextPayload:    textPayload,
-		EmailHTML:      emailHTML,
-		EmailSubject:   emailSubject,
-		Status:         "pending",
-	}
-
+	// Wake up worker instantly via signal channel
 	select {
-	case q.jobChan <- job:
+	case q.jobChan <- struct{}{}:
 	default:
-		// Queue channel full, worker will pick it up from DB scan
 	}
 
 	return nil
@@ -149,13 +138,14 @@ func (q *NotificationQueue) workerLoop() {
 
 	for {
 		select {
-		case job := <-q.jobChan:
-			// Instant trigger when job is enqueued!
-			q.processJob(job)
+		case <-q.jobChan:
+			// Instant wake up signal: fetch next job with status='processing' lock
+			if job, ok := q.fetchNextJob(); ok {
+				q.processJob(job)
+			}
 		case <-ticker.C:
 			// Fallback ticker poll for pending/backoff jobs
-			job, ok := q.fetchNextJob()
-			if ok {
+			if job, ok := q.fetchNextJob(); ok {
 				q.processJob(job)
 			}
 		}
@@ -167,10 +157,10 @@ func (q *NotificationQueue) fetchNextJob() (NotificationJob, bool) {
 	defer q.mu.Unlock()
 
 	var job NotificationJob
-	// Select pending jobs that have not exceeded 3 attempts and are ready for retry (5-min backoff if attempts > 0)
+	// Select pending jobs: attempts = 0 process immediately; attempts > 0 require 5-minute backoff delay
 	query := `SELECT id, booking_id, notif_type, recipient_phone, recipient_email, text_payload, email_html, email_subject, attempts
 	FROM notification_queue
-	WHERE status = 'pending' AND attempts < 3 AND (updated_at IS NULL OR updated_at < datetime('now', '-300 seconds'))
+	WHERE status = 'pending' AND attempts < 3 AND (attempts = 0 OR updated_at < datetime('now', '-300 seconds'))
 	ORDER BY id ASC LIMIT 1`
 
 	err := q.db.QueryRow(query).Scan(
