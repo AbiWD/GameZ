@@ -124,9 +124,12 @@ func RegisterWhatsAppRoutes(se *core.ServeEvent, app core.App) {
 
 		phone, _ := info.Body["phone"].(string)
 		text, _ := info.Body["text"].(string)
+		if text == "" {
+			text, _ = info.Body["message"].(string)
+		}
 
 		if phone == "" || text == "" {
-			return e.JSON(http.StatusBadRequest, map[string]string{"error": "Phone and text parameters are required"})
+			return e.JSON(http.StatusBadRequest, map[string]string{"error": "Phone and text/message parameters are required"})
 		}
 
 		if whatsapp.GlobalService == nil || !whatsapp.GlobalService.IsConnected() {

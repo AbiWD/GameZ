@@ -118,6 +118,7 @@ export default function WhatsAppSettings() {
         },
         body: JSON.stringify({
           phone: testPhone,
+          text: testText,
           message: testText,
         }),
       });
