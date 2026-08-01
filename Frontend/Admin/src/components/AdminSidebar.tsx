@@ -46,7 +46,7 @@ const navigationSections = [
       { title: 'Stations', url: '/admin/stations', icon: Gamepad2 },
       { title: 'Staff Accounts', url: '/admin/staff', icon: UserCheck },
       { title: 'WhatsApp', url: '/admin/whatsapp', icon: WhatsAppLogo },
-      { title: 'Store Closures', url: '/admin/blackouts', icon: CalendarX },
+      { title: 'Blackouts / Closures', url: '/admin/blackouts', icon: CalendarX },
     ]
   },
   {
