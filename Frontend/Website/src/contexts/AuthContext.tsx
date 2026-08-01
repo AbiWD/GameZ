@@ -1,22 +1,33 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import pb from '../lib/pocketbase';
 import type { AuthModel } from 'pocketbase';
+import { PhonePromptModal } from '../components/PhonePromptModal';
 
 interface AuthContextType {
   user: AuthModel | null;
   loading: boolean;
   logout: () => void;
+  promptPhoneModal: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   logout: () => {},
+  promptPhoneModal: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthModel | null>(pb.authStore.model);
   const [loading, setLoading] = useState(true);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+
+  const checkPhoneNeeded = (u: AuthModel | null) => {
+    if (u && u.collectionName === 'portal_users' && (!u.phone || u.phone.trim() === '')) {
+      // Delay slightly so login state completes
+      setTimeout(() => setShowPhoneModal(true), 400);
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -24,6 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Check if the auth store is valid, refresh if needed
     if (pb.authStore.isValid && pb.authStore.model?.collectionName === 'portal_users') {
       setUser(pb.authStore.model);
+      checkPhoneNeeded(pb.authStore.model);
     } else {
       setUser(null);
       if (pb.authStore.model && pb.authStore.model.collectionName !== 'portal_users') {
@@ -37,6 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = pb.authStore.onChange((token, model) => {
       if (model?.collectionName === 'portal_users') {
         setUser(model);
+        checkPhoneNeeded(model);
       } else {
         setUser(null);
         if (model) pb.authStore.clear(); // Ensure only portal_users can log in here
@@ -51,11 +64,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     pb.authStore.clear();
     setUser(null);
+    setShowPhoneModal(false);
+  };
+
+  const handlePhoneSuccess = async (newPhone: string) => {
+    if (user?.id) {
+      try {
+        const updatedRecord = await pb.collection('portal_users').getOne(user.id);
+        setUser(updatedRecord);
+      } catch {
+        setUser({ ...user, phone: newPhone });
+      }
+    }
+    setShowPhoneModal(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout }}>
+    <AuthContext.Provider value={{ user, loading, logout, promptPhoneModal: () => setShowPhoneModal(true) }}>
       {children}
+      <PhonePromptModal
+        isOpen={showPhoneModal}
+        onClose={() => setShowPhoneModal(false)}
+        onSuccess={handlePhoneSuccess}
+      />
     </AuthContext.Provider>
   );
 };

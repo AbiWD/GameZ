@@ -45,14 +45,18 @@ const navigationSections = [
     items: [
       { title: 'Stations', url: '/admin/stations', icon: Gamepad2 },
       { title: 'Staff Accounts', url: '/admin/staff', icon: UserCheck },
-      { title: 'WhatsApp', url: '/admin/whatsapp', icon: WhatsAppLogo },
-      { title: 'Blackouts / Closures', url: '/admin/blackouts', icon: CalendarX },
     ]
   },
   {
-    label: 'Configuration',
+    label: 'Messaging',
     items: [
-
+      { title: 'WhatsApp', url: '/admin/whatsapp', icon: WhatsAppLogo },
+    ]
+  },
+  {
+    label: 'Store Operations',
+    items: [
+      { title: 'Blackouts / Closures', url: '/admin/blackouts', icon: CalendarX },
     ]
   }
 ];
@@ -108,7 +112,7 @@ export function AdminSidebar() {
               if (visibleItems.length === 0) return null;
 
               return (
-              <SidebarGroup key={section.label} className={index > 0 ? "mt-4 pt-4 border-t border-border" : ""}>
+              <SidebarGroup key={section.label} className={index > 0 ? "mt-4" : ""}>
                 {state !== 'collapsed' && (
                   <SidebarGroupLabel className="px-3 text-[10px] font-bold tracking-wider uppercase text-muted-foreground/60 mb-2">
                     {section.label}
