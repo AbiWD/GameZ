@@ -71,10 +71,14 @@ func RegisterStationHooks(app *pocketbase.PocketBase) {
 		return e.Next()
 	})
 
-	// Auto-assign ID if missing for blackout_periods
+	// Auto-assign ID if missing and prevent past date blackout creation
 	app.OnRecordCreateRequest("blackout_periods").BindFunc(func(e *core.RecordRequestEvent) error {
 		if e.Record.Id == "" {
 			e.Record.Set("id", security.RandomString(15))
+		}
+		endDT := e.Record.GetDateTime("end_time")
+		if !endDT.IsZero() && endDT.Time().Before(time.Now().Add(-5*time.Minute)) {
+			return apis.NewBadRequestError("Cannot create a blackout period for past dates or times.", nil)
 		}
 		return e.Next()
 	})

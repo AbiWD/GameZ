@@ -99,6 +99,16 @@ const Blackouts = () => {
     const startTimeISO = new Date(blackoutFormData.start_time).toISOString();
     const endTimeISO = new Date(blackoutFormData.end_time).toISOString();
 
+    const now = new Date();
+    if (new Date(endTimeISO) <= new Date(now.getTime() - 5 * 60 * 1000)) {
+      toast({
+        title: 'Invalid Blackout Period',
+        description: 'Cannot create a blackout period for past dates or times.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     if (new Date(endTimeISO) <= new Date(startTimeISO)) {
       toast({ title: 'Invalid Time Window', description: 'End time must be after start time.', variant: 'destructive' });
       return;
@@ -247,6 +257,7 @@ const Blackouts = () => {
                         <Input
                           id="start_time"
                           type="datetime-local"
+                          min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                           value={blackoutFormData.start_time}
                           onChange={(e) => setBlackoutFormData({ ...blackoutFormData, start_time: e.target.value })}
                           required
@@ -258,6 +269,7 @@ const Blackouts = () => {
                         <Input
                           id="end_time"
                           type="datetime-local"
+                          min={blackoutFormData.start_time || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                           value={blackoutFormData.end_time}
                           onChange={(e) => setBlackoutFormData({ ...blackoutFormData, end_time: e.target.value })}
                           required
