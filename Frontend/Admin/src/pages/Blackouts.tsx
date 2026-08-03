@@ -100,7 +100,7 @@ const Blackouts = () => {
     const endTimeISO = new Date(blackoutFormData.end_time).toISOString();
 
     const now = new Date();
-    if (new Date(endTimeISO) <= new Date(now.getTime() - 5 * 60 * 1000)) {
+    if (new Date(startTimeISO) < new Date(now.getTime() - 5 * 60 * 1000) || new Date(endTimeISO) < new Date(now.getTime() - 5 * 60 * 1000)) {
       toast({
         title: 'Invalid Blackout Period',
         description: 'Cannot create a blackout period for past dates or times.',
@@ -180,9 +180,9 @@ const Blackouts = () => {
       fetchBlackouts();
     } catch (err: any) {
       console.error('Failed to save blackout period full error:', err, err?.data);
-      const fieldErrors = err?.data ? Object.entries(err.data).map(([field, item]: [string, any]) => `${field}: ${item?.message || item}`).join(', ') : '';
-      const errMsg = fieldErrors ? `Validation Error: ${fieldErrors}` : (err?.message || 'Failed to save blackout period.');
-      toast({ title: 'Error', description: errMsg, variant: 'destructive' });
+      const serverMsg = err?.response?.message || err?.message || 'Failed to save blackout period.';
+      const cleanMsg = typeof serverMsg === 'string' ? serverMsg : 'Cannot create a blackout period for past dates or times.';
+      toast({ title: 'Invalid Blackout Period', description: cleanMsg, variant: 'destructive' });
     } finally {
       setSavingBlackout(false);
     }
