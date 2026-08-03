@@ -26,7 +26,8 @@ export const authApi = {
       updates.name = authData.meta.name;
     }
     if (Object.keys(updates).length > 0) {
-      await pb.collection('portal_users').update(authData.record.id, updates);
+      const updated = await pb.collection('portal_users').update(authData.record.id, updates);
+      pb.authStore.save(pb.authStore.token, updated);
     }
     return authData;
   },

@@ -22,10 +22,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
 
-  const checkPhoneNeeded = (u: AuthModel | null) => {
-    if (u && u.collectionName === 'portal_users' && (!u.phone || u.phone.trim() === '')) {
-      // Delay slightly so login state completes
-      setTimeout(() => setShowPhoneModal(true), 400);
+  const checkPhoneNeeded = async (u: AuthModel | null) => {
+    if (!u || u.collectionName !== 'portal_users') return;
+
+    try {
+      // Fetch latest user record to verify phone number status
+      const latestUser = await pb.collection('portal_users').getOne(u.id);
+      if (!latestUser.phone || latestUser.phone.trim() === '') {
+        setTimeout(() => setShowPhoneModal(true), 300);
+      }
+    } catch {
+      if (!u.phone || u.phone.trim() === '') {
+        setTimeout(() => setShowPhoneModal(true), 300);
+      }
     }
   };
 

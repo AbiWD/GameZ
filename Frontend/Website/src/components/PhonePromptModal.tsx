@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Smartphone, CheckCircle2 } from 'lucide-react';
-import { pb } from '@/lib/pocketbase';
+import { Smartphone, CheckCircle2, X } from 'lucide-react';
+import pb from '../lib/pocketbase';
 
 const WhatsAppLogo = ({ className = "h-5 w-5" }: { className?: string }) => (
   <svg className={`fill-current ${className}`} viewBox="0 0 24 24">
@@ -21,6 +18,8 @@ export function PhonePromptModal({ isOpen, onClose, onSuccess }: PhonePromptModa
   const [phone, setPhone] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,67 +50,73 @@ export function PhonePromptModal({ isOpen, onClose, onSuccess }: PhonePromptModa
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-card border-border/60">
-        <DialogHeader>
-          <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-2">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4 text-white">
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 text-zinc-400 hover:text-white p-1 rounded-full hover:bg-zinc-800 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="text-center space-y-1.5 pt-2">
+          <div className="mx-auto w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3">
             <WhatsAppLogo className="w-6 h-6 text-emerald-500" />
           </div>
-          <DialogTitle className="text-center text-lg font-bold">
+          <h2 className="text-lg font-bold">
             Get Instant WhatsApp Tickets
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground text-center">Add your WhatsApp number for instant mobile check-in</DialogDescription>
-        </DialogHeader>
+          </h2>
+          <p className="text-xs text-zinc-400">Add your WhatsApp number for instant mobile check-in</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-foreground flex items-center justify-between">
+            <label className="text-xs font-bold text-zinc-200 flex items-center justify-between">
               <span>WhatsApp Number</span>
-              <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+              <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" /> Instant Ticket Delivery
               </span>
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground font-mono">+91</span>
-              <Input
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-400 font-mono">+91</span>
+              <input
                 type="tel"
                 placeholder="9876543210"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 maxLength={10}
                 required
-                className="pl-12 rounded-xl border-border bg-background text-xs font-mono font-bold tracking-wider"
+                className="w-full pl-12 pr-4 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800/80 text-white placeholder-zinc-500 text-xs font-mono font-bold tracking-wider focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
               />
             </div>
-            {error && <p className="text-[11px] text-rose-500 font-semibold">{error}</p>}
+            {error && <p className="text-[11px] text-rose-400 font-semibold">{error}</p>}
           </div>
 
-          <div className="p-3 rounded-2xl bg-secondary/40 border border-border space-y-1 text-[11px] text-muted-foreground">
-            <div className="font-semibold text-foreground flex items-center gap-1.5">
-              <Smartphone className="w-3.5 h-3.5 text-primary" /> Privacy Consent Notice
+          <div className="p-3 rounded-2xl bg-zinc-800/50 border border-zinc-700/50 space-y-1 text-[11px] text-zinc-400">
+            <div className="font-semibold text-zinc-200 flex items-center gap-1.5">
+              <Smartphone className="w-3.5 h-3.5 text-emerald-400" /> Privacy Consent Notice
             </div>
             <div>We will only use this number to dispatch your digital booking confirmation ticket and lounge updates.</div>
           </div>
 
           <div className="flex items-center gap-2 pt-1">
-            <Button
+            <button
               type="button"
-              variant="outline"
               onClick={onClose}
-              className="flex-1 rounded-xl border-border text-xs"
+              className="flex-1 py-2.5 rounded-xl border border-zinc-700 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold transition-colors"
             >
               Skip for Now
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={saving}
-              className="flex-1 rounded-xl font-semibold text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="flex-1 py-2.5 rounded-xl font-semibold text-xs bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save & Get Ticket'}
-            </Button>
+            </button>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

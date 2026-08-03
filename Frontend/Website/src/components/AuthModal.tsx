@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, Phone, CheckCircle2, ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
 import { useLogin, useGoogleLogin, useRegister, useResetPassword } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose, 
   initialMode = 'login' 
 }) => {
+  const { promptPhoneModal } = useAuth();
   const loginMutation = useLogin();
   const googleLoginMutation = useGoogleLogin();
   const registerMutation = useRegister();
@@ -37,12 +39,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setSuccess(null);
     setIsLoading(true);
     try {
-      await googleLoginMutation.mutateAsync();
+      const res = await googleLoginMutation.mutateAsync();
       setSuccess('Google Authentication successful! Welcome to GameZ Arena...');
       setTimeout(() => {
         onClose();
         handleResetForm();
-      }, 1000);
+        if (!res?.record?.phone || res.record.phone.trim() === '') {
+          promptPhoneModal();
+        }
+      }, 500);
     } catch (err: any) {
       console.error("Google Auth Error:", err);
       setError(err.message || 'Google Sign-In failed or popup was closed. Please try again.');
