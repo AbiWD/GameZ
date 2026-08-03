@@ -270,9 +270,22 @@ const Blackouts = () => {
                         <Input
                           id="start_time"
                           type="datetime-local"
-                          min={new Date(new Date().setHours(0, 0, 0, 0) - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                          min={(() => {
+                            const d = new Date();
+                            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T00:00`;
+                          })()}
                           value={blackoutFormData.start_time}
-                          onChange={(e) => setBlackoutFormData({ ...blackoutFormData, start_time: e.target.value })}
+                          onChange={(e) => {
+                            const selected = e.target.value;
+                            const d = new Date();
+                            const todayMin = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T00:00`;
+                            if (selected && selected < todayMin) {
+                              toast({ title: 'Invalid Date', description: 'Cannot select past dates from yesterday or earlier.', variant: 'destructive' });
+                              setBlackoutFormData({ ...blackoutFormData, start_time: todayMin });
+                              return;
+                            }
+                            setBlackoutFormData({ ...blackoutFormData, start_time: selected });
+                          }}
                           required
                           className="rounded-xl bg-secondary border-border text-xs"
                         />
@@ -282,9 +295,23 @@ const Blackouts = () => {
                         <Input
                           id="end_time"
                           type="datetime-local"
-                          min={blackoutFormData.start_time || new Date(new Date().setHours(0, 0, 0, 0) - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                          min={blackoutFormData.start_time || (() => {
+                            const d = new Date();
+                            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T00:00`;
+                          })()}
                           value={blackoutFormData.end_time}
-                          onChange={(e) => setBlackoutFormData({ ...blackoutFormData, end_time: e.target.value })}
+                          onChange={(e) => {
+                            const selected = e.target.value;
+                            const d = new Date();
+                            const todayMin = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T00:00`;
+                            const minVal = blackoutFormData.start_time || todayMin;
+                            if (selected && selected < minVal) {
+                              toast({ title: 'Invalid Date', description: 'End time must be after start time.', variant: 'destructive' });
+                              setBlackoutFormData({ ...blackoutFormData, end_time: minVal });
+                              return;
+                            }
+                            setBlackoutFormData({ ...blackoutFormData, end_time: selected });
+                          }}
                           required
                           className="rounded-xl bg-secondary border-border text-xs"
                         />
