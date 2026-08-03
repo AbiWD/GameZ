@@ -11,7 +11,10 @@ func init() {
 	m.Register(func(app core.App) error {
 		collection, err := app.FindCollectionByNameOrId("pbc_1079353916")
 		if err != nil {
-			return err
+			collection, err = app.FindCollectionByNameOrId("staff_accounts")
+			if err != nil {
+				return nil
+			}
 		}
 
 		// update collection data
@@ -26,7 +29,10 @@ func init() {
 	}, func(app core.App) error {
 		collection, err := app.FindCollectionByNameOrId("pbc_1079353916")
 		if err != nil {
-			return err
+			collection, err = app.FindCollectionByNameOrId("staff_accounts")
+			if err != nil {
+				return nil
+			}
 		}
 
 		// update collection data
