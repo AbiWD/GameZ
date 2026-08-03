@@ -46,13 +46,6 @@ export function PhonePromptModal({ isOpen, onClose, onSuccess }: PhonePromptModa
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
       <div className="relative w-full max-w-md bg-zinc-900/95 border border-zinc-800 rounded-3xl p-6 shadow-2xl space-y-4 text-white">
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 text-zinc-400 hover:text-white p-1.5 rounded-full hover:bg-zinc-800 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
         <div className="text-center space-y-1.5 pt-2">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600/20 to-indigo-500/20 border border-violet-500/30 text-violet-400 flex items-center justify-center mb-3 shadow-inner">
             <PhoneCall className="w-6 h-6 text-violet-400" />
@@ -61,7 +54,7 @@ export function PhonePromptModal({ isOpen, onClose, onSuccess }: PhonePromptModa
             Complete Your Profile
           </h2>
           <p className="text-xs text-zinc-400 max-w-xs mx-auto leading-relaxed">
-            Add your phone number for seamless booking updates and priority customer support
+            Add your phone number to finish set up for booking updates and priority customer support
           </p>
         </div>
 
@@ -70,7 +63,7 @@ export function PhonePromptModal({ isOpen, onClose, onSuccess }: PhonePromptModa
             <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
               <span>Phone Number</span>
               <span className="text-[10px] text-violet-400 font-semibold flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Priority Updates
+                <Sparkles className="w-3 h-3" /> Required for Account Setup
               </span>
             </label>
             <div className="relative">
@@ -95,20 +88,13 @@ export function PhonePromptModal({ isOpen, onClose, onSuccess }: PhonePromptModa
             <div className="leading-normal">We use your number solely for instant booking receipts, schedule modifications, and lounge support.</div>
           </div>
 
-          <div className="flex items-center gap-2.5 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-zinc-700 hover:bg-zinc-800 text-zinc-300 text-xs font-semibold transition-colors"
-            >
-              Skip for Now
-            </button>
+          <div className="pt-1">
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 py-2.5 rounded-xl font-semibold text-xs bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-900/20 transition-all disabled:opacity-50"
+              className="w-full py-3 rounded-xl font-semibold text-xs bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-lg shadow-violet-900/20 transition-all disabled:opacity-50"
             >
-              {saving ? 'Saving...' : 'Save & Continue'}
+              {saving ? 'Saving Profile...' : 'Save & Continue'}
             </button>
           </div>
         </form>
