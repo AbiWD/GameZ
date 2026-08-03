@@ -175,6 +175,15 @@ export const useAuth = () => {
     }
   };
 
+  const confirmPasswordReset = async (token: string, pass: string, confirmPass: string) => {
+    try {
+      await pb.collection('staff_accounts').confirmPasswordReset(token, pass, confirmPass);
+      return { error: null };
+    } catch (error: any) {
+      return { error };
+    }
+  };
+
   return {
     user,
     session,
@@ -188,5 +197,6 @@ export const useAuth = () => {
     signOut,
     updateUserPassword,
     requestPasswordReset,
+    confirmPasswordReset,
   };
 };
