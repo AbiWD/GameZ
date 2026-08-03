@@ -99,6 +99,27 @@ const Blackouts = () => {
     const startTimeISO = new Date(blackoutFormData.start_time).toISOString();
     const endTimeISO = new Date(blackoutFormData.end_time).toISOString();
 
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    if (new Date(blackoutFormData.start_time) < todayStart) {
+      toast({
+        title: 'Invalid Date',
+        description: 'Blackout start date cannot be before today.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (new Date(blackoutFormData.end_time) < todayStart) {
+      toast({
+        title: 'Invalid Date',
+        description: 'Blackout end date cannot be before today.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     if (new Date(endTimeISO) <= new Date(startTimeISO)) {
       toast({ title: 'Invalid Time Window', description: 'End time must be after start time.', variant: 'destructive' });
       return;
@@ -170,8 +191,10 @@ const Blackouts = () => {
       fetchBlackouts();
     } catch (err: any) {
       console.error('Failed to save blackout period full error:', err, err?.data);
-      const serverMsg = err?.response?.message || err?.message || 'Failed to save blackout period.';
-      const cleanMsg = typeof serverMsg === 'string' ? serverMsg : 'Cannot create a blackout period for past dates or times.';
+      let cleanMsg = err?.message || 'Failed to save blackout period.';
+      if (typeof cleanMsg !== 'string' || cleanMsg.includes('[object Object]')) {
+        cleanMsg = 'Cannot create a blackout period for past dates or times.';
+      }
       toast({ title: 'Invalid Blackout Period', description: cleanMsg, variant: 'destructive' });
     } finally {
       setSavingBlackout(false);
