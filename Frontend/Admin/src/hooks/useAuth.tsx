@@ -72,7 +72,7 @@ export const useAuth = () => {
 
   const checkAdminStatus = (model: AuthModel) => {
     try {
-      if (model) {
+      if (model && model.collectionName !== 'portal_users') {
         setIsAdmin(true);
         if (model.collectionName === '_superusers' || model.email === 'abhilashbangera97@gmail.com') {
           setUserRole('admin');

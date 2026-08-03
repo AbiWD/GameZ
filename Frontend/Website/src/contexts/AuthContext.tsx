@@ -47,10 +47,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       checkPhoneNeeded(pb.authStore.model);
     } else {
       setUser(null);
-      if (pb.authStore.model && pb.authStore.model.collectionName !== 'portal_users') {
-         // Clear if a non-portal user is somehow logged in here
-         pb.authStore.clear();
-      }
     }
     setLoading(false);
 
@@ -61,7 +57,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         checkPhoneNeeded(model);
       } else {
         setUser(null);
-        if (model) pb.authStore.clear(); // Ensure only portal_users can log in here
       }
     });
 
