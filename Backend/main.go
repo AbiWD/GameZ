@@ -228,7 +228,7 @@ func setupEmailTemplates(app *pocketbase.PocketBase) {
       We received a request to reset your GameZ Admin account password.<br/><br/>
       Click the button below to choose a new password.
     </p>
-    <a href="` + frontendURL + `/admin/auth#reset-password?token={TOKEN}"
+    <a href="` + apiURL + `/admin/reset-password?token={TOKEN}"
        target="_blank"
        rel="noopener"
        style="display:inline-block;background:linear-gradient(to right, #8b5cf6, #06b6d4);color:white;padding:12px 28px;
@@ -239,7 +239,7 @@ func setupEmailTemplates(app *pocketbase.PocketBase) {
       If the button does not work, copy and paste this link into your browser:
     </p>
     <p style="word-break:break-all;font-size:12px;color:#06b6d4;">
-      ` + frontendURL + `/admin/auth#reset-password?token={TOKEN}
+      ` + apiURL + `/admin/reset-password?token={TOKEN}
     </p>
     <p style="color:#4b5563;font-size:12px;margin-top:24px;">
       If you did not request a password reset you can safely ignore this email.
@@ -261,18 +261,18 @@ func setupEmailTemplates(app *pocketbase.PocketBase) {
 	// ── Staff Accounts Password Reset Email ──
 	staffAccounts, err := app.FindCollectionByNameOrId("staff_accounts")
 	if err == nil && staffAccounts != nil {
-		staffAccounts.ResetPasswordTemplate.Subject = "Reset your GameZ Staff password"
+		staffAccounts.ResetPasswordTemplate.Subject = "Reset your GameZ password"
 		staffAccounts.ResetPasswordTemplate.Body = `<!DOCTYPE html>
 <html>
 <body style="font-family:helvetica,arial,sans-serif;background:#030712;margin:0;padding:20px;">
   <div style="max-width:520px;margin:0 auto;background:#111827;border-radius:16px;padding:40px;border:1px solid #1f2937;">
     <h1 style="color:#8b5cf6;letter-spacing:0.15em;font-size:24px;margin:0 0 24px;font-weight:900;">GAMEZ</h1>
-    <h2 style="color:#f9fafb;font-size:18px;margin:0 0 8px;">Reset your Staff password</h2>
+    <h2 style="color:#f9fafb;font-size:18px;margin:0 0 8px;">Reset your password</h2>
     <p style="color:#9ca3af;font-size:14px;margin-bottom:24px;">
-      We received a request to reset your GameZ Staff account password.<br/><br/>
+      We received a request to reset your GameZ account password.<br/><br/>
       Click the button below to choose a new password.
     </p>
-    <a href="` + frontendURL + `/admin/auth#reset-password?token={TOKEN}"
+    <a href="` + apiURL + `/admin/reset-password?token={TOKEN}"
        target="_blank"
        rel="noopener"
        style="display:inline-block;background:linear-gradient(to right, #8b5cf6, #06b6d4);color:white;padding:12px 28px;
@@ -283,7 +283,7 @@ func setupEmailTemplates(app *pocketbase.PocketBase) {
       If the button does not work, copy and paste this link into your browser:
     </p>
     <p style="word-break:break-all;font-size:12px;color:#06b6d4;">
-      ` + frontendURL + `/admin/auth#reset-password?token={TOKEN}
+      ` + apiURL + `/admin/reset-password?token={TOKEN}
     </p>
     <p style="color:#4b5563;font-size:12px;margin-top:24px;">
       If you did not request a password reset you can safely ignore this email.
@@ -317,8 +317,6 @@ func setupEmailTemplates(app *pocketbase.PocketBase) {
 		logger.Info("SYSTEM", "Email templates configured ✅")
 	}
 }
-
-
 
 func main() {
 	// ── Load .env ──
@@ -376,8 +374,6 @@ func main() {
 		setupS3(app)
 		setupSMTP(app)
 		setupEmailTemplates(app)
-
-
 
 		// Custom routes
 		routes.RegisterAnalyticsRoutes(se, app)
