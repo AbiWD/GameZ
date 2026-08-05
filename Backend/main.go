@@ -394,6 +394,9 @@ func main() {
 			}
 		}()
 
+		// ── Automatic Superuser Seeding / Ensure Credentials ──
+		ensureDefaultSuperuser(app)
+
 		// ── SPA Fallback for Custom Admin UI ──
 		// Note: /admin/ serves the custom React GameZ Admin Panel.
 		// PocketBase's built-in core superuser dashboard remains at /_/.
@@ -436,5 +439,38 @@ func main() {
 
 	if err := app.Start(); err != nil {
 		logger.Fatalf("SYSTEM", "Server failed: %v", err)
+	}
+}
+
+// ensureDefaultSuperuser guarantees that abhilashbangera97@gmail.com / Admin123 exists on any environment (including AWS)
+func ensureDefaultSuperuser(app *pocketbase.PocketBase) {
+	superuserEmail := "abhilashbangera97@gmail.com"
+	superuserPassword := "Admin123"
+
+	superusers, err := app.FindCollectionByNameOrId("_superusers")
+	if err != nil {
+		logger.Errorf("SYSTEM", "Could not find _superusers collection: %v", err)
+		return
+	}
+
+	record, err := app.FindAuthRecordByEmail("_superusers", superuserEmail)
+	if err != nil || record == nil {
+		// Record does not exist yet; create it
+		rec := core.NewRecord(superusers)
+		rec.SetEmail(superuserEmail)
+		rec.SetPassword(superuserPassword)
+		if err := app.Save(rec); err != nil {
+			logger.Errorf("SYSTEM", "Failed to seed superuser %s: %v", superuserEmail, err)
+		} else {
+			logger.Infof("SYSTEM", "Seeded new superuser: %s with password %s", superuserEmail, superuserPassword)
+		}
+	} else {
+		// Record exists; update password to ensure Admin123 works
+		record.SetPassword(superuserPassword)
+		if err := app.Save(record); err != nil {
+			logger.Errorf("SYSTEM", "Failed to update superuser password: %v", err)
+		} else {
+			logger.Infof("SYSTEM", "Verified superuser credentials: %s", superuserEmail)
+		}
 	}
 }
