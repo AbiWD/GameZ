@@ -38,8 +38,11 @@ interface Station {
 interface StationType {
   id: string;
   name: string;
-  base_price: number;
-  max_players: number;
+  base_price?: number;
+  hourly_rate?: number;
+  price_per_hour?: number;
+  max_players?: number;
+  default_occupancy?: number;
   specs?: string;
   features?: string[];
   amenities?: string[];
@@ -383,7 +386,7 @@ interface ConflictingBooking {
       station_number: '',
       station_type: stationTypes.length > 0 ? stationTypes[0].name : '',
       status: 'available',
-      price_per_hour: stationTypes.length > 0 ? stationTypes[0].base_price : 1500,
+      price_per_hour: stationTypes.length > 0 ? (stationTypes[0].base_price ?? stationTypes[0].hourly_rate ?? stationTypes[0].price_per_hour ?? 1500) : 1500,
       max_players: stationTypes.length > 0 ? (stationTypes[0].max_players || (stationTypes[0] as any).default_occupancy || 2) : 2,
       amenities: []
     });
@@ -471,7 +474,7 @@ interface ConflictingBooking {
     setEditingType(type);
     setTypeFormData({
       name: type.name,
-      base_price: type.base_price,
+      base_price: type.base_price ?? type.hourly_rate ?? type.price_per_hour ?? 0,
       max_players: type.max_players || (type as any).default_occupancy || 2,
       specs: type.specs || 'PS5 Console',
       features: Array.isArray(type.features) ? type.features : ['Air Conditioning'],
@@ -693,7 +696,7 @@ interface ConflictingBooking {
                               setFormData({
                                 ...formData,
                                 station_type: value,
-                                price_per_hour: selectedType?.base_price || 1500,
+                                price_per_hour: selectedType ? (selectedType.base_price ?? selectedType.hourly_rate ?? selectedType.price_per_hour ?? 1500) : 1500,
                                 max_players: selectedType?.max_players || (selectedType as any)?.default_occupancy || 2
                               });
                             }}
@@ -1008,7 +1011,7 @@ interface ConflictingBooking {
                               {type.name}
                             </div>
                           </TableCell>
-                          <TableCell className="p-3 sm:py-4 sm:px-6 align-middle font-semibold text-foreground text-xs sm:text-sm whitespace-nowrap">₹{type.base_price}</TableCell>
+                          <TableCell className="p-3 sm:py-4 sm:px-6 align-middle font-semibold text-foreground text-xs sm:text-sm whitespace-nowrap">₹{type.base_price ?? type.hourly_rate ?? type.price_per_hour ?? 0}</TableCell>
                           <TableCell className="p-3 sm:py-4 sm:px-6 align-middle text-muted-foreground text-xs sm:text-sm whitespace-nowrap hidden md:table-cell">{type.max_players || (type as any).default_occupancy || 2} guests</TableCell>
                           <TableCell className="p-2 py-4 pr-3 sm:px-6 align-middle text-right whitespace-nowrap">
                             <button 
