@@ -165,19 +165,31 @@ interface ConflictingBooking {
   const fetchStations = async () => {
     setLoading(true);
     try {
-      // 1. POCKETBASE SERVER PAGINATION: Fetch specifically for current page
-      const result = await pb.collection('stations').getList(page, perPage, {
-        sort: '+station_number',
-        filter: propertyFilter
-      });
+      let result;
+      try {
+        result = await pb.collection('stations').getList(page, perPage, {
+          sort: '+station_number',
+          filter: propertyFilter
+        });
+      } catch (err) {
+        result = await pb.collection('stations').getList(page, perPage, {
+          sort: '+station_number'
+        });
+      }
       setStations(result.items as unknown as Station[]);
       setTotalPages(result.totalPages);
 
-      // 2. DASHBOARD DATA: Fetch lightweight data of ALL stations strictly for Dashboard math counts
-      const allData = await pb.collection('stations').getFullList({
-        fields: 'id,station_type,status',
-        filter: propertyFilter
-      });
+      let allData;
+      try {
+        allData = await pb.collection('stations').getFullList({
+          fields: 'id,station_type,status',
+          filter: propertyFilter
+        });
+      } catch (err) {
+        allData = await pb.collection('stations').getFullList({
+          fields: 'id,station_type,status'
+        });
+      }
       setAllStations(allData as unknown as Station[]);
 
     } catch (error) {
@@ -191,9 +203,14 @@ interface ConflictingBooking {
   const fetchStationTypes = async () => {
     setLoadingTypes(true);
     try {
-      const data = await pb.collection('station_types').getFullList({
-        filter: propertyFilter
-      });
+      let data: any[] = [];
+      try {
+        data = await pb.collection('station_types').getFullList({
+          filter: propertyFilter
+        });
+      } catch (err) {
+        data = await pb.collection('station_types').getFullList();
+      }
       const fetchedTypes = (data as unknown as StationType[]).sort((a, b) => a.name.localeCompare(b.name));
       setStationTypes(fetchedTypes);
       
@@ -201,7 +218,7 @@ interface ConflictingBooking {
         setFormData(prev => ({ ...prev, station_type: fetchedTypes[0].name }));
       }
     } catch (error) {
-      console.error('Error fetching station types. You may need to create the collection first:', error);
+      console.error('Error fetching station types:', error);
     } finally {
       setLoadingTypes(false);
     }
@@ -210,10 +227,17 @@ interface ConflictingBooking {
   const fetchBlackouts = async () => {
     setLoadingBlackouts(true);
     try {
-      const data = await pb.collection('blackout_periods').getFullList({
-        sort: '-start_time',
-        filter: propertyFilter
-      });
+      let data: any[] = [];
+      try {
+        data = await pb.collection('blackout_periods').getFullList({
+          sort: '-start_time',
+          filter: propertyFilter
+        });
+      } catch (err) {
+        data = await pb.collection('blackout_periods').getFullList({
+          sort: '-start_time'
+        });
+      }
       setBlackouts(data as unknown as BlackoutPeriod[]);
     } catch (error) {
       console.error('Error fetching blackout periods:', error);
