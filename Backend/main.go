@@ -442,35 +442,37 @@ func main() {
 	}
 }
 
-// ensureDefaultSuperuser guarantees that abhilashbangera97@gmail.com / Admin123 exists on any environment (including AWS)
+// ensureDefaultSuperuser seeds an initial superuser from environment variables (SUPERUSER_EMAIL, SUPERUSER_PASSWORD)
+// ONLY if zero superusers currently exist in the database. If any superuser exists, this function is a no-op.
 func ensureDefaultSuperuser(app *pocketbase.PocketBase) {
-	superuserEmail := "abhilashbangera97@gmail.com"
-	superuserPassword := "Admin123"
-
 	superusers, err := app.FindCollectionByNameOrId("_superusers")
 	if err != nil {
 		logger.Errorf("SYSTEM", "Could not find _superusers collection: %v", err)
 		return
 	}
 
-	record, err := app.FindAuthRecordByEmail("_superusers", superuserEmail)
-	if err != nil || record == nil {
-		// Record does not exist yet; create it
-		rec := core.NewRecord(superusers)
-		rec.SetEmail(superuserEmail)
-		rec.SetPassword(superuserPassword)
-		if err := app.Save(rec); err != nil {
-			logger.Errorf("SYSTEM", "Failed to seed superuser %s: %v", superuserEmail, err)
-		} else {
-			logger.Infof("SYSTEM", "Seeded new superuser: %s with password %s", superuserEmail, superuserPassword)
-		}
+	records, err := app.FindAllRecords("_superusers")
+	if err == nil && len(records) > 0 {
+		// Superuser(s) already exist. Do nothing — never modify or overwrite existing superuser credentials.
+		return
+	}
+
+	// 0 superusers exist: Read initial credentials from environment variables
+	email := os.Getenv("SUPERUSER_EMAIL")
+	password := os.Getenv("SUPERUSER_PASSWORD")
+
+	if email == "" || password == "" {
+		logger.Fatalf("SECURITY", "No superuser exists in database and SUPERUSER_EMAIL / SUPERUSER_PASSWORD environment variables are unset.")
+		return
+	}
+
+	rec := core.NewRecord(superusers)
+	rec.SetEmail(email)
+	rec.SetPassword(password)
+
+	if err := app.Save(rec); err != nil {
+		logger.Fatalf("SECURITY", "Failed to seed initial superuser (%s): %v", email, err)
 	} else {
-		// Record exists; update password to ensure Admin123 works
-		record.SetPassword(superuserPassword)
-		if err := app.Save(record); err != nil {
-			logger.Errorf("SYSTEM", "Failed to update superuser password: %v", err)
-		} else {
-			logger.Infof("SYSTEM", "Verified superuser credentials: %s", superuserEmail)
-		}
+		logger.Infof("SECURITY", "Initial superuser seeded successfully for email: %s", email)
 	}
 }
