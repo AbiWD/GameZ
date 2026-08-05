@@ -384,7 +384,7 @@ interface ConflictingBooking {
       station_type: stationTypes.length > 0 ? stationTypes[0].name : '',
       status: 'available',
       price_per_hour: stationTypes.length > 0 ? stationTypes[0].base_price : 1500,
-      max_players: stationTypes.length > 0 ? stationTypes[0].default_occupancy : 2,
+      max_players: stationTypes.length > 0 ? (stationTypes[0].max_players || (stationTypes[0] as any).default_occupancy || 2) : 2,
       amenities: []
     });
     setEditingStation(null);
@@ -410,7 +410,7 @@ interface ConflictingBooking {
       const formData = new FormData();
       formData.append('name', typeFormData.name);
       formData.append('base_price', typeFormData.base_price.toString());
-      formData.append('default_occupancy', typeFormData.max_players.toString());
+      formData.append('max_players', typeFormData.max_players.toString());
       formData.append('specs', typeFormData.specs);
       formData.append('is_popular', typeFormData.is_popular ? 'true' : 'false');
       formData.append('description', typeFormData.description);
@@ -472,7 +472,7 @@ interface ConflictingBooking {
     setTypeFormData({
       name: type.name,
       base_price: type.base_price,
-      max_players: type.default_occupancy,
+      max_players: type.max_players || (type as any).default_occupancy || 2,
       specs: type.specs || 'PS5 Console',
       features: Array.isArray(type.features) ? type.features : ['Air Conditioning'],
       amenities: Array.isArray(type.amenities) ? type.amenities : ['Wifi'],
@@ -694,7 +694,7 @@ interface ConflictingBooking {
                                 ...formData,
                                 station_type: value,
                                 price_per_hour: selectedType?.base_price || 1500,
-                                max_players: selectedType?.default_occupancy || 2
+                                max_players: selectedType?.max_players || (selectedType as any)?.default_occupancy || 2
                               });
                             }}
                           >
@@ -1009,7 +1009,7 @@ interface ConflictingBooking {
                             </div>
                           </TableCell>
                           <TableCell className="p-3 sm:py-4 sm:px-6 align-middle font-semibold text-foreground text-xs sm:text-sm whitespace-nowrap">₹{type.base_price}</TableCell>
-                          <TableCell className="p-3 sm:py-4 sm:px-6 align-middle text-muted-foreground text-xs sm:text-sm whitespace-nowrap hidden md:table-cell">{type.default_occupancy} guests</TableCell>
+                          <TableCell className="p-3 sm:py-4 sm:px-6 align-middle text-muted-foreground text-xs sm:text-sm whitespace-nowrap hidden md:table-cell">{type.max_players || (type as any).default_occupancy || 2} guests</TableCell>
                           <TableCell className="p-2 py-4 pr-3 sm:px-6 align-middle text-right whitespace-nowrap">
                             <button 
                               onClick={() => openEditTypeDialog(type)}
