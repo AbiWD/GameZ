@@ -204,9 +204,12 @@ interface ConflictingBooking {
     setLoadingTypes(true);
     try {
       let data: any[] = [];
+      const filterStr = activeProperty?.id 
+        ? `(property_id = "${activeProperty.id}" || property_id = "")` 
+        : '';
       try {
         data = await pb.collection('station_types').getFullList({
-          filter: propertyFilter
+          filter: filterStr || undefined
         });
       } catch (err) {
         data = await pb.collection('station_types').getFullList();

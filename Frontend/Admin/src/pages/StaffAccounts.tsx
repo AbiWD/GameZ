@@ -59,6 +59,15 @@ const StaffAccounts = () => {
     }
   };
 
+  const formatDisplayName = (user: StaffUser) => {
+    if (user.name && user.name.trim().length > 0) return user.name;
+    if (user.email && user.email.includes('@')) {
+      const prefix = user.email.split('@')[0];
+      return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    }
+    return '-';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.passwordConfirm) {
@@ -152,6 +161,7 @@ const StaffAccounts = () => {
                     />
                   </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
                   <div className="relative">
@@ -160,56 +170,56 @@ const StaffAccounts = () => {
                       id="email"
                       type="email"
                       required
-                      className="pl-9 rounded-xl"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="staff@gamez.in"
+                      className="pl-9 rounded-xl"
                     />
                   </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
                   <Select
-                    value={userRole === 'manager' ? 'staff' : formData.role}
-                    onValueChange={(val) => setFormData({ ...formData, role: val })}
-                    disabled={userRole === 'manager'}
+                    value={formData.role}
+                    onValueChange={(val: 'admin' | 'manager' | 'staff') => setFormData({ ...formData, role: val })}
                   >
                     <SelectTrigger className="rounded-xl">
-                      <SelectValue placeholder="Select a role" />
+                      <SelectValue placeholder="Select role" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="staff">Staff (Front Desk Only)</SelectItem>
-                      {userRole === 'admin' && <SelectItem value="manager">Manager (Shift Leader)</SelectItem>}
-                      {userRole === 'admin' && <SelectItem value="admin">Admin (Full Access)</SelectItem>}
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="staff">Staff (Front Desk Access)</SelectItem>
+                      <SelectItem value="manager">Manager (Branch Operations)</SelectItem>
+                      <SelectItem value="admin">Admin (Full System Access)</SelectItem>
                     </SelectContent>
                   </Select>
-                  {userRole === 'manager' && (
-                    <p className="text-[11px] text-muted-foreground">Managers can only create Staff accounts.</p>
-                  )}
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="password">Temporary Password</Label>
+                  <Label htmlFor="password">Password</Label>
                   <div className="relative">
                     <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       required
-                      className="pl-9 pr-10 rounded-xl"
-                      minLength={8}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      placeholder="••••••••"
+                      className="pl-9 pr-10 rounded-xl"
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      title={showPassword ? "Hide password" : "Show password"}
                     >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
+                      {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                    </Button>
                   </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="passwordConfirm">Confirm Password</Label>
                   <div className="relative">
@@ -218,24 +228,28 @@ const StaffAccounts = () => {
                       id="passwordConfirm"
                       type={showConfirmPassword ? "text" : "password"}
                       required
-                      className="pl-9 pr-10 rounded-xl"
-                      minLength={8}
                       value={formData.passwordConfirm}
                       onChange={(e) => setFormData({ ...formData, passwordConfirm: e.target.value })}
+                      placeholder="••••••••"
+                      className="pl-9 pr-10 rounded-xl"
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      title={showConfirmPassword ? "Hide password" : "Show password"}
                     >
-                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                    </Button>
                   </div>
                 </div>
-                <div className="pt-4 flex flex-col sm:flex-row justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-xl border-border w-full sm:w-auto">Cancel</Button>
-                  <Button type="submit" disabled={saving} className="rounded-xl w-full sm:w-auto font-semibold">
+
+                <div className="pt-4 flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-xl">
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={saving} className="rounded-xl">
                     {saving ? 'Creating...' : 'Create Account'}
                   </Button>
                 </div>
@@ -273,8 +287,8 @@ const StaffAccounts = () => {
                   <TableBody>
                     {users.map((user) => (
                       <TableRow key={user.id} className="border-border">
-                        <TableCell className="font-medium text-foreground">{user.email || user.name || '-'}</TableCell>
-                        <TableCell className="text-foreground">{user.name || '-'}</TableCell>
+                        <TableCell className="font-medium text-foreground">{user.email || '-'}</TableCell>
+                        <TableCell className="text-foreground font-medium">{formatDisplayName(user)}</TableCell>
                         <TableCell>
                           {user.role === 'admin' || user.email === 'sysadmin@gamez.in' ? (
                             <Badge variant="default" className="bg-primary hover:bg-primary/90 gap-1">
@@ -294,10 +308,10 @@ const StaffAccounts = () => {
                           {user.created && !isNaN(new Date(user.created).getTime()) ? new Date(user.created).toLocaleDateString() : 'Active'}
                         </TableCell>
                         <TableCell className="text-right">
-                          {pb.authStore.model?.id !== user.id && (
+                          {pb.authStore.model?.id !== user.id ? (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 h-8 w-8 rounded-full">
+                                <Button variant="ghost" size="icon" title="Revoke Account Access" className="text-destructive hover:bg-destructive/10 h-8 w-8 rounded-full">
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
                               </AlertDialogTrigger>
@@ -319,6 +333,8 @@ const StaffAccounts = () => {
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/60 italic pr-2">-</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -333,8 +349,8 @@ const StaffAccounts = () => {
                   <div key={user.id} className="p-4 rounded-2xl border border-border bg-card/60 shadow-sm space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="space-y-1 min-w-0">
-                        <p className="font-bold text-foreground text-sm truncate">{user.email || user.name || '-'}</p>
-                        {user.name && <p className="text-xs text-muted-foreground">{user.name}</p>}
+                        <p className="font-bold text-foreground text-sm truncate">{user.email || '-'}</p>
+                        <p className="text-xs text-muted-foreground">{formatDisplayName(user)}</p>
                         <div className="pt-0.5">
                           {user.role === 'admin' || user.email === 'sysadmin@gamez.in' ? (
                             <Badge variant="default" className="bg-primary hover:bg-primary/90 gap-1 text-[11px] py-0.5">
