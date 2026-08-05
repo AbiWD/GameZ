@@ -394,9 +394,6 @@ func main() {
 			}
 		}()
 
-		// ── Automatic Superuser Seeding / Ensure Credentials ──
-		ensureDefaultSuperuser(app)
-
 		// ── SPA Fallback for Custom Admin UI ──
 		// Note: /admin/ serves the custom React GameZ Admin Panel.
 		// PocketBase's built-in core superuser dashboard remains at /_/.
@@ -439,40 +436,5 @@ func main() {
 
 	if err := app.Start(); err != nil {
 		logger.Fatalf("SYSTEM", "Server failed: %v", err)
-	}
-}
-
-// ensureDefaultSuperuser seeds an initial superuser from environment variables (SUPERUSER_EMAIL, SUPERUSER_PASSWORD)
-// ONLY if zero superusers currently exist in the database. If any superuser exists, this function is a no-op.
-func ensureDefaultSuperuser(app *pocketbase.PocketBase) {
-	superusers, err := app.FindCollectionByNameOrId("_superusers")
-	if err != nil {
-		logger.Errorf("SYSTEM", "Could not find _superusers collection: %v", err)
-		return
-	}
-
-	records, err := app.FindAllRecords("_superusers")
-	if err == nil && len(records) > 0 {
-		// Superuser(s) already exist. Do nothing — never modify or overwrite existing superuser credentials.
-		return
-	}
-
-	// 0 superusers exist: Read initial credentials from environment variables
-	email := os.Getenv("SUPERUSER_EMAIL")
-	password := os.Getenv("SUPERUSER_PASSWORD")
-
-	if email == "" || password == "" {
-		logger.Fatalf("SECURITY", "No superuser exists in database and SUPERUSER_EMAIL / SUPERUSER_PASSWORD environment variables are unset.")
-		return
-	}
-
-	rec := core.NewRecord(superusers)
-	rec.SetEmail(email)
-	rec.SetPassword(password)
-
-	if err := app.Save(rec); err != nil {
-		logger.Fatalf("SECURITY", "Failed to seed initial superuser (%s): %v", email, err)
-	} else {
-		logger.Infof("SECURITY", "Initial superuser seeded successfully for email: %s", email)
 	}
 }
