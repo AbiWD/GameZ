@@ -70,15 +70,15 @@ export const EmailNotificationBanner: React.FC = () => {
       </AnimatePresence>
 
       {/* 2. FLOATING INBOX TOGGLER BUTTON */}
-      <div className="fixed bottom-6 left-6 z-[90]">
+      <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[90]">
         <button
           onClick={() => setIsInboxOpen(true)}
-          className="relative group p-4 rounded-full bg-cyber-lightgray border border-cyber-purple/40 text-cyber-purple shadow-xl hover:scale-105 active:scale-95 hover:border-cyber-cyan hover:text-cyber-cyan hover:shadow-cyber-cyan/10 transition-all duration-300 cursor-pointer"
+          className="relative group p-2.5 sm:p-4 rounded-full bg-cyber-lightgray border border-cyber-purple/40 text-cyber-purple shadow-xl hover:scale-105 active:scale-95 hover:border-cyber-cyan hover:text-cyber-cyan hover:shadow-cyber-cyan/10 transition-all duration-300 cursor-pointer"
           title="Open Simulated Mail Inbox"
         >
-          <Inbox className="h-6 w-6" />
+          <Inbox className="h-5 w-5 sm:h-6 sm:w-6" />
           {emails.length > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-cyber-pink text-[10px] font-mono font-bold text-white animate-pulse">
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-cyber-pink text-[9px] sm:text-[10px] font-mono font-bold text-white animate-pulse">
               {emails.length}
             </span>
           )}

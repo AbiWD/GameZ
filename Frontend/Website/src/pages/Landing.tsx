@@ -397,39 +397,49 @@ export default function Landing({ setRoute }: LandingProps) {
                 
                 {/* Visual Image / Placeholder container */}
                 <div className="relative h-36 sm:h-40 md:h-44 bg-cyber-dark border-b border-white/5 overflow-hidden">
-                  {station.imageUrl ? (
-                    <>
-                      <img 
-                        src={station.imageUrl} 
-                        alt={station.name}
-                        referrerPolicy="no-referrer"
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark via-cyber-dark/30 to-transparent" />
-                      
-                      {/* Floating Icon Badge */}
-                      <div className="absolute bottom-4 left-4 flex items-center gap-2 z-10">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyber-dark/80 backdrop-blur-md text-cyber-cyan border border-cyber-purple/30 shadow-lg">
-                          <IconComponent className="h-4.5 w-4.5" />
-                        </div>
+              {(() => {
+                const sNameLower = (station.name || '').toLowerCase();
+                const displayImage = station.imageUrl || (
+                  sNameLower.includes('snooker') ? '/images/snooker-lounge.jpg' :
+                  sNameLower.includes('carrom') ? '/images/carrom-arena.jpg' :
+                  (sNameLower.includes('pool') || sNameLower.includes('8 ball')) ? '/images/8ball-pool.jpg' :
+                  sNameLower.includes('playstation') || sNameLower.includes('ps5') ? '/images/ps5-lounge.jpg' : ''
+                );
+
+                return displayImage ? (
+                  <>
+                    <img 
+                      src={displayImage} 
+                      alt={station.name}
+                      referrerPolicy="no-referrer"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark via-cyber-dark/30 to-transparent" />
+                    
+                    {/* Floating Icon Badge */}
+                    <div className="absolute bottom-4 left-4 flex items-center gap-2 z-10">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyber-dark/80 backdrop-blur-md text-cyber-cyan border border-cyber-purple/30 shadow-lg">
+                        <IconComponent className="h-4.5 w-4.5" />
                       </div>
-                    </>
-                  ) : (
-                    <div className="absolute inset-0 bg-cyber-dark p-3">
-                      <div className="h-full w-full border border-dashed border-white/10 rounded-xl bg-cyber-lightgray/5 flex flex-col items-center justify-center p-4 relative group/placeholder transition-colors duration-300 hover:bg-cyber-lightgray/10">
-                        {/* Grid line blueprint decoration */}
-                        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:14px_14px] rounded-xl pointer-events-none" />
-                        
-                        {/* Center Icon Block */}
-                        <div className="relative flex items-center justify-center">
-                          <ImageIcon className="h-10 w-10 text-gray-600 group-hover/placeholder:text-cyber-purple/60 transition-colors duration-300" />
-                          <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-md bg-cyber-dark text-cyber-cyan border border-cyber-purple/20 shadow-md">
-                            <IconComponent className="h-3 w-3" />
-                          </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="absolute inset-0 bg-cyber-dark p-3">
+                    <div className="h-full w-full border border-dashed border-white/10 rounded-xl bg-cyber-lightgray/5 flex flex-col items-center justify-center p-4 relative group/placeholder transition-colors duration-300 hover:bg-cyber-lightgray/10">
+                      {/* Grid line blueprint decoration */}
+                      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:14px_14px] rounded-xl pointer-events-none" />
+                      
+                      {/* Center Icon Block */}
+                      <div className="relative flex items-center justify-center">
+                        <ImageIcon className="h-10 w-10 text-gray-600 group-hover/placeholder:text-cyber-purple/60 transition-colors duration-300" />
+                        <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-md bg-cyber-dark text-cyber-cyan border border-cyber-purple/20 shadow-md">
+                          <IconComponent className="h-3 w-3" />
                         </div>
                       </div>
                     </div>
-                  )}
+                  </div>
+                );
+              })()}
                 </div>
 
                 {/* Card Content */}
@@ -751,10 +761,18 @@ export default function Landing({ setRoute }: LandingProps) {
                     <div className="space-y-4">
                       <div className="flex items-baseline gap-1">
                         <span className="font-mono text-2xl sm:text-3xl font-black text-white">
-                          {tier.id === 'tier-hourly' && Object.keys(dynamicPricing.hourlyRates).length > 0
-                            ? `₹${Math.min(...Object.values(dynamicPricing.hourlyRates)).toLocaleString('en-IN')}`
-                            : `₹${(dynamicPricing.tierPrices[tier.id] || tier.price).toLocaleString('en-IN')}`
-                          }
+                          {(() => {
+                            const validRates = Object.values(dynamicPricing.hourlyRates).filter(
+                              (v): v is number => typeof v === 'number' && !isNaN(v) && v > 0
+                            );
+                            if (tier.id === 'tier-hourly') {
+                              const minRate = validRates.length > 0 ? Math.min(...validRates) : (tier.price || 100);
+                              return `₹${minRate.toLocaleString('en-IN')}`;
+                            }
+                            const rawPrice = dynamicPricing.tierPrices[tier.id] ?? tier.price;
+                            const numPrice = typeof rawPrice === 'number' && !isNaN(rawPrice) && rawPrice > 0 ? rawPrice : (tier.price || 100);
+                            return `₹${numPrice.toLocaleString('en-IN')}`;
+                          })()}
                         </span>
                         <span className="text-xs text-gray-400">
                           / {tier.period}

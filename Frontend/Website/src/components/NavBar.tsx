@@ -102,23 +102,20 @@ export default function NavBar({ currentRoute, setRoute }: NavBarProps) {
     <>
       <nav 
         id="navbar-sticky"
-        className="sticky top-0 z-50 w-full border-b border-cyber-purple/20 bg-cyber-dark/85 backdrop-blur-sm transition-all duration-300"
+        className="fixed top-0 left-0 right-0 z-50 w-full border-b border-cyber-purple/20 bg-cyber-dark/90 backdrop-blur-md transition-all duration-300"
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-20 items-center justify-between">
+          <div className="flex h-16 sm:h-20 items-center justify-between">
             
             {/* Logo and Cafe Brand */}
             <button 
               id="nav-logo-btn"
               onClick={() => setRoute('/')}
-              className="flex items-center gap-2.5 focus:outline-none focus:ring-2 focus:ring-cyber-purple focus:ring-offset-2 focus:ring-offset-cyber-dark rounded-md p-1 group text-left cursor-pointer"
+              className="flex items-center outline-none focus:outline-none focus:ring-0 focus-visible:outline-none p-1 group text-left cursor-pointer border-0 active:bg-transparent"
               aria-label="GameZ Home"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-cyber-purple to-cyber-cyan text-white shadow-lg shadow-cyber-purple/20 group-hover:scale-105 transition-transform duration-200">
-                <Gamepad2 className="h-5 w-5" />
-              </div>
               <div>
-                <span className="font-display text-xl font-bold tracking-wider text-white">
+                <span className="font-display text-2xl font-bold tracking-wider text-white">
                   GAME<span className="text-cyber-purple">Z</span>
                 </span>
                 <span className="block font-mono text-[9px] uppercase tracking-widest text-cyber-cyan">

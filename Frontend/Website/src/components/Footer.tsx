@@ -47,11 +47,8 @@ export default function Footer({ currentRoute, setRoute }: FooterProps) {
           
           {/* Column 1: Brand Intro */}
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-tr from-cyber-purple to-cyber-cyan text-white shadow-md shadow-cyber-purple/10">
-                <Gamepad2 className="h-4 w-4" />
-              </div>
-              <span className="font-display text-lg font-bold tracking-wider text-white">
+            <div className="flex items-center">
+              <span className="font-display text-xl font-bold tracking-wider text-white">
                 GAME<span className="text-cyber-purple">Z</span>
               </span>
             </div>

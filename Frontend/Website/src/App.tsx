@@ -43,12 +43,12 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-cyber-dark text-gray-100 selection:bg-cyber-purple selection:text-white">
+    <div className="flex flex-col min-h-screen max-w-full overflow-x-hidden relative bg-cyber-dark text-gray-100 selection:bg-cyber-purple selection:text-white">
       {/* Sticky Header Navigation */}
       <NavBar currentRoute={currentRoute} setRoute={setRoute} />
 
       {/* Main Page Area with Route Transitions */}
-      <main className="flex-grow">
+      <main className="flex-grow pt-16 sm:pt-20">
         <AnimatePresence mode="wait">
           {currentRoute === '/book' ? (
             <motion.div

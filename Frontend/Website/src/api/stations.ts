@@ -13,12 +13,19 @@ export const stationsApi = {
     
     const hourlyRates: Record<string, number> = {};
     stTypes.forEach(st => {
-      hourlyRates[st.name] = st.base_price;
+      const price = st.base_price ?? st.hourly_rate ?? st.price_per_hour;
+      const parsedPrice = typeof price === 'number' ? price : parseFloat(price);
+      if (!isNaN(parsedPrice) && parsedPrice > 0) {
+        hourlyRates[st.name] = parsedPrice;
+      }
     });
     
     const tierPrices: Record<string, number> = {};
     tPrices.forEach(t => {
-      tierPrices[t.tier_id] = t.price;
+      const price = typeof t.price === 'number' ? t.price : parseFloat(t.price);
+      if (!isNaN(price) && price > 0) {
+        tierPrices[t.tier_id] = price;
+      }
     });
 
     const liveAvailability: Record<string, { total: number; available: number }> = {};
