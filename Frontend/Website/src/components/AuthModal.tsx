@@ -50,7 +50,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }, 500);
     } catch (err: any) {
       console.error("Google Auth Error:", err);
-      setError(err.message || 'Google Sign-In failed or popup was closed. Please try again.');
+      const errMsg = err?.message || '';
+      if (errMsg.includes('OAuth2') || errMsg.includes('provider') || err?.status === 400 || err?.status === 404) {
+        setError('Google Sign-In is not enabled on this server yet. Please log in or register using Email & Password.');
+      } else {
+        setError(errMsg || 'Google Sign-In failed or popup was closed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -77,6 +82,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setSuccess(null);
     setIsLoading(true);
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     try {
       if (mode === 'login') {
         if (!email || !password) {
@@ -84,7 +91,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setIsLoading(false);
           return;
         }
-        await loginMutation.mutateAsync({ email, password });
+        if (!emailRegex.test(email.trim())) {
+          setError('Please enter a valid email address (e.g. gamer@example.com).');
+          setIsLoading(false);
+          return;
+        }
+        await loginMutation.mutateAsync({ email: email.trim(), password });
         setSuccess('Authenticated successfully! Loading your gaming dashboard...');
         setTimeout(() => {
           onClose();
@@ -94,6 +106,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       else if (mode === 'register') {
         if (!name || !email || !phone || !password || !confirmPassword) {
           setError('Please fill in all registration fields.');
+          setIsLoading(false);
+          return;
+        }
+        if (!emailRegex.test(email.trim())) {
+          setError('Please enter a valid email address (e.g. gamer@example.com).');
           setIsLoading(false);
           return;
         }
@@ -108,7 +125,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           return;
         }
 
-        await registerMutation.mutateAsync({ name, email, phone, password });
+        await registerMutation.mutateAsync({ name, email: email.trim(), phone, password });
         setSuccess('Gamer account created! Welcome to GameZ Arena...');
         setTimeout(() => {
           onClose();
@@ -121,19 +138,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setIsLoading(false);
           return;
         }
-        await resetPasswordMutation.mutateAsync(email);
+        if (!emailRegex.test(email.trim())) {
+          setError('Please enter a valid email address (e.g. gamer@example.com).');
+          setIsLoading(false);
+          return;
+        }
+        await resetPasswordMutation.mutateAsync(email.trim());
         setSuccess('Recovery code dispatched successfully!');
       }
     } catch (err: any) {
-      if (err?.response?.data) {
-        // PocketBase validation error map
-        const data = err.response.data;
-        const messages = Object.entries(data)
-          .map(([field, v]: [string, any]) => `${field.toUpperCase()}: ${v.message}`)
-          .join('. ');
-        setError(messages || err.message || 'An unexpected error occurred.');
+      console.error("Auth submit error:", err);
+      const rawData = err?.response?.data || {};
+      const fieldErrors = Object.entries(rawData)
+        .map(([field, v]: [string, any]) => `${field.toUpperCase()}: ${v?.message || v}`)
+        .filter(Boolean)
+        .join('. ');
+
+      if (fieldErrors) {
+        setError(fieldErrors);
+      } else if (err?.status === 500 || err?.message?.includes('Failed to authenticate')) {
+        setError('ACCOUNT_NOT_FOUND');
+      } else if (err?.message) {
+        setError(err.message);
       } else {
-        setError(err?.message || 'An unexpected error occurred.');
+        setError('Authentication failed. Please check your credentials and try again.');
       }
     } finally {
       setIsLoading(false);
@@ -159,10 +187,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             initial={{ opacity: 0, scale: 0.9, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 15 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 180 }}
-            className="relative w-full max-w-md bg-cyber-gray border border-cyber-purple/30 rounded-2xl p-6 sm:p-8 shadow-[0_0_50px_rgba(139,92,246,0.15)] overflow-hidden z-10"
+            transition={{ duration: 0.2 }}
+            className="relative w-full max-w-md bg-cyber-gray border border-cyber-purple/30 rounded-3xl p-6 sm:p-8 shadow-[0_20px_60px_rgba(139,92,246,0.15)] overflow-hidden text-center"
           >
-            {/* Top Glowing bar */}
+            {/* Glowing top line */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyber-purple via-cyber-cyan to-cyber-pink" />
             
             {/* Background design elements */}
@@ -190,12 +218,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {/* Error / Success Feedback */}
             {error && (
               <motion.div 
-                initial={{ opacity: 0, y: -5 }} 
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-4 p-3.5 rounded-xl bg-cyber-pink/10 border border-cyber-pink/30 flex items-start gap-2 text-xs text-cyber-pink font-medium leading-relaxed"
+                initial={{ opacity: 0, y: -8, scale: 0.98 }} 
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className="mb-5 p-4 rounded-2xl bg-rose-500/15 border border-rose-500/40 shadow-lg shadow-rose-950/30 text-left flex items-start gap-3"
               >
-                <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>{error}</span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0 mt-0.5">
+                  <ShieldAlert className="h-4.5 w-4.5" />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  {error === 'ACCOUNT_NOT_FOUND' ? (
+                    <div>
+                      <h4 className="font-display text-xs font-bold text-rose-200 uppercase tracking-wider">
+                        Account Not Found or Wrong Password
+                      </h4>
+                      <p className="text-[11px] text-gray-300 font-sans mt-0.5 leading-relaxed">
+                        Please check your credentials or register a new account below.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-rose-200 font-medium leading-relaxed font-sans">
+                      {error}
+                    </p>
+                  )}
+                </div>
               </motion.div>
             )}
 
@@ -211,7 +257,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             )}
 
             {/* Action forms */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
               
               {mode === 'login' && (
                 <>

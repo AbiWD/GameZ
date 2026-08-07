@@ -3,8 +3,21 @@ import type { User } from '../types';
 
 export const authApi = {
   login: async ({ email, password }: { email: string; password: string }) => {
-    const authData = await pb.collection('portal_users').authWithPassword(email, password);
-    if (authData.record.status === 'banned') {
+    let authData: any;
+    try {
+      authData = await pb.collection('portal_users').authWithPassword(email, password);
+    } catch (err: any) {
+      if (err?.status === 500 || err?.status === 404) {
+        try {
+          authData = await pb.collection('users').authWithPassword(email, password);
+        } catch (_) {
+          throw err;
+        }
+      } else {
+        throw err;
+      }
+    }
+    if (authData.record?.status === 'banned') {
       pb.authStore.clear();
       throw new Error("Your account has been restricted. Please contact store management.");
     }
@@ -12,21 +25,24 @@ export const authApi = {
   },
 
   loginWithGoogle: async () => {
-    const authData = await pb.collection('portal_users').authWithOAuth2({
-      provider: 'google',
-    });
-    if (authData.record.status === 'banned') {
+    let authData: any;
+    try {
+      authData = await pb.collection('portal_users').authWithOAuth2({ provider: 'google' });
+    } catch (err: any) {
+      authData = await pb.collection('users').authWithOAuth2({ provider: 'google' });
+    }
+    if (authData.record?.status === 'banned') {
       pb.authStore.clear();
       throw new Error("Your account has been restricted. Please contact store management.");
     }
-    // Sync name from Google meta and default status if unset
     const updates: any = {};
     if (!authData.record.status) updates.status = 'regular';
     if ((!authData.record.name || authData.record.name === 'N/A') && authData.meta?.name) {
       updates.name = authData.meta.name;
     }
     if (Object.keys(updates).length > 0) {
-      const updated = await pb.collection('portal_users').update(authData.record.id, updates);
+      const colName = authData.record.collectionName || 'portal_users';
+      const updated = await pb.collection(colName).update(authData.record.id, updates);
       pb.authStore.save(pb.authStore.token, updated);
     }
     return authData;
@@ -34,23 +50,30 @@ export const authApi = {
 
   updateProfile: async (data: { name?: string; phone?: string }) => {
     if (!pb.authStore.record) throw new Error("Not authenticated");
-    const record = await pb.collection('portal_users').update(pb.authStore.record.id, data);
+    const colName = pb.authStore.record.collectionName || 'portal_users';
+    const record = await pb.collection(colName).update(pb.authStore.record.id, data);
     return record;
   },
 
   register: async ({ name, email, phone, password }: any) => {
-    // Basic validation
     if (!name || !email || !password || !phone) {
       throw new Error("All fields are required.");
     }
     
-    // Check if phone or email exists
-    const existing = await pb.collection('portal_users').getList(1, 1, {
-      filter: `email = "${email}" || phone = "${phone}"`,
-    });
-    
-    if (existing.totalItems > 0) {
-      throw new Error("Account with this email or phone number already exists.");
+    let colName = 'portal_users';
+    try {
+      const existing = await pb.collection('portal_users').getList(1, 1, {
+        filter: `email = "${email}" || phone = "${phone}"`,
+      });
+      if (existing.totalItems > 0) {
+        throw new Error("Account with this email or phone number already exists.");
+      }
+    } catch (err: any) {
+      if (err?.status === 500 || err?.status === 404) {
+        colName = 'users';
+      } else {
+        throw err;
+      }
     }
 
     const data = {
@@ -62,8 +85,8 @@ export const authApi = {
       phone,
     };
 
-    const record = await pb.collection('portal_users').create(data);
-    await pb.collection('portal_users').authWithPassword(email, password);
+    const record = await pb.collection(colName).create(data);
+    await pb.collection(colName).authWithPassword(email, password);
     return record;
   },
 
