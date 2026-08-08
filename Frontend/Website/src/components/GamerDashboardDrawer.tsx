@@ -51,6 +51,8 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
   // Extension sub-states
   const [extendingBookingId, setExtendingBookingId] = useState<string | null>(null);
   const [cancelingBookingId, setCancelingBookingId] = useState<string | null>(null);
+  const [isCanceling, setIsCanceling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const [extensionHours, setExtensionHours] = useState<number>(1);
   const [extensionError, setExtensionError] = useState<string | null>(null);
   const [extensionSuccess, setExtensionSuccess] = useState<string | null>(null);
@@ -110,8 +112,16 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
   };
 
   const handleCancel = async (bookingId: string) => {
-    await cancelBookingMutation.mutateAsync(bookingId);
-    setCancelingBookingId(null);
+    setCancelError(null);
+    setIsCanceling(true);
+    try {
+      await cancelBookingMutation.mutateAsync(bookingId);
+      setCancelingBookingId(null);
+    } catch (err: any) {
+      setCancelError(err?.message || 'Error cancelling reservation');
+    } finally {
+      setIsCanceling(false);
+    }
   };
 
   const startExtensionFlow = (bookingId: string) => {
@@ -367,9 +377,22 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
                               </div>
 
                               {extensionError && (
-                                <div className="p-2.5 rounded-lg bg-cyber-pink/10 border border-cyber-pink/20 text-[11px] text-cyber-pink flex items-start gap-1.5 leading-relaxed font-sans">
-                                  <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                                  <span>{extensionError}</span>
+                                <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-xs text-rose-200 space-y-2 leading-relaxed font-sans">
+                                  <div className="flex items-start gap-2">
+                                    <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5 text-rose-400" />
+                                    <span>{extensionError}</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setRoute('/book');
+                                      onClose();
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyber-purple/30 border border-cyber-purple/50 text-cyber-cyan hover:bg-cyber-purple/50 text-[11px] font-mono font-bold rounded-lg transition cursor-pointer"
+                                  >
+                                    <span>Book a New Session</span>
+                                    <span className="text-white">→</span>
+                                  </button>
                                 </div>
                               )}
 
@@ -428,7 +451,7 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
                             <motion.div 
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
-                              className="p-4 bg-cyber-dark/60 rounded-xl border border-cyber-pink/30 space-y-4 text-left"
+                              className="p-4 bg-cyber-dark/60 rounded-xl border border-cyber-pink/30 space-y-3.5 text-left"
                             >
                               <div className="flex items-center justify-between">
                                 <span className="text-xs font-display font-extrabold text-white flex items-center gap-1">
@@ -436,21 +459,38 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
                                   Confirm Cancellation
                                 </span>
                               </div>
-                              <p className="text-xs text-gray-400">
-                                Are you sure you want to cancel this reservation slot? This will release the table back into the available pool immediately.
+                              <p className="text-xs text-gray-300 leading-relaxed">
+                                Are you sure you want to cancel pass <span className="text-cyber-cyan font-mono font-bold">{booking.verificationCode}</span>? This will release the station slot back to the public pool.
                               </p>
-                              <div className="flex gap-2">
+                              
+                              <div className="p-2.5 rounded-lg bg-cyber-purple/10 border border-cyber-purple/20 text-[10.5px] text-gray-300 font-mono flex items-start gap-1.5 leading-snug">
+                                <span className="text-cyber-cyan">ℹ️</span>
+                                <span>Policy: Free self-service cancellation is available up to 1 hour prior to start.</span>
+                              </div>
+
+                              {cancelError && (
+                                <div className="p-2.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-[11px] text-rose-200 flex items-start gap-1.5 leading-relaxed font-sans">
+                                  <ShieldAlert className="h-3.5 w-3.5 shrink-0 mt-0.5 text-rose-400" />
+                                  <span>{cancelError}</span>
+                                </div>
+                              )}
+
+                              <div className="flex gap-2 pt-1">
                                 <button
-                                  onClick={() => setCancelingBookingId(null)}
+                                  onClick={() => {
+                                    setCancelingBookingId(null);
+                                    setCancelError(null);
+                                  }}
                                   className="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white text-xs font-display transition cursor-pointer"
                                 >
-                                  Keep It
+                                  Keep Booking
                                 </button>
                                 <button
+                                  disabled={isCanceling}
                                   onClick={() => handleCancel(booking.id)}
-                                  className="flex-1 py-2 rounded-lg bg-cyber-pink/20 hover:bg-cyber-pink/30 text-cyber-pink text-xs font-display border border-cyber-pink/30 transition cursor-pointer"
+                                  className="flex-1 py-2 rounded-lg bg-cyber-pink/20 hover:bg-cyber-pink/30 text-cyber-pink text-xs font-display border border-cyber-pink/30 transition cursor-pointer disabled:opacity-50"
                                 >
-                                  Yes, Cancel
+                                  {isCanceling ? 'Cancelling...' : 'Yes, Cancel Pass'}
                                 </button>
                               </div>
                             </motion.div>

@@ -1,6 +1,6 @@
 import pb from '../lib/pocketbase';
 import type { Booking } from '../types';
-import { parseTimeToDecimal, mapPbToBooking } from '../lib/utils';
+import { parseTimeToDecimal, formatDecimalToTime, mapPbToBooking } from '../lib/utils';
 import { stationsApi } from './stations';
 
 export const bookingsApi = {
@@ -65,8 +65,23 @@ export const bookingsApi = {
 
   cancelBooking: async (bookingId: string) => {
     const booking = await pb.collection('bookings').getOne(bookingId).catch(() => null);
+    if (!booking) throw new Error('Booking not found.');
+
+    if (booking.status === 'cancelled') {
+      throw new Error('This booking is already cancelled.');
+    }
+
+    // Cancellation policy: self-service cancellation restricted within 1 hour of start time
+    const startTimeObj = new Date(booking.start_time);
+    const now = new Date();
+    const diffMinutes = (startTimeObj.getTime() - now.getTime()) / (1000 * 60);
+
+    if (diffMinutes < 60) {
+      throw new Error('Self-service cancellation is restricted within 1 hour of scheduled start time. Please contact cafe management for assistance.');
+    }
+
     const updateData: any = { status: 'cancelled' };
-    if (booking && booking.hold_token) {
+    if (booking.hold_token) {
       updateData.hold_token = booking.hold_token;
     }
     await pb.collection('bookings').update(bookingId, updateData);
@@ -92,7 +107,12 @@ export const bookingsApi = {
       throw new Error('Extensions cannot cross our standard midnight closing time.');
     }
 
-    const conflictingBookingsForThisStation = existingBookings.filter(b => {
+    // Smart Multi-Station Availability Check:
+    // First, check if current physical station is available for extended time.
+    // If current station is taken by someone else, check if another physical station in the SAME lounge category is free!
+    let assignedStationId = targetBooking.stationId;
+
+    const currentStationConflicts = existingBookings.filter(b => {
       if (b.status !== 'confirmed') return false;
       if (b.stationId !== targetBooking.stationId) return false;
       if (b.bookingDate !== targetBooking.bookingDate) return false;
@@ -103,9 +123,35 @@ export const bookingsApi = {
       return currentStartHour < endHour2 && startHour2 < currentStartHour + newDuration;
     });
 
-    if (conflictingBookingsForThisStation.length > 0) {
-      const conflict = conflictingBookingsForThisStation[0];
-      throw new Error(`Extension Conflict: The station is reserved by another gamer immediately following your original slot. Reserved from ${conflict.startTime} for ${conflict.durationHours} hour(s).`);
+    if (currentStationConflicts.length > 0) {
+      // Current physical unit is booked by someone else during extension.
+      // Check if ANY other physical station in the SAME category is available!
+      const currentStationRecord = await pb.collection('stations').getOne(targetBooking.stationId).catch(() => null);
+      const categoryName = currentStationRecord?.station_type;
+
+      let foundAlternative = false;
+      if (categoryName) {
+        const categoryCheck = await stationsApi.checkSlotConflict(
+          categoryName,
+          targetBooking.bookingDate,
+          targetBooking.startTime,
+          newDuration,
+          existingBookings,
+          bookingId
+        );
+        if (!categoryCheck.conflict && categoryCheck.assignedStationId) {
+          assignedStationId = categoryCheck.assignedStationId;
+          foundAlternative = true;
+        }
+      }
+
+      if (!foundAlternative) {
+        const conflict = currentStationConflicts[0];
+        const cStart = parseTimeToDecimal(conflict.startTime);
+        const cEnd = cStart + conflict.durationHours;
+        const cEndTimeFormatted = formatDecimalToTime(cEnd);
+        throw new Error(`All stations in this lounge category are reserved from ${conflict.startTime} to ${cEndTimeFormatted}. To play more, you can book a new session for a later time or select another lounge!`);
+      }
     }
 
     const ratePerHour = targetBooking.totalPrice / targetBooking.durationHours;
@@ -129,7 +175,8 @@ export const bookingsApi = {
     const rec = await pb.collection('bookings').getOne(bookingId).catch(() => null);
     const updatePayload: any = {
        end_time: newEndDate.toISOString(),
-       total_price: newPrice
+       total_price: newPrice,
+       assigned_station_id: assignedStationId
     };
     if (rec && rec.hold_token) {
       updatePayload.hold_token = rec.hold_token;

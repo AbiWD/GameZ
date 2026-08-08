@@ -62,6 +62,14 @@ export default function Book({ setRoute }: BookProps) {
   
   // Form States
   const [selectedStation, setSelectedStation] = useState<any | null>(null);
+
+  const getStationRate = (st: any) => {
+    if (!st) return 100;
+    const dbRate = dynamicPricing.hourlyRates[st.name];
+    const rawRate = dbRate ?? st.ratePerHour ?? st.base_price ?? st.hourly_rate ?? st.price_per_hour ?? 100;
+    const num = typeof rawRate === 'number' ? rawRate : parseFloat(rawRate);
+    return (!isNaN(num) && num > 0) ? num : 100;
+  };
   const [bookingDate, setBookingDate] = useState<string>('');
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
   const [startTime, setStartTime] = useState<string>('');
@@ -322,7 +330,7 @@ export default function Book({ setRoute }: BookProps) {
         bookingDate,
         startTime,
         durationHours,
-        totalPrice: (dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour) * durationHours,
+        totalPrice: getStationRate(selectedStation) * durationHours,
         status: 'confirmed'
       };
 
@@ -424,8 +432,8 @@ export default function Book({ setRoute }: BookProps) {
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyber-dark text-cyber-cyan border border-cyber-purple/10 group-hover:scale-105 transition-transform">
                               <IconComp className="h-5 w-5" />
                             </div>
-                            <span className="font-mono text-lg font-extrabold text-cyber-neon">
-                              ₹{dynamicPricing.hourlyRates[station.name] || station.ratePerHour}<span className="text-[10px] text-gray-500 font-sans font-normal">/hr</span>
+                            <span className="font-mono text-[11px] font-bold text-cyber-neon bg-cyber-neon/10 px-2 py-0.5 rounded border border-cyber-neon/20">
+                              ₹{getStationRate(station)}<span className="text-[10px] text-gray-500 font-sans font-normal">/hr</span>
                             </span>
                           </div>
                           <div>
@@ -577,11 +585,11 @@ export default function Book({ setRoute }: BookProps) {
                         <span className="block text-[10px] font-mono uppercase text-gray-500 font-semibold">Rate Calculation</span>
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-400">Station Rate ({durationHours}h)</span>
-                          <span className="text-white font-mono">₹{dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour} × {durationHours}</span>
+                          <span className="text-white font-mono">₹{getStationRate(selectedStation)} × {durationHours}</span>
                         </div>
                         <div className="border-t border-white/5 pt-3 flex items-center justify-between font-bold">
                           <span className="text-white font-display">Estimated Total</span>
-                          <span className="text-cyber-neon font-mono text-lg">₹{(dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour) * durationHours}</span>
+                          <span className="text-cyber-neon font-mono text-lg">₹{getStationRate(selectedStation) * durationHours}</span>
                         </div>
                       </div>
 
@@ -903,7 +911,7 @@ export default function Book({ setRoute }: BookProps) {
 
                             <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs">
                               <span className="text-gray-400">Session Rate</span>
-                              <span className="text-white font-mono">₹{dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour}/hr</span>
+                              <span className="text-white font-mono">₹{getStationRate(selectedStation)}/hr</span>
                             </div>
 
                             {/* MINI BOOKING & CANCELLATION POLICY */}
@@ -921,7 +929,7 @@ export default function Book({ setRoute }: BookProps) {
 
                             <div className="flex items-center justify-between text-sm font-bold text-cyber-neon border-t border-white/5 pt-2">
                               <span>Total Owed</span>
-                              <span className="font-mono text-lg">₹{(dynamicPricing.hourlyRates[selectedStation.name] || selectedStation.ratePerHour) * durationHours}</span>
+                              <span className="font-mono text-lg">₹{getStationRate(selectedStation) * durationHours}</span>
                             </div>
                           </div>
 
@@ -989,7 +997,7 @@ export default function Book({ setRoute }: BookProps) {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">Fee Amount:</span>
-                        <span className="text-cyber-neon font-mono font-semibold">₹{selectedStation.ratePerHour * durationHours}</span>
+                        <span className="text-cyber-neon font-mono font-semibold">₹{getStationRate(selectedStation) * durationHours}</span>
                       </div>
                     </div>
 

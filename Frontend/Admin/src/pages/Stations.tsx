@@ -134,6 +134,10 @@ interface ConflictingBooking {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingStation, setEditingStation] = useState<Station | null>(null);
   
+  // Maintenance Warning Dialog State
+  const [maintenanceWarnOpen, setMaintenanceWarnOpen] = useState(false);
+  const [conflictingMaintenanceBookings, setConflictingMaintenanceBookings] = useState<any[]>([]);
+  
   // Station Type Dialog State
   const [typeDialogOpen, setTypeDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<StationType | null>(null);
@@ -376,19 +380,55 @@ interface ConflictingBooking {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (editingStation && formData.status === 'maintenance' && editingStation.status !== 'maintenance') {
+        const nowStr = new Date().toISOString();
+        let conflicts: any[] = [];
+        try {
+          conflicts = await pb.collection('bookings').getFullList({
+            filter: `assigned_station_id = "${editingStation.id}" && (status = "confirmed" || status = "pending") && end_time > "${nowStr}"`
+          });
+        } catch (err) {
+          conflicts = [];
+        }
+
+        if (conflicts.length > 0) {
+          setConflictingMaintenanceBookings(conflicts);
+          setMaintenanceWarnOpen(true);
+          return;
+        }
+      }
+
+      await executeSaveStation();
+    } catch (error: any) {
+      console.error('Error saving station:', error);
+      const errMsg = error?.message || error?.data?.message || 'Failed to save station';
+      toast({ title: 'Error Updating Unit', description: errMsg, variant: 'destructive' });
+    }
+  };
+
+  const executeSaveStation = async () => {
+    try {
       if (editingStation) {
         await pb.collection('stations').update(editingStation.id, formData);
-        toast({ title: 'Success', description: 'Station updated successfully' });
+        toast({
+          title: 'Unit Updated 🛠️',
+          description: conflictingMaintenanceBookings.length > 0 
+            ? `Unit set to Maintenance. ${conflictingMaintenanceBookings.length} customer booking(s) cancelled/reassigned & notified!`
+            : 'Station updated successfully.'
+        });
       } else {
         await pb.collection('stations').create({ ...formData, property_id: activeProperty?.id });
         toast({ title: 'Success', description: 'Station added successfully' });
       }
       setDialogOpen(false);
+      setMaintenanceWarnOpen(false);
+      setConflictingMaintenanceBookings([]);
       resetForm();
-      fetchStations(); // Refreshes current page and dashboard stats
-    } catch (error) {
+      fetchStations();
+    } catch (error: any) {
       console.error('Error saving station:', error);
-      toast({ title: 'Error', description: 'Failed to save station', variant: 'destructive' });
+      const errMsg = error?.message || error?.data?.message || 'Failed to save station';
+      toast({ title: 'Error Updating Unit', description: errMsg, variant: 'destructive' });
     }
   };
 
@@ -1092,9 +1132,57 @@ interface ConflictingBooking {
               </div>
             </div>
           </TabsContent>
-
         </Tabs>
       </div>
+
+      {/* MAINTENANCE WARNING CONFIRMATION MODAL */}
+      <AlertDialog open={maintenanceWarnOpen} onOpenChange={setMaintenanceWarnOpen}>
+        <AlertDialogContent className="rounded-3xl border border-amber-500/30 bg-card p-6 shadow-2xl max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-bold text-amber-500 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Active Bookings Conflict
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-muted-foreground space-y-3 pt-2 text-left">
+              <p className="text-foreground font-medium">
+                Unit <strong className="text-primary font-bold">{editingStation?.station_number}</strong> currently has <strong className="text-amber-500 font-mono font-bold">{conflictingMaintenanceBookings.length}</strong> upcoming reservation(s):
+              </p>
+
+              <div className="max-h-36 overflow-y-auto space-y-2 pr-1">
+                {conflictingMaintenanceBookings.map((b) => (
+                  <div key={b.id} className="p-3 rounded-xl bg-secondary/60 border border-border text-xs flex flex-col gap-1 text-foreground font-mono">
+                    <div className="flex justify-between font-bold">
+                      <span className="text-primary">#{b.booking_reference || b.id}</span>
+                      <span className="text-muted-foreground">{b.name || 'Gamer'}</span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      ⏰ {new Date(b.start_time).toLocaleDateString()} at {new Date(b.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-amber-500/90 font-medium bg-amber-500/10 p-3 rounded-xl border border-amber-500/20 leading-relaxed">
+                ⚠️ Placing this station into maintenance will automatically cancel/reassign these booking(s) and release customer notifications.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 flex gap-2">
+            <AlertDialogCancel 
+              onClick={() => setMaintenanceWarnOpen(false)} 
+              className="rounded-xl border-border hover:bg-secondary font-semibold"
+            >
+              Keep Available
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={executeSaveStation} 
+              className="rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold"
+            >
+              Yes, Set Maintenance & Cancel Booking
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };
