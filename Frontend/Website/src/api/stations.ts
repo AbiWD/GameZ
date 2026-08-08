@@ -2,6 +2,13 @@ import pb from '../lib/pocketbase';
 import type { Booking } from '../types';
 import { parseTimeToDecimal } from '../lib/utils';
 import { STATIONS } from '../data';
+function sNameLowerIcon(name: string): string {
+  const n = (name || '').toLowerCase();
+  if (n.includes('snooker') || n.includes('pool') || n.includes('8 ball')) return 'CircleDot';
+  if (n.includes('carrom')) return 'Grid';
+  return 'Gamepad2';
+}
+
 export const stationsApi = {
   fetchPricing: async () => {
     let pStations: any[] = [];
@@ -38,15 +45,66 @@ export const stationsApi = {
         if (!liveAvailability[categoryName]) {
           liveAvailability[categoryName] = { total: 0, available: 0 };
         }
-        liveAvailability[categoryName].total += 1;
         const statusLower = (ps.status || '').toLowerCase();
-        if (statusLower === 'available' || statusLower === 'vacant') {
-          liveAvailability[categoryName].available += 1;
+        if (statusLower !== 'maintenance') {
+          liveAvailability[categoryName].total += 1;
+          if (statusLower === 'available') {
+            liveAvailability[categoryName].available += 1;
+          }
         }
       }
     });
+
+    const dynamicStationCategories = stTypes.map(st => {
+      // 1. Resolve rate
+      const rawPrice = st.base_price ?? st.hourly_rate ?? st.price_per_hour;
+      const ratePerHour = typeof rawPrice === 'number' ? rawPrice : parseFloat(rawPrice) || 100;
+
+      // 2. Resolve features JSON array
+      let features: string[] = [];
+      if (Array.isArray(st.features)) {
+        features = st.features;
+      } else if (typeof st.features === 'string' && st.features.trim() !== '') {
+        try {
+          const parsed = JSON.parse(st.features);
+          if (Array.isArray(parsed)) features = parsed;
+          else features = st.features.split('\n').filter(Boolean);
+        } catch (e) {
+          features = st.features.split(',').map(s => s.trim()).filter(Boolean);
+        }
+      }
+
+      // 3. Resolve PocketBase image file URL or theme fallback
+      let imageUrl = '';
+      if (st.image) {
+        imageUrl = pb.files.getUrl(st, st.image);
+      }
+      if (!imageUrl) {
+        const sNameLower = (st.name || '').toLowerCase();
+        imageUrl = sNameLower.includes('snooker') ? '/images/snooker-lounge.jpg' :
+                   sNameLower.includes('carrom') ? '/images/carrom-arena.jpg' :
+                   (sNameLower.includes('pool') || sNameLower.includes('8 ball')) ? '/images/8ball-pool.jpg' :
+                   (sNameLower.includes('playstation') || sNameLower.includes('ps5')) ? '/images/ps5-lounge.jpg' :
+                   '/images/gaming-zone-hero.jpg';
+      }
+
+      // 4. Availability counts
+      const availInfo = liveAvailability[st.name] || { total: 0, available: 0 };
+
+      return {
+        id: st.id,
+        name: st.name,
+        ratePerHour,
+        description: st.description || '',
+        features: features.length > 0 ? features : ['High Performance Setup', 'Comfortable Recliners', 'High Speed Connectivity'],
+        totalSlots: availInfo.total,
+        availableNow: availInfo.available,
+        imageUrl,
+        iconName: sNameLowerIcon(st.name)
+      };
+    });
     
-    return { pStations, tPrices, stTypes, hourlyRates, tierPrices, liveAvailability };
+    return { pStations, tPrices, stTypes, hourlyRates, tierPrices, liveAvailability, dynamicStationCategories };
   },
 
   checkSlotConflict: async (

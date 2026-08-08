@@ -63,9 +63,11 @@ export default function Landing({ setRoute }: LandingProps) {
     hourlyRates: pricingData?.hourlyRates || {},
     tierPrices: pricingData?.tierPrices || {}
   };
-  // Use the static STATIONS data for UI layout (images, features, available slots),
-  // but the prices are driven by dynamicPricing below.
-  const stationTypes = STATIONS;
+  // Dynamically driven by PocketBase station_types (with fallback to static STATIONS)
+  const dynamicCategories = pricingData?.dynamicStationCategories;
+  const stationTypes = (dynamicCategories && dynamicCategories.length > 0) 
+    ? dynamicCategories 
+    : STATIONS;
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
@@ -415,13 +417,6 @@ export default function Landing({ setRoute }: LandingProps) {
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark via-cyber-dark/30 to-transparent" />
-                    
-                    {/* Floating Icon Badge */}
-                    <div className="absolute bottom-4 left-4 flex items-center gap-2 z-10">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyber-dark/80 backdrop-blur-md text-cyber-cyan border border-cyber-purple/30 shadow-lg">
-                        <IconComponent className="h-4.5 w-4.5" />
-                      </div>
-                    </div>
                   </>
                 ) : (
                   <div className="absolute inset-0 bg-cyber-dark p-3">
@@ -432,9 +427,6 @@ export default function Landing({ setRoute }: LandingProps) {
                       {/* Center Icon Block */}
                       <div className="relative flex items-center justify-center">
                         <ImageIcon className="h-10 w-10 text-gray-600 group-hover/placeholder:text-cyber-purple/60 transition-colors duration-300" />
-                        <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-md bg-cyber-dark text-cyber-cyan border border-cyber-purple/20 shadow-md">
-                          <IconComponent className="h-3 w-3" />
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -489,7 +481,7 @@ export default function Landing({ setRoute }: LandingProps) {
                         </span>
                         <button
                           id={`book-station-${station.id}`}
-                          onClick={() => setRoute('/book')}
+                          onClick={() => setRoute(`/book?category=${encodeURIComponent(station.id)}`)}
                           className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-display font-semibold text-white bg-cyber-purple/20 hover:bg-cyber-purple/80 hover:scale-[1.03] transition-all duration-200 border border-cyber-purple/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyber-purple cursor-pointer"
                         >
                           Book Now

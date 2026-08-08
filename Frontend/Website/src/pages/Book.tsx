@@ -104,6 +104,24 @@ export default function Book({ setRoute }: BookProps) {
     }
   }, [currentUser]);
 
+  // Check for pre-selected category from URL parameters (by record ID or name)
+  useEffect(() => {
+    const list = pricingData?.dynamicStationCategories || pricingData?.stTypes;
+    if (list && list.length > 0 && !selectedStation) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const catParam = urlParams.get('category');
+      if (catParam) {
+        const found = list.find(
+          (c: any) => c.id === catParam || c.name.toLowerCase() === catParam.toLowerCase()
+        );
+        if (found) {
+          setSelectedStation(found);
+          setStep(2);
+        }
+      }
+    }
+  }, [pricingData, selectedStation]);
+
   // Get current date for input bounds (today to +30 days)
   const getTodayString = () => {
     const today = new Date();

@@ -16,11 +16,15 @@ func RegisterStationHooks(app *pocketbase.PocketBase) {
 
 	// Ensure API access rules for admin collections and fix blackout_periods schema
 	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
-		// Ensure physical SQLite columns exist for blackout_periods
+		// Ensure physical SQLite columns exist for blackout_periods & station_types
 		_, _ = app.DB().NewQuery("ALTER TABLE blackout_periods ADD COLUMN start_time TEXT DEFAULT ''").Execute()
 		_, _ = app.DB().NewQuery("ALTER TABLE blackout_periods ADD COLUMN end_time TEXT DEFAULT ''").Execute()
 		_, _ = app.DB().NewQuery("ALTER TABLE blackout_periods ADD COLUMN property_id TEXT DEFAULT ''").Execute()
 		_, _ = app.DB().NewQuery("ALTER TABLE blackout_periods ADD COLUMN reason TEXT DEFAULT ''").Execute()
+
+		_, _ = app.DB().NewQuery("ALTER TABLE station_types ADD COLUMN features TEXT DEFAULT '[]'").Execute()
+		_, _ = app.DB().NewQuery("ALTER TABLE station_types ADD COLUMN image TEXT DEFAULT ''").Execute()
+		_, _ = app.DB().NewQuery("ALTER TABLE station_types ADD COLUMN specs TEXT DEFAULT ''").Execute()
 
 		// Ensure fields exist in blackout_periods collection schema
 		if blackoutCol, err := app.FindCollectionByNameOrId("blackout_periods"); err == nil && blackoutCol != nil {
@@ -46,15 +50,19 @@ func RegisterStationHooks(app *pocketbase.PocketBase) {
 			}
 		}
 
-		// Ensure fields exist in portal_users collection schema
-		if portalCol, err := app.FindCollectionByNameOrId("portal_users"); err == nil && portalCol != nil {
-			if portalCol.Fields.GetByName("created") == nil {
-				portalCol.Fields.Add(&core.AutodateField{Name: "created", OnCreate: true, OnUpdate: false})
-				_ = app.Save(portalCol)
-			}
+		// Ensure API rules on station_types: Public read, Staff Accounts Allowlist write only
+		if stCol, err := app.FindCollectionByNameOrId("station_types"); err == nil && stCol != nil {
+			pubRule := ""
+			staffAllowlistRule := "@request.auth.collectionName = 'staff_accounts'"
+			stCol.ListRule = &pubRule
+			stCol.ViewRule = &pubRule
+			stCol.CreateRule = &staffAllowlistRule
+			stCol.UpdateRule = &staffAllowlistRule
+			stCol.DeleteRule = &staffAllowlistRule
+			_ = app.Save(stCol)
 		}
 
-		cols := []string{"blackout_periods", "stations", "station_types", "tier_prices", "staff_accounts", "portal_users"}
+		cols := []string{"blackout_periods", "stations", "tier_prices", "staff_accounts", "portal_users"}
 		for _, name := range cols {
 			col, err := app.FindCollectionByNameOrId(name)
 			if err == nil && col != nil {
