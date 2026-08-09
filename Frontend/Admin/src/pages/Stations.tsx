@@ -23,7 +23,7 @@ import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, Ch
 import { useProperty } from '@/contexts/PropertyContext';
 import { usePropertyFilter } from '@/hooks/usePropertyFilter';
 import { useAuth } from '@/hooks/useAuth';
-import { getErrorMessage } from '@/lib/utils';
+import { getErrorMessage, compressImage } from '@/lib/utils';
 
 interface Station {
   id: string;
@@ -512,7 +512,8 @@ interface ConflictingBooking {
         formData.append('property_id', activeProperty?.id as string);
       }
       if (typeFormData.imageFile) {
-        formData.append('image', typeFormData.imageFile);
+        const compressedBlob = await compressImage(typeFormData.imageFile);
+        formData.append('image', compressedBlob, typeFormData.imageFile.name || 'banner.jpg');
       }
 
       if (editingType) {
