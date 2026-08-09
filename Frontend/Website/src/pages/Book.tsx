@@ -444,26 +444,40 @@ export default function Book({ setRoute }: BookProps) {
                         key={station.id}
                         id={`select-station-card-${station.id}`}
                         onClick={() => handleStationSelect(station)}
-                        className="group text-left p-6 rounded-xl bg-cyber-lightgray border border-white/5 hover:border-cyber-purple/55 hover:shadow-lg hover:shadow-cyber-purple/5 transition-all duration-300 flex flex-col justify-between items-stretch min-h-[220px] focus:outline-none focus:ring-2 focus:ring-cyber-purple cursor-pointer"
+                        className="group text-left p-6 rounded-2xl bg-cyber-lightgray border border-white/10 hover:border-cyber-purple/55 hover:shadow-xl hover:shadow-cyber-purple/10 transition-all duration-300 flex flex-col justify-between items-stretch min-h-[190px] focus:outline-none focus:ring-2 focus:ring-cyber-purple cursor-pointer relative overflow-hidden"
                       >
-                        <div className="space-y-4">
+                        {/* Top decorative gradient glow */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-purple/5 rounded-full blur-2xl group-hover:bg-cyber-cyan/10 transition-colors" />
+
+                        <div className="space-y-3 relative z-10">
                           <div className="flex items-center justify-between gap-2">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyber-dark text-cyber-cyan border border-cyber-purple/10 group-hover:scale-105 transition-transform">
-                              <IconComp className="h-5 w-5" />
+                            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyber-dark text-cyber-cyan border border-cyber-purple/20 shadow-md group-hover:scale-105 transition-transform">
+                              <IconComp className="h-5.5 w-5.5" />
                             </div>
-                            <span className="font-mono text-[11px] font-bold text-cyber-neon bg-cyber-neon/10 px-2 py-0.5 rounded border border-cyber-neon/20">
+                            <span className="font-mono text-[12px] font-bold text-cyber-neon bg-cyber-neon/10 px-3 py-1 rounded-xl border border-cyber-neon/20 shadow-sm">
                               ₹{getStationRate(station)}<span className="text-[10px] text-gray-500 font-sans font-normal">/hr</span>
                             </span>
                           </div>
+
                           <div>
                             <h3 className="font-display font-bold text-white text-lg group-hover:text-cyber-cyan transition-colors">
                               {station.name}
                             </h3>
-                            <p className="text-xs text-gray-400 mt-1 line-clamp-2">{station.description}</p>
                           </div>
+
+                          {/* Feature Highlight Pills */}
+                          {Array.isArray(station.features) && station.features.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {station.features.slice(0, 2).map((feat: string, idx: number) => (
+                                <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded-full bg-cyber-purple/10 border border-cyber-purple/20 text-cyber-cyan text-[10px] font-sans">
+                                  {feat}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
-                        <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-gray-400">
+                        <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-gray-400 relative z-10">
                           {(() => {
                             const liveAvail = pricingData?.liveAvailability?.[station.name];
                             const availableNow = liveAvail ? liveAvail.available : (station.availableNow ?? 0);
@@ -476,8 +490,8 @@ export default function Book({ setRoute }: BookProps) {
                               </span>
                             );
                           })()}
-                          <span className="text-cyber-purple font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
-                            Select <ArrowRight className="h-3 w-3" />
+                          <span className="text-cyber-purple font-bold group-hover:translate-x-1 group-hover:text-cyber-cyan transition-all flex items-center gap-1">
+                            Select <ArrowRight className="h-3.5 w-3.5" />
                           </span>
                         </div>
                       </button>
