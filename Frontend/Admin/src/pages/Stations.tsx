@@ -23,6 +23,7 @@ import { Plus, Edit, Trash2, Gamepad2 as ConsoleIcon, Settings2, ChevronLeft, Ch
 import { useProperty } from '@/contexts/PropertyContext';
 import { usePropertyFilter } from '@/hooks/usePropertyFilter';
 import { useAuth } from '@/hooks/useAuth';
+import { getErrorMessage } from '@/lib/utils';
 
 interface Station {
   id: string;
@@ -435,9 +436,9 @@ interface ConflictingBooking {
       resetForm();
       fetchStations();
     } catch (error: any) {
-      console.error('Error saving station:', error);
-      const errMsg = error?.message || error?.data?.message || 'Failed to save station';
-      toast({ title: 'Error Updating Unit', description: errMsg, variant: 'destructive' });
+      console.error('Error saving station:', error, error?.data);
+      const errMsg = getErrorMessage(error, 'Failed to save station');
+      toast({ title: 'Error Saving Unit', description: errMsg, variant: 'destructive' });
     }
   };
 
@@ -518,8 +519,9 @@ interface ConflictingBooking {
       resetTypeForm();
       fetchStationTypes();
     } catch (error: any) {
-      console.error('Error saving station type:', error, error.data);
-      toast({ title: 'Error', description: 'Failed to save station type. Check configuration.', variant: 'destructive' });
+      console.error('Error saving station type:', error, error?.data);
+      const errMsg = getErrorMessage(error, 'Failed to save station type');
+      toast({ title: 'Error Saving Category', description: errMsg, variant: 'destructive' });
     }
   };
 

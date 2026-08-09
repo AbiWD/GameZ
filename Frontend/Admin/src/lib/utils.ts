@@ -14,3 +14,23 @@ export function calculateOpenTimerCost(startTime: string | Date, pricePerHour: n
 export function escapePbFilterValue(value: string): string {
   return value.replace(/"/g, '\\"').replace(/'/g, "\\'");
 }
+
+export function getErrorMessage(error: any, fallback: string = 'An error occurred'): string {
+  if (!error) return fallback;
+  
+  if (error?.data?.data && typeof error.data.data === 'object') {
+    const fieldErrors = Object.entries(error.data.data)
+      .map(([field, err]: [string, any]) => {
+        const fieldName = field.charAt(0).toUpperCase() + field.slice(1);
+        return `${fieldName}: ${err?.message || 'Invalid value'}`;
+      });
+    if (fieldErrors.length > 0) {
+      return fieldErrors.join(' | ');
+    }
+  }
+
+  if (error?.data?.message) return error.data.message;
+  if (error?.message) return error.message;
+
+  return fallback;
+}

@@ -14,6 +14,7 @@ import { Trash2, UserPlus, Mail, KeyRound, ShieldAlert, CheckCircle2, Eye, EyeOf
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { useAuth } from '@/hooks/useAuth';
+import { getErrorMessage } from '@/lib/utils';
 
 interface StaffUser {
   id: string;
@@ -70,10 +71,19 @@ const StaffAccounts = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.password.length < 8) {
+      toast({
+        title: 'Invalid Password',
+        description: 'Password must be at least 8 characters long.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (formData.password !== formData.passwordConfirm) {
       toast({
-        title: 'Error',
-        description: 'Passwords do not match',
+        title: 'Password Mismatch',
+        description: 'Passwords do not match. Please re-enter.',
         variant: 'destructive',
       });
       return;
@@ -88,17 +98,19 @@ const StaffAccounts = () => {
       });
 
       toast({
-        title: 'Success',
-        description: 'Account created successfully',
+        title: 'Success 👤',
+        description: 'Staff account created successfully.',
       });
 
       setIsDialogOpen(false);
       setFormData({ email: '', password: '', passwordConfirm: '', name: '', role: 'staff' });
       fetchUsers();
     } catch (error: any) {
+      console.error('Error creating staff account:', error, error?.data);
+      const detailMsg = getErrorMessage(error, 'Failed to create staff account');
       toast({
-        title: 'Error creating account',
-        description: error.message || 'Failed to create staff account',
+        title: 'Error Creating Account',
+        description: detailMsg,
         variant: 'destructive',
       });
     } finally {
@@ -196,16 +208,20 @@ const StaffAccounts = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <span className="text-[10px] text-muted-foreground">Min. 8 characters</span>
+                  </div>
                   <div className="relative">
                     <KeyRound className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       required
+                      minLength={8}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      placeholder="••••••••"
+                      placeholder="At least 8 characters"
                       className="pl-9 pr-10 rounded-xl"
                     />
                     <Button
