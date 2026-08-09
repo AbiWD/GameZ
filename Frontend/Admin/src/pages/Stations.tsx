@@ -410,8 +410,15 @@ interface ConflictingBooking {
 
   const executeSaveStation = async () => {
     try {
+      const payload = {
+        ...formData,
+        name: formData.station_number,
+        station_number: formData.station_number,
+        property_id: activeProperty?.id
+      };
+
       if (editingStation) {
-        await pb.collection('stations').update(editingStation.id, formData);
+        await pb.collection('stations').update(editingStation.id, payload);
         toast({
           title: 'Unit Updated 🛠️',
           description: conflictingMaintenanceBookings.length > 0 
@@ -419,7 +426,7 @@ interface ConflictingBooking {
             : 'Station updated successfully.'
         });
       } else {
-        await pb.collection('stations').create({ ...formData, property_id: activeProperty?.id });
+        await pb.collection('stations').create(payload);
         toast({ title: 'Success', description: 'Station added successfully' });
       }
       setDialogOpen(false);
@@ -465,7 +472,7 @@ interface ConflictingBooking {
   const openEditDialog = (station: Station) => {
     setEditingStation(station);
     setFormData({
-      station_number: station.station_number,
+      station_number: station.station_number || (station as any).name || '',
       station_type: station.station_type,
       status: station.status,
       price_per_hour: station.price_per_hour,
