@@ -172,11 +172,15 @@ interface ConflictingBooking {
   const fetchStations = async () => {
     setLoading(true);
     try {
+      const effectiveFilter = (activeProperty?.id && activeProperty.id !== 'default_prop')
+        ? `(property_id = "${activeProperty.id}" || property_id = "" || property_id = null)`
+        : undefined;
+
       let result;
       try {
         result = await pb.collection('stations').getList(page, perPage, {
           sort: '+station_number',
-          filter: propertyFilter,
+          filter: effectiveFilter,
           requestKey: null
         });
       } catch (err) {
@@ -192,7 +196,7 @@ interface ConflictingBooking {
       try {
         allData = await pb.collection('stations').getFullList({
           fields: 'id,station_type,status',
-          filter: propertyFilter,
+          filter: effectiveFilter,
           requestKey: null
         });
       } catch (err) {
@@ -215,12 +219,12 @@ interface ConflictingBooking {
     setLoadingTypes(true);
     try {
       let data: any[] = [];
-      const filterStr = activeProperty?.id 
-        ? `(property_id = "${activeProperty.id}" || property_id = "")` 
-        : '';
+      const effectiveFilter = (activeProperty?.id && activeProperty.id !== 'default_prop')
+        ? `(property_id = "${activeProperty.id}" || property_id = "" || property_id = null)`
+        : undefined;
       try {
         data = await pb.collection('station_types').getFullList({
-          filter: filterStr || undefined,
+          filter: effectiveFilter,
           requestKey: null
         });
       } catch (err) {

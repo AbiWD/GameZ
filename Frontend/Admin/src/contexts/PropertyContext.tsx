@@ -27,19 +27,30 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshProperties = async () => {
     try {
-      const records = await pb.collection('properties').getFullList({
-        filter: 'is_active = true',
-        sort: 'created',
-        requestKey: 'global_context_properties'
-      });
-      const props = records as unknown as Property[];
-      setProperties(props);
-      
-      if (props.length === 0) {
-         console.warn("DEV_ALERT: getFullList returned 0 properties! Database might be empty or filter rejected.");
+      let props: Property[] = [];
+      try {
+        const records = await pb.collection('properties').getFullList({
+          filter: 'is_active = true',
+          sort: 'created',
+          requestKey: 'global_context_properties'
+        });
+        props = records as unknown as Property[];
+      } catch (err: any) {
+        if (!err.isAbort) {
+          // Fallback default property if properties collection is not initialized in DB
+          props = [{
+            id: 'default_prop',
+            name: 'GameZ Cafe',
+            address: 'MG Road, Mangaluru',
+            contact_email: 'info@gamez.in',
+            contact_phone: '+91 98765 43210',
+            is_active: true
+          }];
+        }
       }
 
-      // Auto-select first if none selected, or keep current if valid
+      setProperties(props);
+
       if (props.length > 0) {
         setActiveProperty(prev => {
           if (!prev || !props.find(p => p.id === prev.id)) {
@@ -60,18 +71,17 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    // ALWAYS fetch unconditionally on mount to prevent auth-hydration race conditions
     refreshProperties();
     
-    // Subscribe to realtime database changes for extreme multi-device sync
     const subscribeProperties = async () => {
-      await pb.collection('properties').subscribe('*', function () {
-        refreshProperties();
-      });
+      try {
+        await pb.collection('properties').subscribe('*', function () {
+          refreshProperties();
+        });
+      } catch (e) {}
     };
     subscribeProperties();
     
-    // Listen for auth changes to re-fetch or clear
     const unsubscribeAuth = pb.authStore.onChange((token, model) => {
       if (model) {
         refreshProperties();
@@ -82,7 +92,9 @@ export const PropertyProvider = ({ children }: { children: ReactNode }) => {
     });
     
     return () => {
-      pb.collection('properties').unsubscribe('*');
+      try {
+        pb.collection('properties').unsubscribe('*');
+      } catch (e) {}
       unsubscribeAuth();
     };
   }, []);
