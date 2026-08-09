@@ -55,7 +55,8 @@ export default function Book({ setRoute }: BookProps) {
     hourlyRates: pricingData?.hourlyRates || {},
     tierPrices: pricingData?.tierPrices || {}
   };
-  const stationTypes = pricingData?.stTypes || [];
+  const dynamicCategories = pricingData?.dynamicStationCategories;
+  const stationTypes = (dynamicCategories && dynamicCategories.length > 0) ? dynamicCategories : (pricingData?.stTypes || []);
   
   // Wizard steps: 1 = Choose Station, 2 = Date & Time, 3 = Info / Auth, 4 = Held Countdown, 5 = Confirmed Receipt
   const [step, setStep] = useState<number>(1);
@@ -463,7 +464,18 @@ export default function Book({ setRoute }: BookProps) {
                         </div>
 
                         <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-[11px] font-mono text-gray-400">
-                          <span>{station.availableNow} Units Open</span>
+                          {(() => {
+                            const liveAvail = pricingData?.liveAvailability?.[station.name];
+                            const availableNow = liveAvail ? liveAvail.available : (station.availableNow ?? 0);
+                            const totalSlots = liveAvail ? liveAvail.total : (station.totalSlots ?? 0);
+
+                            return (
+                              <span className="flex items-center gap-1.5 font-mono text-[11px] text-cyber-cyan font-semibold">
+                                <span className="h-1.5 w-1.5 rounded-full bg-cyber-cyan animate-pulse" />
+                                <span>{availableNow > 0 ? `${availableNow}/${totalSlots} Available Stations` : 'Fully Booked'}</span>
+                              </span>
+                            );
+                          })()}
                           <span className="text-cyber-purple font-bold group-hover:translate-x-1 transition-transform flex items-center gap-1">
                             Select <ArrowRight className="h-3 w-3" />
                           </span>
