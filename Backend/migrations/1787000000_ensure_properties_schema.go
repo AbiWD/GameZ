@@ -42,6 +42,17 @@ func init() {
 			_ = app.Save(record)
 		}
 
+		// 3. Ensure property_id field exists in stations, station_types, and bookings
+		for _, name := range []string{"stations", "station_types", "bookings"} {
+			c, err := app.FindCollectionByNameOrId(name)
+			if err == nil && c != nil {
+				if c.Fields.GetByName("property_id") == nil {
+					c.Fields.Add(&core.TextField{Name: "property_id"})
+					_ = app.Save(c)
+				}
+			}
+		}
+
 		return nil
 	}, func(app core.App) error {
 		return nil
