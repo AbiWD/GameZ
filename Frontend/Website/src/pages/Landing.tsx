@@ -384,9 +384,9 @@ export default function Landing({ setRoute }: LandingProps) {
           </p>
         </div>
 
-        {/* Stations Grid */}
+        {/* Stations Flex Grid - Centered & Responsive for any category count */}
         <div 
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
+          className="flex flex-wrap justify-center gap-6 md:gap-8"
         >
           {stationTypes.map((station) => {
             const IconComponent = ICON_COMPONENTS[station.iconName] || Gamepad2;
@@ -394,7 +394,7 @@ export default function Landing({ setRoute }: LandingProps) {
             return (
               <div
                 key={station.id}
-                className="group flex flex-col bg-cyber-gray border border-white/5 rounded-2xl overflow-hidden shadow-xl hover:border-cyber-purple/40 hover:shadow-cyber-purple/5 transition-all duration-300"
+                className="group flex flex-col bg-cyber-gray border border-white/5 rounded-2xl overflow-hidden shadow-xl hover:border-cyber-purple/40 hover:shadow-cyber-purple/5 transition-all duration-300 w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] min-w-[280px] max-w-[340px]"
               >
                 
                 {/* Visual Image / Placeholder container */}
