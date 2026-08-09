@@ -138,7 +138,9 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const propertyFilter = `property_id = "${activeProperty?.id}"`;
+      const propertyFilter = (activeProperty?.id && activeProperty.id !== 'default_prop')
+        ? `(property_id = "${activeProperty.id}" || property_id = "" || property_id = null)`
+        : '';
       const now = new Date();
       
       const todayStart = new Date(now);
