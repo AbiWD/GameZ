@@ -1013,17 +1013,7 @@ interface ConflictingBooking {
                           </div>
                         </div>
 
-                        <div className="space-y-1">
-                          <Label htmlFor="type_description" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</Label>
-                          <Textarea
-                            id="type_description"
-                            value={typeFormData.description}
-                            onChange={(e) => setTypeFormData({ ...typeFormData, description: e.target.value })}
-                            placeholder="Briefly describe what makes this station category special..."
-                            rows={2}
-                            className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background resize-none text-xs"
-                          />
-                        </div>
+
 
                         <div className="space-y-1">
                           <Label htmlFor="type_features" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Features & Highlights (One per line)</Label>
