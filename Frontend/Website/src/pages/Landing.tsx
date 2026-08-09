@@ -456,13 +456,7 @@ export default function Landing({ setRoute }: LandingProps) {
                 {/* Visual Image / Placeholder container */}
                 <div className="relative h-36 sm:h-40 md:h-44 bg-cyber-dark border-b border-white/5 overflow-hidden">
               {(() => {
-                const sNameLower = (station.name || '').toLowerCase();
-                const displayImage = station.imageUrl || (
-                  sNameLower.includes('snooker') ? '/images/snooker-lounge.jpg' :
-                  sNameLower.includes('carrom') ? '/images/carrom-arena.jpg' :
-                  (sNameLower.includes('pool') || sNameLower.includes('8 ball')) ? '/images/8ball-pool.jpg' :
-                  sNameLower.includes('playstation') || sNameLower.includes('ps5') ? '/images/ps5-lounge.jpg' : ''
-                );
+                const displayImage = station.imageUrl || '/images/gaming-placeholder.jpg';
 
                 return displayImage ? (
                   <>

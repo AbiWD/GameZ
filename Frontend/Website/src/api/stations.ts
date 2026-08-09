@@ -80,12 +80,7 @@ export const stationsApi = {
         imageUrl = pb.files.getUrl(st, st.image);
       }
       if (!imageUrl) {
-        const sNameLower = (st.name || '').toLowerCase();
-        imageUrl = sNameLower.includes('snooker') ? '/images/snooker-lounge.jpg' :
-                   sNameLower.includes('carrom') ? '/images/carrom-arena.jpg' :
-                   (sNameLower.includes('pool') || sNameLower.includes('8 ball')) ? '/images/8ball-pool.jpg' :
-                   (sNameLower.includes('playstation') || sNameLower.includes('ps5')) ? '/images/ps5-lounge.jpg' :
-                   '/images/gaming-zone-hero.jpg';
+        imageUrl = '/images/gaming-placeholder.jpg';
       }
 
       // 4. Availability counts
