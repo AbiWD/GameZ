@@ -391,7 +391,7 @@ export default function Landing({ setRoute }: LandingProps) {
       {/* 2. STATIONS SECTION */}
       <section 
         id="stations" 
-        className="pt-10 pb-20 md:pt-12 md:pb-24 px-4 max-w-7xl mx-auto border-b border-cyber-purple/10 overflow-hidden"
+        className="pt-10 pb-20 md:pt-12 md:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-cyber-purple/10 overflow-hidden"
       >
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-6 text-center md:text-left">
           <div className="flex flex-col items-center md:items-start">
@@ -442,7 +442,7 @@ export default function Landing({ setRoute }: LandingProps) {
         <div 
           ref={stationsScrollRef}
           onScroll={checkScrollButtons}
-          className="flex items-stretch gap-4 sm:gap-6 overflow-x-auto scrollbar-none scroll-smooth pb-6 pt-2 snap-x snap-mandatory px-1"
+          className="flex items-stretch gap-4 sm:gap-6 overflow-x-auto scrollbar-none scroll-smooth pb-6 pt-2 snap-x snap-mandatory px-0.5"
         >
           {stationTypes.map((station) => {
             const IconComponent = ICON_COMPONENTS[station.iconName] || Gamepad2;
