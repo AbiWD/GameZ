@@ -23,7 +23,7 @@ export const STATIONS: Station[] = [
     totalSlots: 6,
     availableNow: 4,
     imagePlaceholder: 'PS5 Gaming Lounge Room — Coming Soon',
-    imageUrl: '/images/ps5-lounge.jpg'
+    imageUrl: '/images/gaming-placeholder.jpg'
   },
   {
     id: 'championship-snooker',
@@ -41,7 +41,7 @@ export const STATIONS: Station[] = [
     totalSlots: 2,
     availableNow: 1,
     imagePlaceholder: 'Tournament Snooker Arena — Coming Soon',
-    imageUrl: '/images/snooker-lounge.jpg'
+    imageUrl: '/images/gaming-placeholder.jpg'
   },
   {
     id: 'premium-carrom',
@@ -59,7 +59,7 @@ export const STATIONS: Station[] = [
     totalSlots: 4,
     availableNow: 3,
     imagePlaceholder: 'Traditional Carrom Arena — Coming Soon',
-    imageUrl: '/images/carrom-arena.jpg'
+    imageUrl: '/images/gaming-placeholder.jpg'
   },
   {
     id: '8-balls-pool',
@@ -77,7 +77,7 @@ export const STATIONS: Station[] = [
     totalSlots: 3,
     availableNow: 2,
     imagePlaceholder: '8 Balls Pool Arena — Coming Soon',
-    imageUrl: '/images/8ball-pool.jpg'
+    imageUrl: '/images/gaming-placeholder.jpg'
   }
 ];
 

@@ -25,10 +25,10 @@ export const STATIONS: Station[] = [
     totalSlots: 6,
     availableNow: 4,
     imagePlaceholder: 'PS5 Gaming Lounge Room — Coming Soon',
-    imageUrl: '/images/ps5-lounge.jpg'
+    imageUrl: '/images/gaming-placeholder.jpg'
   },
   {
-    id: 'snooker-table',
+    id: 'championship-snooker',
     name: 'Championship Snooker',
     ratePerHour: 400,
     iconName: 'CircleDot',
@@ -43,10 +43,10 @@ export const STATIONS: Station[] = [
     totalSlots: 2,
     availableNow: 1,
     imagePlaceholder: 'Tournament Snooker Arena — Coming Soon',
-    imageUrl: '/images/snooker-lounge.jpg'
+    imageUrl: '/images/gaming-placeholder.jpg'
   },
   {
-    id: 'carrom-board',
+    id: 'premium-carrom',
     name: 'Premium Carrom Arena',
     ratePerHour: 100,
     iconName: 'Grid',
@@ -61,10 +61,10 @@ export const STATIONS: Station[] = [
     totalSlots: 4,
     availableNow: 3,
     imagePlaceholder: 'Traditional Carrom Arena — Coming Soon',
-    imageUrl: '/images/carrom-arena.jpg'
+    imageUrl: '/images/gaming-placeholder.jpg'
   },
   {
-    id: 'pool-table',
+    id: '8-balls-pool',
     name: '8 Balls Pool',
     ratePerHour: 250,
     iconName: 'CircleDot',
@@ -79,7 +79,7 @@ export const STATIONS: Station[] = [
     totalSlots: 3,
     availableNow: 2,
     imagePlaceholder: '8 Balls Pool Arena — Coming Soon',
-    imageUrl: '/images/8ball-pool.jpg'
+    imageUrl: '/images/gaming-placeholder.jpg'
   }
 ];
 
