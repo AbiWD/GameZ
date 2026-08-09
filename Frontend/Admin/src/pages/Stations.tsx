@@ -3,6 +3,7 @@ import { AdminLayout } from '@/components/AdminLayout';
 import pb from '@/lib/pocketbase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -159,6 +160,7 @@ interface ConflictingBooking {
     max_players: 2,
     specs: 'PS5 Console',
     features: ['Air Conditioning'] as string[],
+    featuresText: 'Air Conditioning\nDualSense Controllers\n55" OLED 120Hz Screens',
     amenities: ['Wifi'] as string[],
     is_popular: false,
     imageFile: null as File | null,
@@ -484,7 +486,11 @@ interface ConflictingBooking {
       formData.append('specs', typeFormData.specs);
       formData.append('is_popular', typeFormData.is_popular ? 'true' : 'false');
       formData.append('description', typeFormData.description);
-      formData.append('features', JSON.stringify(typeFormData.features));
+      const parsedFeatures = (typeFormData.featuresText || '')
+        .split('\n')
+        .map(s => s.trim())
+        .filter(Boolean);
+      formData.append('features', JSON.stringify(parsedFeatures.length > 0 ? parsedFeatures : typeFormData.features));
       formData.append('amenities', JSON.stringify(typeFormData.amenities));
       
       if (!editingType) {
@@ -528,6 +534,7 @@ interface ConflictingBooking {
       max_players: 2,
       specs: 'PS5 Console',
       features: ['Air Conditioning'],
+      featuresText: 'Air Conditioning\nDualSense Controllers\n55" OLED 120Hz Screens',
       amenities: ['Wifi'],
       is_popular: false,
       imageFile: null,
@@ -539,12 +546,14 @@ interface ConflictingBooking {
 
   const openEditTypeDialog = (type: StationType) => {
     setEditingType(type);
+    const existingFeatures = Array.isArray(type.features) ? type.features : ['Air Conditioning'];
     setTypeFormData({
       name: type.name,
       base_price: type.base_price ?? type.hourly_rate ?? type.price_per_hour ?? 0,
       max_players: type.max_players || (type as any).default_occupancy || 2,
       specs: type.specs || 'PS5 Console',
-      features: Array.isArray(type.features) ? type.features : ['Air Conditioning'],
+      features: existingFeatures,
+      featuresText: existingFeatures.join('\n'),
       amenities: Array.isArray(type.amenities) ? type.amenities : ['Wifi'],
       is_popular: type.is_popular || false,
       imageFile: null,
@@ -1000,6 +1009,68 @@ interface ConflictingBooking {
                               onChange={(e) => setTypeFormData({ ...typeFormData, max_players: parseInt(e.target.value) || 0 })}
                               required
                               className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-12 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="type_description" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Description</Label>
+                          <Textarea
+                            id="type_description"
+                            value={typeFormData.description}
+                            onChange={(e) => setTypeFormData({ ...typeFormData, description: e.target.value })}
+                            placeholder="Briefly describe what makes this station category special..."
+                            rows={2}
+                            className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background resize-none text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor="type_features" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Features & Highlights (One per line)</Label>
+                          <Textarea
+                            id="type_features"
+                            value={typeFormData.featuresText}
+                            onChange={(e) => setTypeFormData({ ...typeFormData, featuresText: e.target.value })}
+                            placeholder={"55\" 4K 120Hz Screens\nDualSense Controllers\nComfortable Gaming Chairs"}
+                            rows={3}
+                            className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background resize-none text-xs font-mono"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Category Banner Image</Label>
+                          <div className="flex items-center gap-4 pt-1">
+                            {typeFormData.imagePreview ? (
+                              <div className="relative w-24 h-16 rounded-xl overflow-hidden border border-border group shrink-0">
+                                <img src={typeFormData.imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => setTypeFormData({ ...typeFormData, imageFile: null, imagePreview: '' })}
+                                  className="absolute top-1 right-1 bg-black/70 hover:bg-destructive text-white p-1 rounded-full text-xs"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="w-24 h-16 rounded-xl border border-dashed border-border bg-secondary/30 flex flex-col items-center justify-center text-muted-foreground text-xs shrink-0">
+                                <ImageIcon className="w-5 h-5 mb-1 text-muted-foreground/60" />
+                                <span>No image</span>
+                              </div>
+                            )}
+                            <Input
+                              type="file"
+                              accept="image/png, image/jpeg, image/webp"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setTypeFormData({
+                                    ...typeFormData,
+                                    imageFile: file,
+                                    imagePreview: URL.createObjectURL(file)
+                                  });
+                                }
+                              }}
+                              className="rounded-xl border-border bg-secondary/50 focus-visible:bg-background h-10 text-xs"
                             />
                           </div>
                         </div>
