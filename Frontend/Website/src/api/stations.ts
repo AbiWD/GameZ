@@ -15,8 +15,8 @@ export const stationsApi = {
     let tPrices: any[] = [];
     let stTypes: any[] = [];
 
-    try { pStations = await pb.collection('stations').getFullList(); } catch (e) {}
-    try { stTypes = await pb.collection('station_types').getFullList(); } catch (e) {}
+    try { pStations = await pb.collection('stations').getFullList({ requestKey: null }); } catch (e) {}
+    try { stTypes = await pb.collection('station_types').getFullList({ requestKey: null }); } catch (e) {}
     
     const hourlyRates: Record<string, number> = {};
     stTypes.forEach(st => {
@@ -123,7 +123,7 @@ export const stationsApi = {
     const reqEnd = new Date(reqStart.getTime() + duration * 3600000);
 
     try {
-      const blackouts = await pb.collection('blackout_periods').getFullList();
+      const blackouts = await pb.collection('blackout_periods').getFullList({ requestKey: null });
       for (const b of blackouts) {
         const bStart = new Date(b.start_time);
         const bEnd = new Date(b.end_time);
@@ -136,7 +136,7 @@ export const stationsApi = {
     }
     
     let stTypesRaw: any[] = [];
-    try { stTypesRaw = await pb.collection('station_types').getFullList(); } catch(e) {}
+    try { stTypesRaw = await pb.collection('station_types').getFullList({ requestKey: null }); } catch(e) {}
 
     const staticStation = STATIONS.find(s => s.id === categoryId);
     const categoryName = staticStation ? staticStation.name : (stTypesRaw.find(s => s.id === categoryId)?.name || categoryId);
@@ -145,7 +145,8 @@ export const stationsApi = {
     let physicalStations: any[] = [];
     try {
       physicalStations = await pb.collection('stations').getFullList({
-        filter: `station_type = "${categoryName}"`
+        filter: `station_type = "${categoryName}"`,
+        requestKey: null
       });
       physicalStations = physicalStations.filter(s => s.status === 'active' || s.status === 'available');
     } catch (err) {

@@ -176,11 +176,13 @@ interface ConflictingBooking {
       try {
         result = await pb.collection('stations').getList(page, perPage, {
           sort: '+station_number',
-          filter: propertyFilter
+          filter: propertyFilter,
+          requestKey: null
         });
       } catch (err) {
         result = await pb.collection('stations').getList(page, perPage, {
-          sort: '+station_number'
+          sort: '+station_number',
+          requestKey: null
         });
       }
       setStations(result.items as unknown as Station[]);
@@ -190,11 +192,13 @@ interface ConflictingBooking {
       try {
         allData = await pb.collection('stations').getFullList({
           fields: 'id,station_type,status',
-          filter: propertyFilter
+          filter: propertyFilter,
+          requestKey: null
         });
       } catch (err) {
         allData = await pb.collection('stations').getFullList({
-          fields: 'id,station_type,status'
+          fields: 'id,station_type,status',
+          requestKey: null
         });
       }
       setAllStations(allData as unknown as Station[]);
@@ -216,10 +220,11 @@ interface ConflictingBooking {
         : '';
       try {
         data = await pb.collection('station_types').getFullList({
-          filter: filterStr || undefined
+          filter: filterStr || undefined,
+          requestKey: null
         });
       } catch (err) {
-        data = await pb.collection('station_types').getFullList();
+        data = await pb.collection('station_types').getFullList({ requestKey: null });
       }
       const fetchedTypes = (data as unknown as StationType[]).sort((a, b) => a.name.localeCompare(b.name));
       setStationTypes(fetchedTypes);
@@ -241,11 +246,13 @@ interface ConflictingBooking {
       try {
         data = await pb.collection('blackout_periods').getFullList({
           sort: '-start_time',
-          filter: propertyFilter
+          filter: propertyFilter,
+          requestKey: null
         });
       } catch (err) {
         data = await pb.collection('blackout_periods').getFullList({
-          sort: '-start_time'
+          sort: '-start_time',
+          requestKey: null
         });
       }
       setBlackouts(data as unknown as BlackoutPeriod[]);
