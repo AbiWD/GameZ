@@ -21,7 +21,8 @@ import {
   Lock,
   Zap,
   AlertTriangle,
-  UserCheck
+  UserCheck,
+  X
 } from 'lucide-react';
 import { Station, Booking } from '../types';
 import { useCurrentUser } from '../hooks/useCurrentUser';
@@ -393,10 +394,23 @@ export default function Book({ setRoute }: BookProps) {
           
           {/* PROGRESS STEP INDICATOR (Hide in Confirmed Receipt) */}
           {step < 5 && (
-            <div className="mb-10">
+            <div className="mb-8">
               <div className="flex items-center justify-between text-xs font-mono text-gray-500 mb-4">
-                <span className="uppercase tracking-wider">RESERVATION DESK WIZARD</span>
-                <span className="text-cyber-purple font-bold font-mono">STEP {step} OF 4</span>
+                <span className="text-cyber-purple font-bold font-mono uppercase tracking-wider text-sm">
+                  STEP {step} OF 4
+                </span>
+
+                {/* Close Booking Tab Button */}
+                <button
+                  type="button"
+                  id="close-booking-wizard-btn"
+                  onClick={() => setRoute('/')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyber-lightgray border border-white/10 text-gray-400 hover:text-white hover:border-cyber-purple/50 hover:bg-cyber-purple/10 transition-all duration-200 cursor-pointer shadow-sm active:scale-95"
+                  aria-label="Close booking tab"
+                >
+                  <span className="text-xs font-sans font-medium">Close</span>
+                  <X className="h-4 w-4 text-gray-400 group-hover:text-white" />
+                </button>
               </div>
               
               {/* Step bars */}
