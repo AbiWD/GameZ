@@ -682,14 +682,23 @@ const Dashboard = () => {
         {/* Stats Grid */}
         <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
           {loading ? (
-            Array.from({ length: 4 }).map((_, i) => (
+            [
+              { title: 'Active Players', icon: Users },
+              ...(userRole === 'admin' ? [{ title: "Today's Revenue", icon: IndianRupee }] : []),
+              { title: "Today's Sessions", icon: Gamepad2 },
+              { title: 'Upcoming Today', icon: Calendar },
+            ].map((stat, i) => (
               <Card key={i} className="bg-card border-border shadow-sm rounded-2xl">
                 <CardHeader className="flex flex-row items-center justify-between pb-2 p-4 sm:p-5">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-8 w-8 rounded-lg hidden sm:block" />
+                  <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground uppercase">
+                    {stat.title}
+                  </CardTitle>
+                  <div className="bg-primary/10 rounded-lg p-1.5 sm:p-2 text-primary hidden sm:block">
+                    <stat.icon className="h-4 w-4 opacity-50" />
+                  </div>
                 </CardHeader>
                 <CardContent className="px-4 sm:px-5 pb-4 sm:px-5 pt-0">
-                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="h-8 w-20 rounded-lg animate-pulse" />
                 </CardContent>
               </Card>
             ))
@@ -720,11 +729,56 @@ const Dashboard = () => {
 
         {/* Dynamic Station Floor Plan */}
         {loading ? (
-          <div className="mt-8">
-            <Skeleton className="h-16 w-full rounded-2xl mb-6" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} className="h-48 w-full rounded-2xl" />
+          <div className="mt-8 space-y-6">
+            {/* Floor Occupancy Header Skeleton */}
+            <div className="bg-card border border-border/60 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Floor Occupancy</h3>
+                <div className="flex flex-wrap gap-4 text-xs font-medium text-muted-foreground">
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500/30 animate-pulse"></div><Skeleton className="h-3.5 w-16 rounded-md" /></div>
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500/30 animate-pulse"></div><Skeleton className="h-3.5 w-20 rounded-md" /></div>
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500/30 animate-pulse"></div><Skeleton className="h-3.5 w-24 rounded-md" /></div>
+                  <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700 animate-pulse"></div><Skeleton className="h-3.5 w-20 rounded-md" /></div>
+                </div>
+              </div>
+              <div className="flex-1 max-w-md w-full">
+                <div className="flex justify-end items-end mb-3">
+                  <Skeleton className="h-4 w-32 rounded-md" />
+                </div>
+                <div className="flex gap-1 h-2.5 w-full">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div key={i} className="flex-1 rounded-sm bg-secondary animate-pulse" />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Filter bar shell */}
+            <div className="flex items-center justify-between bg-card border border-border/50 rounded-xl p-2.5 shadow-sm flex-wrap gap-2">
+              <div className="flex items-center gap-2 overflow-x-auto py-0.5">
+                {['All', 'Available', 'Occupied', 'Ending Soon', 'Any Type'].map((_, i) => (
+                  <Skeleton key={i} className="h-7 w-20 rounded-full" />
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-7 w-24 rounded-lg" />
+                <Skeleton className="h-7 w-20 rounded-lg" />
+              </div>
+            </div>
+
+            {/* Station Card Grid Skeletons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="rounded-2xl p-4 sm:p-5 border border-border/60 bg-card/60 space-y-4 shadow-sm">
+                  <div className="flex justify-between items-center">
+                    <Skeleton className="h-10 w-24 rounded-xl" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                  </div>
+                  <div className="space-y-2 pt-2">
+                    <Skeleton className="h-4 w-28 rounded-md" />
+                    <Skeleton className="h-3 w-36 rounded-md" />
+                  </div>
+                </div>
               ))}
             </div>
           </div>
