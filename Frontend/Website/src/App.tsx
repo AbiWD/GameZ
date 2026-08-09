@@ -74,8 +74,10 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      {/* Bottom Brand Footer */}
-      <Footer currentRoute={currentRoute} setRoute={setRoute} />
+      {/* Bottom Brand Footer (Hidden on /book for a clean, focused booking wizard) */}
+      {currentRoute !== '/book' && (
+        <Footer currentRoute={currentRoute} setRoute={setRoute} />
+      )}
 
       {/* Simulated Email Notification Delivery Banner & Logs Panel */}
       <EmailNotificationBanner />
