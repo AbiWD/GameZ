@@ -472,7 +472,7 @@ export default function Book({ setRoute }: BookProps) {
                             return (
                               <span className="flex items-center gap-1.5 font-mono text-[11px] text-cyber-cyan font-semibold">
                                 <span className="h-1.5 w-1.5 rounded-full bg-cyber-cyan animate-pulse" />
-                                <span>{availableNow > 0 ? `${availableNow}/${totalSlots} Available Stations` : 'Fully Booked'}</span>
+                                <span>{availableNow > 0 ? `${availableNow}/${totalSlots} Available` : 'Fully Booked'}</span>
                               </span>
                             );
                           })()}
