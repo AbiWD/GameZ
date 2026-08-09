@@ -173,7 +173,7 @@ interface ConflictingBooking {
     setLoading(true);
     try {
       const effectiveFilter = (activeProperty?.id && activeProperty.id !== 'default_prop')
-        ? `(property_id = "${activeProperty.id}" || property_id = "" || property_id = null)`
+        ? `(property_id = "${activeProperty.id}" || property_id = "")`
         : undefined;
 
       let result;
@@ -220,7 +220,7 @@ interface ConflictingBooking {
     try {
       let data: any[] = [];
       const effectiveFilter = (activeProperty?.id && activeProperty.id !== 'default_prop')
-        ? `(property_id = "${activeProperty.id}" || property_id = "" || property_id = null)`
+        ? `(property_id = "${activeProperty.id}" || property_id = "")`
         : undefined;
       try {
         data = await pb.collection('station_types').getFullList({
