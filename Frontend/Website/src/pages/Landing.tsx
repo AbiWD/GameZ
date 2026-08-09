@@ -71,6 +71,25 @@ export default function Landing({ setRoute }: LandingProps) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
+  const stationsScrollRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const handleStationsScroll = (direction: 'left' | 'right') => {
+    if (stationsScrollRef.current) {
+      const scrollAmount = direction === 'left' ? -380 : 380;
+      stationsScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const checkScrollButtons = () => {
+    if (stationsScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = stationsScrollRef.current;
+      setCanScrollLeft(scrollLeft > 10);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
   const CAROUSEL_GAMES = [
     {
       id: 'game-fc24',
@@ -372,21 +391,58 @@ export default function Landing({ setRoute }: LandingProps) {
       {/* 2. STATIONS SECTION */}
       <section 
         id="stations" 
-        className="pt-10 pb-20 md:pt-12 md:pb-24 px-4 max-w-7xl mx-auto border-b border-cyber-purple/10"
+        className="pt-10 pb-20 md:pt-12 md:pb-24 px-4 max-w-7xl mx-auto border-b border-cyber-purple/10 overflow-hidden"
       >
-        <div className="text-center mb-8 md:mb-12">
-          <h2 className="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">
-            Ready Player One?
-          </h2>
-          <p className="text-gray-400 max-w-2xl mx-auto">
-            Explore our elite gaming zones.<br />
-            Select your station, gear up, and jump into the action.
-          </p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-6">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-purple/10 border border-cyber-purple/30 text-cyber-cyan text-xs font-mono uppercase tracking-wider mb-3">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Explore Gaming Zones</span>
+            </div>
+            <h2 className="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+              Ready Player One?
+            </h2>
+            <p className="text-gray-400 max-w-xl mt-2">
+              Explore our elite gaming zones. Select your station, gear up, and jump into the action.
+            </p>
+          </div>
+
+          {/* Navigation Arrows */}
+          <div className="flex items-center gap-3 shrink-0 self-start md:self-auto">
+            <button
+              type="button"
+              onClick={() => handleStationsScroll('left')}
+              disabled={!canScrollLeft}
+              className={`p-3.5 rounded-xl border transition-all duration-300 ${
+                canScrollLeft
+                  ? 'bg-cyber-gray border-white/15 text-white hover:border-cyber-cyan hover:bg-cyber-purple/20 hover:text-cyber-cyan shadow-lg shadow-cyber-purple/10 cursor-pointer active:scale-95'
+                  : 'bg-cyber-dark/40 border-white/5 text-gray-600 cursor-not-allowed opacity-40'
+              }`}
+              aria-label="Previous station categories"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleStationsScroll('right')}
+              disabled={!canScrollRight}
+              className={`p-3.5 rounded-xl border transition-all duration-300 ${
+                canScrollRight
+                  ? 'bg-cyber-gray border-white/15 text-white hover:border-cyber-cyan hover:bg-cyber-purple/20 hover:text-cyber-cyan shadow-lg shadow-cyber-purple/10 cursor-pointer active:scale-95'
+                  : 'bg-cyber-dark/40 border-white/5 text-gray-600 cursor-not-allowed opacity-40'
+              }`}
+              aria-label="Next station categories"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Stations Flex Grid - Centered & Responsive for any category count */}
+        {/* Stations Carousel Slider */}
         <div 
-          className="flex flex-wrap justify-center gap-6 md:gap-8"
+          ref={stationsScrollRef}
+          onScroll={checkScrollButtons}
+          className="flex items-stretch gap-6 overflow-x-auto scrollbar-none scroll-smooth pb-6 pt-2 snap-x snap-mandatory"
         >
           {stationTypes.map((station) => {
             const IconComponent = ICON_COMPONENTS[station.iconName] || Gamepad2;
@@ -394,7 +450,7 @@ export default function Landing({ setRoute }: LandingProps) {
             return (
               <div
                 key={station.id}
-                className="group flex flex-col bg-cyber-gray border border-white/5 rounded-2xl overflow-hidden shadow-xl hover:border-cyber-purple/40 hover:shadow-cyber-purple/5 transition-all duration-300 w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] min-w-[280px] max-w-[340px]"
+                className="group flex flex-col bg-cyber-gray border border-white/5 rounded-2xl overflow-hidden shadow-xl hover:border-cyber-purple/40 hover:shadow-cyber-purple/5 transition-all duration-300 w-[290px] sm:w-[320px] md:w-[340px] shrink-0 snap-start"
               >
                 
                 {/* Visual Image / Placeholder container */}
