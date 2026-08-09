@@ -393,8 +393,8 @@ export default function Landing({ setRoute }: LandingProps) {
         id="stations" 
         className="pt-10 pb-20 md:pt-12 md:pb-24 px-4 max-w-7xl mx-auto border-b border-cyber-purple/10 overflow-hidden"
       >
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-6">
-          <div>
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-6 text-center md:text-left">
+          <div className="flex flex-col items-center md:items-start">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-purple/10 border border-cyber-purple/30 text-cyber-cyan text-xs font-mono uppercase tracking-wider mb-3">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Explore Gaming Zones</span>
@@ -408,7 +408,7 @@ export default function Landing({ setRoute }: LandingProps) {
           </div>
 
           {/* Navigation Arrows */}
-          <div className="flex items-center gap-3 shrink-0 self-start md:self-auto">
+          <div className="flex items-center justify-center gap-3 shrink-0 self-center md:self-auto">
             <button
               type="button"
               onClick={() => handleStationsScroll('left')}
@@ -442,7 +442,7 @@ export default function Landing({ setRoute }: LandingProps) {
         <div 
           ref={stationsScrollRef}
           onScroll={checkScrollButtons}
-          className="flex items-stretch gap-6 overflow-x-auto scrollbar-none scroll-smooth pb-6 pt-2 snap-x snap-mandatory"
+          className="flex items-stretch gap-4 sm:gap-6 overflow-x-auto scrollbar-none scroll-smooth pb-6 pt-2 snap-x snap-mandatory px-1"
         >
           {stationTypes.map((station) => {
             const IconComponent = ICON_COMPONENTS[station.iconName] || Gamepad2;
@@ -450,7 +450,7 @@ export default function Landing({ setRoute }: LandingProps) {
             return (
               <div
                 key={station.id}
-                className="group flex flex-col bg-cyber-gray border border-white/5 rounded-2xl overflow-hidden shadow-xl hover:border-cyber-purple/40 hover:shadow-cyber-purple/5 transition-all duration-300 w-[290px] sm:w-[320px] md:w-[340px] shrink-0 snap-start"
+                className="group flex flex-col bg-cyber-gray border border-white/5 rounded-2xl overflow-hidden shadow-xl hover:border-cyber-purple/40 hover:shadow-cyber-purple/5 transition-all duration-300 w-[84vw] sm:w-[320px] md:w-[340px] shrink-0 snap-start"
               >
                 
                 {/* Visual Image / Placeholder container */}
