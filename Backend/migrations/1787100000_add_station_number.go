@@ -31,6 +31,23 @@ func init() {
 			}
 		}
 
+		// 3. Ensure price fields exist on station_types (base_price, hourly_rate, price_per_hour)
+		stTypes, err := app.FindCollectionByNameOrId("station_types")
+		if err == nil && stTypes != nil {
+			changed := false
+			for _, fieldName := range []string{"base_price", "hourly_rate", "price_per_hour"} {
+				if stTypes.Fields.GetByName(fieldName) == nil {
+					stTypes.Fields.Add(&core.NumberField{Name: fieldName})
+					changed = true
+				}
+			}
+			if changed {
+				if err := app.Save(stTypes); err != nil {
+					return err
+				}
+			}
+		}
+
 		return nil
 	}, func(app core.App) error {
 		return nil

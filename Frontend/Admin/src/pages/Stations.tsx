@@ -226,7 +226,14 @@ interface ConflictingBooking {
       } catch (err) {
         data = await pb.collection('station_types').getFullList({ requestKey: null });
       }
-      const fetchedTypes = (data as unknown as StationType[]).sort((a, b) => a.name.localeCompare(b.name));
+      const fetchedTypes = (data as unknown as StationType[])
+        .map(t => ({
+          ...t,
+          base_price: t.base_price ?? t.hourly_rate ?? t.price_per_hour ?? 0,
+          hourly_rate: t.hourly_rate ?? t.base_price ?? t.price_per_hour ?? 0,
+          price_per_hour: t.price_per_hour ?? t.base_price ?? t.hourly_rate ?? 0
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
       setStationTypes(fetchedTypes);
       
       if (fetchedTypes.length > 0 && !formData.station_type) {
@@ -497,6 +504,8 @@ interface ConflictingBooking {
       const formData = new FormData();
       formData.append('name', typeFormData.name);
       formData.append('base_price', typeFormData.base_price.toString());
+      formData.append('hourly_rate', typeFormData.base_price.toString());
+      formData.append('price_per_hour', typeFormData.base_price.toString());
       formData.append('max_players', typeFormData.max_players.toString());
       formData.append('specs', typeFormData.specs);
       formData.append('is_popular', typeFormData.is_popular ? 'true' : 'false');
