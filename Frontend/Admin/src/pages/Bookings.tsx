@@ -37,10 +37,17 @@ interface Booking {
   email: string;
   phone: string;
   station_type?: string;
+  customer_id?: string;
   expand?: {
     assigned_station_id?: {
       station_type: string;
+      station_number?: string;
       name: string;
+    };
+    customer_id?: {
+      name: string;
+      email?: string;
+      phone?: string;
     };
   };
   start_time: string;
@@ -137,14 +144,14 @@ const Bookings = () => {
         result = await pb.collection('bookings').getList(page, 10, {
           filter: filterStr,
           sort: sortOrder,
-          expand: 'assigned_station_id',
+          expand: 'assigned_station_id,customer_id',
           requestKey: null
         });
       } catch (filterErr) {
         console.warn('Filtered bookings fetch failed, falling back to unfiltered list:', filterErr);
         result = await pb.collection('bookings').getList(page, 10, {
           sort: sortOrder,
-          expand: 'assigned_station_id',
+          expand: 'assigned_station_id,customer_id',
           requestKey: null
         });
       }
@@ -268,7 +275,15 @@ const Bookings = () => {
                     >
                       <TableCell className="font-mono text-xs font-semibold py-3 px-4 text-primary hidden lg:table-cell">{booking.booking_reference || '-'}</TableCell>
                       <TableCell className="font-bold py-3 px-2 sm:px-3 md:px-6 max-w-[80px] sm:max-w-[120px] lg:max-w-none truncate text-xs sm:text-sm text-foreground">
-                        {booking.name && booking.name.trim() !== '' ? booking.name : (booking.phone ? `Guest (${booking.phone})` : 'Gamer Guest')}
+                        {(() => {
+                          if (booking.name && booking.name.trim() !== '' && booking.name !== 'Gamer Guest') {
+                            return booking.name;
+                          }
+                          if (booking.expand?.customer_id?.name && booking.expand.customer_id.name.trim() !== '') {
+                            return booking.expand.customer_id.name;
+                          }
+                          return booking.phone ? `Guest (${booking.phone})` : 'Gamer Guest';
+                        })()}
                       </TableCell>
                       <TableCell className="py-3 px-4 text-muted-foreground hidden md:table-cell">{booking.phone}</TableCell>
                       <TableCell className="py-3 px-2 sm:px-3 md:px-6">
@@ -354,7 +369,15 @@ const Bookings = () => {
                  <div className="flex justify-between items-center border-b border-border pb-3">
                    <span className="text-sm font-medium text-muted-foreground">Player Name</span>
                    <span className="font-bold text-foreground text-right truncate max-w-[180px]">
-                     {selectedBooking.name && selectedBooking.name.trim() !== '' ? selectedBooking.name : (selectedBooking.phone ? `Guest (${selectedBooking.phone})` : 'Gamer Guest')}
+                     {(() => {
+                       if (selectedBooking.name && selectedBooking.name.trim() !== '' && selectedBooking.name !== 'Gamer Guest') {
+                         return selectedBooking.name;
+                       }
+                       if (selectedBooking.expand?.customer_id?.name && selectedBooking.expand.customer_id.name.trim() !== '') {
+                         return selectedBooking.expand.customer_id.name;
+                       }
+                       return selectedBooking.phone ? `Guest (${selectedBooking.phone})` : 'Gamer Guest';
+                     })()}
                    </span>
                  </div>
                  <div className="flex justify-between items-center border-b border-border pb-3">
