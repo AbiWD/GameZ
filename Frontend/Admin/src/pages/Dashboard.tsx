@@ -975,6 +975,7 @@ const Dashboard = () => {
                 runningCost = calculateOpenTimerCost(booking.start_time, station.price_per_hour || 0, currentTime);
             }
 
+            const elapsedMins = Math.max(0, Math.floor((currentTime.getTime() - new Date(booking.start_time).getTime()) / 60000));
             const remainingMins = Math.floor((new Date(booking.end_time).getTime() - currentTime.getTime()) / 60000);
 
             return (
