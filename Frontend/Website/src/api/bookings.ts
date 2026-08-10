@@ -175,9 +175,14 @@ export const bookingsApi = {
     const rec = await pb.collection('bookings').getOne(bookingId).catch(() => null);
     const updatePayload: any = {
        end_time: newEndDate.toISOString(),
-       total_price: newPrice,
-       assigned_station_id: assignedStationId
+       total_price: newPrice
     };
+    
+    // Only include assigned_station_id if it actually changed to a different physical station ID to prevent PocketBase API permission error
+    if (rec && assignedStationId && assignedStationId !== rec.assigned_station_id && assignedStationId !== targetBooking.stationId) {
+       updatePayload.assigned_station_id = assignedStationId;
+    }
+
     if (rec && rec.hold_token) {
       updatePayload.hold_token = rec.hold_token;
     }

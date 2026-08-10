@@ -287,6 +287,11 @@ func (s *WhatsAppService) SendTextMessage(ctx context.Context, phone string, tex
 		return -1
 	}, phone)
 
+	// Strip leading zero if 11 digits (e.g. 09876543210 -> 9876543210)
+	if strings.HasPrefix(cleanPhone, "0") && len(cleanPhone) == 11 {
+		cleanPhone = cleanPhone[1:]
+	}
+
 	if len(cleanPhone) == 10 {
 		cleanPhone = "91" + cleanPhone
 	}

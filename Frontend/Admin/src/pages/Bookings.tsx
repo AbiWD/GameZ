@@ -93,43 +93,71 @@ const Bookings = () => {
 
   // Fetch available station types for dropdown once when property loads
   useEffect(() => {
-    if (activeProperty) {
-      pb.collection('station_types').getFullList({
-        filter: `property_id = "${activeProperty.id}"`,
-        requestKey: null
-      }).then(res => {
-        setAvailableStationTypes(res.map(r => r.name));
-      }).catch(console.error);
-    }
+    const loadStationTypes = async () => {
+      try {
+        let types = await pb.collection('station_types').getFullList({
+          filter: activeProperty?.id ? `property_id = "${activeProperty.id}"` : undefined,
+          requestKey: null
+        });
+        if (types.length === 0) {
+          types = await pb.collection('station_types').getFullList({ requestKey: null });
+        }
+        setAvailableStationTypes(types.map(r => r.name));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadStationTypes();
   }, [activeProperty]);
 
   const fetchBookings = async () => {
     setLoading(true);
     try {
-      let filterStr = `property_id = "${activeProperty?.id}"`;
-      
+      const filters: string[] = [];
+
+      if (activeProperty?.id) {
+        filters.push(`(property_id = "${activeProperty.id}" || property_id = "" || property_id = null)`);
+      }
+
       if (debouncedSearch) {
         const safeSearch = escapePbFilterValue(debouncedSearch);
-        filterStr += ` && (name ~ "${safeSearch}" || email ~ "${safeSearch}" || phone ~ "${safeSearch}" || booking_reference ~ "${safeSearch}" || status ~ "${safeSearch}")`;
+        filters.push(`(name ~ "${safeSearch}" || email ~ "${safeSearch}" || phone ~ "${safeSearch}" || booking_reference ~ "${safeSearch}" || status ~ "${safeSearch}" || station_type ~ "${safeSearch}")`);
       }
-      
+
       if (stationFilter && stationFilter !== 'all') {
         const safeStation = escapePbFilterValue(stationFilter);
-        filterStr += ` && assigned_station_id.station_type = "${safeStation}"`;
+        filters.push(`(station_type = "${safeStation}" || assigned_station_id.station_type = "${safeStation}")`);
       }
 
       if (statusFilter && statusFilter !== 'all') {
         const safeStatus = escapePbFilterValue(statusFilter);
-        filterStr += ` && status = "${safeStatus}"`;
+        filters.push(`status = "${safeStatus}"`);
       }
 
-      const result = await pb.collection('bookings').getList(page, 10, {
-        filter: filterStr,
+      const filterStr = filters.join(' && ');
+
+      let result = await pb.collection('bookings').getList(page, 10, {
+        filter: filterStr || undefined,
         sort: sortOrder,
         expand: 'assigned_station_id',
         requestKey: null
       });
-      
+
+      // Fallback: If strict property_id filter returned zero items, try without property_id filter
+      if (result.items.length === 0 && filterStr.includes('property_id')) {
+        const fallbackFilters = filters.filter(f => !f.includes('property_id'));
+        const fallbackFilterStr = fallbackFilters.join(' && ');
+        const fallbackResult = await pb.collection('bookings').getList(page, 10, {
+          filter: fallbackFilterStr || undefined,
+          sort: sortOrder,
+          expand: 'assigned_station_id',
+          requestKey: null
+        });
+        if (fallbackResult.items.length > 0) {
+          result = fallbackResult;
+        }
+      }
+
       setBookings(result.items as unknown as Booking[]);
       setTotalPages(result.totalPages);
       setTotalItems(result.totalItems);

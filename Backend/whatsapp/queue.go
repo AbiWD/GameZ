@@ -106,12 +106,12 @@ func InitNotificationQueue(app core.App, svc *WhatsAppService) (*NotificationQue
 func (q *NotificationQueue) Enqueue(bookingID, notifType, phone, email, textPayload, emailHTML, emailSubject string) error {
 	q.mu.Lock()
 
-	// Check if this (booking_id, notif_type) has already been logged in notification_logs
+	// Check if this (booking_id, notif_type) has already been successfully sent via whatsapp
 	var count int
-	_ = q.db.QueryRow("SELECT COUNT(*) FROM notification_logs WHERE booking_id = ? AND notif_type = ?", bookingID, notifType).Scan(&count)
+	_ = q.db.QueryRow("SELECT COUNT(*) FROM notification_logs WHERE booking_id = ? AND notif_type = ? AND channel = 'whatsapp'", bookingID, notifType).Scan(&count)
 	if count > 0 {
 		q.mu.Unlock()
-		return nil // Idempotent skip: already processed
+		return nil // Idempotent skip: already successfully sent
 	}
 
 	query := `INSERT INTO notification_queue (booking_id, notif_type, recipient_phone, recipient_email, text_payload, email_html, email_subject, status)
@@ -202,21 +202,25 @@ func (q *NotificationQueue) processJob(job NotificationJob) {
 		// WhatsApp send SUCCESS! Execute atomic SQLite transaction
 		tx, err := q.db.Begin()
 		if err == nil {
-			_, _ = tx.Exec("INSERT OR IGNORE INTO notification_logs (booking_id, notif_type, channel) VALUES (?, ?, 'whatsapp')", job.BookingID, job.NotifType)
+			_, _ = tx.Exec("INSERT OR REPLACE INTO notification_logs (booking_id, notif_type, channel) VALUES (?, ?, 'whatsapp')", job.BookingID, job.NotifType)
 			_, _ = tx.Exec("UPDATE notification_queue SET status = 'sent', updated_at = CURRENT_TIMESTAMP WHERE id = ?", job.ID)
 			_ = tx.Commit()
 		}
 		q.app.Logger().Info("WhatsApp ticket sent successfully", "phone", job.RecipientPhone, "booking_id", job.BookingID)
 	} else {
 		// WhatsApp send FAILED / DISCONNECTED
-		// Email was already sent directly by PocketBase hooks, so mark skipped to avoid duplicate emails!
+		// Increment attempts and set status back to pending so that when WhatsApp is re-paired, pending jobs are sent!
 		tx, err := q.db.Begin()
 		if err == nil {
-			_, _ = tx.Exec("INSERT OR IGNORE INTO notification_logs (booking_id, notif_type, channel) VALUES (?, ?, 'whatsapp_skipped')", job.BookingID, job.NotifType)
-			_, _ = tx.Exec("UPDATE notification_queue SET status = 'skipped_whatsapp_offline', updated_at = CURRENT_TIMESTAMP WHERE id = ?", job.ID)
+			newAttempts := job.Attempts + 1
+			if newAttempts >= 5 {
+				_, _ = tx.Exec("UPDATE notification_queue SET status = 'failed_max_retries', attempts = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", newAttempts, job.ID)
+			} else {
+				_, _ = tx.Exec("UPDATE notification_queue SET status = 'pending', attempts = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", newAttempts, job.ID)
+			}
 			_ = tx.Commit()
 		}
-		q.app.Logger().Warn("WhatsApp disconnected/unavailable — skipped WhatsApp send (primary email already sent)", "booking_id", job.BookingID, "phone", job.RecipientPhone)
+		q.app.Logger().Warn("WhatsApp disconnected/unavailable — queued for retry once re-connected", "booking_id", job.BookingID, "phone", job.RecipientPhone, "error", waErr)
 	}
 }
 
