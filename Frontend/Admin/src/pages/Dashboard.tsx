@@ -174,7 +174,7 @@ const Dashboard = () => {
         }
       });
 
-      const activeStationsCount = Object.keys(activeMap).length;
+      const activeStationsCount = allStationsData.filter(s => !!activeMap[s.id] || s.status === 'occupied').length;
       const totalStations = allStationsData.length;
       const utilizationPercentage = totalStations > 0 ? Math.round((activeStationsCount / totalStations) * 100) : 0;
 
@@ -285,10 +285,11 @@ const Dashboard = () => {
     
     if (gridStatusFilter !== 'all') {
       const activeBooking = activeBookings[station.id];
+      const isOccupied = !!activeBooking || station.status === 'occupied';
       const isMaintenance = station.status === 'maintenance';
       
-      if (gridStatusFilter === 'available' && (activeBooking || isMaintenance)) return false;
-      if (gridStatusFilter === 'occupied' && !activeBooking) return false;
+      if (gridStatusFilter === 'available' && (isOccupied || isMaintenance)) return false;
+      if (gridStatusFilter === 'occupied' && !isOccupied) return false;
       if (gridStatusFilter === 'maintenance' && !isMaintenance) return false;
       if (gridStatusFilter === 'ending_soon') {
         if (!activeBooking) return false;
@@ -347,6 +348,8 @@ const Dashboard = () => {
            colorClass = 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400';
          }
        }
+    } else if (station.status === 'occupied') {
+       colorClass = 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400';
     } else if (!isMaintenance) {
        colorClass = 'bg-card border-border hover:border-primary/30 text-foreground';
     }
@@ -503,6 +506,12 @@ const Dashboard = () => {
        borderColor = "border-emerald-200";
        headerBg = "bg-emerald-100/50";
        progressPercent = 100;
+    } else if (station.status === 'occupied') {
+       cardStyle = 'bg-amber-50 border-amber-300 shadow-md shadow-amber-500/10';
+       textColor = "text-amber-900";
+       mutedColor = "text-amber-700/80";
+       borderColor = "border-amber-200";
+       headerBg = "bg-amber-100/50";
     } else if (station.status === 'maintenance') {
        cardStyle = 'bg-zinc-100 text-zinc-500 border-zinc-200';
     } else {
@@ -516,10 +525,10 @@ const Dashboard = () => {
         className={`group relative rounded-2xl p-4 sm:p-5 border ${cardStyle} transition-colors`}
       >
         <div className="flex justify-between items-center mb-4 gap-2">
-          <div className={`rounded-xl px-3 py-2 shadow-sm border flex flex-col min-w-0 ${activeBooking ? `${headerBg} ${borderColor}` : 'bg-background border-border/50'}`}>
-            <span className={`font-bold text-base sm:text-lg leading-none whitespace-nowrap overflow-hidden text-ellipsis ${activeBooking ? textColor : ''}`}>{station.station_number}</span>
+          <div className={`rounded-xl px-3 py-2 shadow-sm border flex flex-col min-w-0 ${activeBooking || station.status === 'occupied' ? `${headerBg} ${borderColor}` : 'bg-background border-border/50'}`}>
+            <span className={`font-bold text-base sm:text-lg leading-none whitespace-nowrap overflow-hidden text-ellipsis ${activeBooking || station.status === 'occupied' ? textColor : ''}`}>{station.station_number}</span>
             {showTypeBadge && (
-              <span className={`text-[10px] uppercase font-bold tracking-wider mt-1 truncate ${activeBooking ? mutedColor : 'text-muted-foreground'}`}>
+              <span className={`text-[10px] uppercase font-bold tracking-wider mt-1 truncate ${activeBooking || station.status === 'occupied' ? mutedColor : 'text-muted-foreground'}`}>
                 {station.station_type}
               </span>
             )}
@@ -537,6 +546,8 @@ const Dashboard = () => {
                : <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${remainingMins <= 30 ? 'bg-amber-500 text-amber-50' : 'bg-emerald-500 text-emerald-50'} shadow-sm`}>
                    In session
                  </span>
+          ) : station.status === 'occupied' ? (
+             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500 text-amber-50 shadow-sm">Occupied</span>
           ) : station.status === 'maintenance' ? (
              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-zinc-200 text-zinc-600">Maintenance</span>
           ) : (
@@ -603,6 +614,11 @@ const Dashboard = () => {
                  <span className="text-xs font-bold uppercase tracking-wider">Manage Session</span>
                  <ArrowRight className="w-3.5 h-3.5" />
               </div>
+            </div>
+          ) : station.status === 'occupied' ? (
+            <div className="flex flex-col justify-center h-full cursor-pointer" onClick={() => handleStationClick(station, activeBooking)}>
+              <span className="text-sm font-bold text-amber-900">Occupied (Manual Session)</span>
+              <span className="text-xs text-amber-700/80 mt-0.5">Click to start walk-in or manage</span>
             </div>
           ) : station.status !== 'maintenance' ? (
             <div className="flex flex-col justify-center h-full" onClick={() => handleStationClick(station, activeBooking)}>
@@ -800,9 +816,9 @@ const Dashboard = () => {
                   <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Floor Occupancy</h3>
                   <div className="flex flex-wrap gap-4 text-xs font-medium text-muted-foreground">
                     <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>Active ({Object.values(activeBookings).filter(b => Math.floor((new Date(b.end_time).getTime() - currentTime.getTime()) / 60000) > 30).length})</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>Warning ({Object.values(activeBookings).filter(b => { const r = Math.floor((new Date(b.end_time).getTime() - currentTime.getTime()) / 60000); return r <= 30 && r >= 10; }).length})</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>Occupied / Warning ({stations.filter(s => s.status === 'occupied' && !activeBookings[s.id]).length + Object.values(activeBookings).filter(b => { const r = Math.floor((new Date(b.end_time).getTime() - currentTime.getTime()) / 60000); return r <= 30 && r >= 10; }).length})</div>
                     <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>Ending soon ({Object.values(activeBookings).filter(b => Math.floor((new Date(b.end_time).getTime() - currentTime.getTime()) / 60000) < 10).length})</div>
-                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-zinc-200 dark:bg-zinc-800"></div>Available ({stations.length - Object.keys(activeBookings).length - stations.filter(s => s.status === 'maintenance').length})</div>
+                    <div className="flex items-center gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-zinc-200 dark:bg-zinc-800"></div>Available ({stations.filter(s => !activeBookings[s.id] && s.status !== 'occupied' && s.status !== 'maintenance').length})</div>
                   </div>
                </div>
                <div className="flex-1 max-w-md w-full">
@@ -819,6 +835,7 @@ const Dashboard = () => {
                              if (remain <= 30) return 2;
                              return 3;
                           }
+                          if (station.status === 'occupied') return 2.5;
                           if (station.status === 'maintenance') return 5;
                           return 4;
                        };
@@ -827,6 +844,7 @@ const Dashboard = () => {
                        const booking = activeBookings[station.id];
                        let color = 'bg-zinc-200 dark:bg-zinc-800';
                        if (station.status === 'maintenance') color = 'bg-zinc-100 dark:bg-zinc-900';
+                       else if (station.status === 'occupied') color = 'bg-amber-500';
                        if (booking) {
                          const isOpenTimer = booking.booking_reference?.startsWith('OT-');
                          if (isOpenTimer) {
