@@ -133,6 +133,24 @@ export default function Book({ setRoute }: BookProps) {
     return `${year}-${month}-${day}`;
   };
 
+  const getTomorrowString = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const day = String(tomorrow.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const getDefaultBookingDate = () => {
+    const now = new Date();
+    // If local time is past 10:30 PM (22:30), default to tomorrow!
+    if (now.getHours() > 22 || (now.getHours() === 22 && now.getMinutes() >= 30)) {
+      return getTomorrowString();
+    }
+    return getTodayString();
+  };
+
   const getMaxDateString = () => {
     const maxDate = new Date();
     maxDate.setDate(maxDate.getDate() + 30);
@@ -145,7 +163,7 @@ export default function Book({ setRoute }: BookProps) {
   // Safe time slots for Mangaluru cafe (11:00 AM to 11:00 PM)
   const timeSlots = [
     '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM',
-    '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM', '09:00 PM', '10:00 PM'
+    '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM', '09:00 PM', '10:00 PM', '11:00 PM'
   ];
 
   // Blackout periods state & helpers
@@ -291,7 +309,7 @@ export default function Book({ setRoute }: BookProps) {
 
   // Initialize form defaults on load
   useEffect(() => {
-    setBookingDate(getTodayString());
+    setBookingDate(getDefaultBookingDate());
   }, []);
 
   // Timer Countdown logic for Step 4
@@ -709,6 +727,27 @@ export default function Book({ setRoute }: BookProps) {
                       <label className="block text-xs font-mono uppercase text-gray-400 font-semibold">
                         Select Available Start Time Slot
                       </label>
+
+                      {/* All Slots Passed Banner */}
+                      {!getDayBlackoutInfo(bookingDate).isFullyBlackedOut && timeSlots.length > 0 && timeSlots.every(slot => slotStatuses[slot]?.isPast) && (
+                        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-2 my-2">
+                          <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-amber-400">
+                            <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                            All Operating Slots Concluded For Today
+                          </div>
+                          <p className="text-xs text-gray-300">
+                            Operating hours for <span className="font-mono text-white font-semibold">{bookingDate}</span> have concluded. Select tomorrow or a future date to schedule your session!
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setBookingDate(getTomorrowString())}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-white font-bold text-xs transition cursor-pointer active:scale-95 shadow-sm"
+                          >
+                            <span>Switch to Tomorrow</span>
+                            <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+                          </button>
+                        </div>
+                      )}
 
                       {/* Full Store Closure Alert Banner */}
                       {getDayBlackoutInfo(bookingDate).isFullyBlackedOut && (
