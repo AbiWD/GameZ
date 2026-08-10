@@ -730,22 +730,14 @@ export default function Book({ setRoute }: BookProps) {
 
                       {/* All Slots Passed Banner */}
                       {!getDayBlackoutInfo(bookingDate).isFullyBlackedOut && timeSlots.length > 0 && timeSlots.every(slot => slotStatuses[slot]?.isPast) && (
-                        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-2 my-2">
+                        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 space-y-1.5 my-2">
                           <div className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-amber-400">
                             <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                            All Operating Slots Concluded For Today
+                            TODAY'S SLOTS HAVE ENDED
                           </div>
-                          <p className="text-xs text-gray-300">
-                            Operating hours for <span className="font-mono text-white font-semibold">{bookingDate}</span> have concluded. Select tomorrow or a future date to schedule your session!
+                          <p className="text-xs text-gray-300 leading-relaxed">
+                            All available time slots for today have passed. Please select tomorrow to schedule your session.
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => setBookingDate(getTomorrowString())}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-white font-bold text-xs transition cursor-pointer active:scale-95 shadow-sm"
-                          >
-                            <span>Switch to Tomorrow</span>
-                            <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-                          </button>
                         </div>
                       )}
 
@@ -781,7 +773,7 @@ export default function Book({ setRoute }: BookProps) {
                               className={`py-2.5 px-2 rounded-xl text-xs font-mono text-center border transition-all ${
                                 isDisabled
                                   ? isPast
-                                    ? 'bg-cyber-dark/40 border-white/5 text-gray-600 cursor-not-allowed opacity-30'
+                                    ? 'bg-white/5 border-white/10 text-gray-400 cursor-not-allowed opacity-60'
                                     : isBlackedOut
                                     ? 'bg-rose-950/30 border-rose-500/40 text-rose-300 cursor-not-allowed'
                                     : 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200 cursor-not-allowed shadow-[0_0_15px_rgba(99,102,241,0.1)]'
@@ -793,16 +785,16 @@ export default function Book({ setRoute }: BookProps) {
                             >
                               <div className="flex items-center justify-center gap-1">
                                 {isDisabled ? (
-                                  <Lock className={`h-3 w-3 shrink-0 ${isPast ? 'text-gray-600' : isBlackedOut ? 'text-rose-400' : 'text-indigo-400'}`} />
+                                  <Lock className={`h-3 w-3 shrink-0 ${isPast ? 'text-gray-400' : isBlackedOut ? 'text-rose-400' : 'text-indigo-400'}`} />
                                 ) : (
                                   <Clock className="h-3.5 w-3.5 shrink-0 text-cyber-purple" />
                                 )}
-                                <span className={isPast ? 'line-through text-gray-600' : isDisabled ? 'font-semibold' : ''}>{slot}</span>
+                                <span className={isPast ? 'line-through text-gray-400 font-medium' : isDisabled ? 'font-semibold' : ''}>{slot}</span>
                               </div>
                               {isDisabled && (
                                 <span className={`block text-[9px] font-bold no-underline mt-1 uppercase tracking-wider ${
                                   isPast 
-                                    ? 'text-gray-600' 
+                                    ? 'text-gray-400 bg-white/5 px-1.5 py-0.5 rounded border border-white/10' 
                                     : isBlackedOut 
                                     ? 'text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20' 
                                     : 'text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-full border border-indigo-500/30'
