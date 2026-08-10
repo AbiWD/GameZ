@@ -81,6 +81,8 @@ const Bookings = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState('-created');
 
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
+
   // Debounce search term to protect database
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(searchTerm), 350);
@@ -92,21 +94,20 @@ const Bookings = () => {
     setPage(1);
   }, [debouncedSearch, stationFilter, statusFilter, sortOrder]);
 
+  // Fetch bookings when page or active filters change
   useEffect(() => {
-    if (activeProperty) {
-      fetchBookings();
-    }
-  }, [activeProperty, page, debouncedSearch, stationFilter, statusFilter, sortOrder]);
+    fetchBookings();
+  }, [page, debouncedSearch, stationFilter, statusFilter, sortOrder, activeProperty]);
 
-  // Fetch available station types for dropdown once when property loads
+  // Load available station types for dropdown filter
   useEffect(() => {
     const loadStationTypes = async () => {
       try {
-        let types = await pb.collection('station_types').getFullList({
-          filter: activeProperty?.id ? `property_id = "${activeProperty.id}"` : undefined,
-          requestKey: null
-        });
-        if (types.length === 0) {
+        let types: any[] = [];
+        const propertyFilter = activeProperty?.id ? `property_id = "${activeProperty.id}"` : undefined;
+        try {
+          types = await pb.collection('station_types').getFullList({ filter: propertyFilter, requestKey: null });
+        } catch (err) {
           types = await pb.collection('station_types').getFullList({ requestKey: null });
         }
         setAvailableStationTypes(types.map(r => r.name));
@@ -156,9 +157,40 @@ const Bookings = () => {
         });
       }
 
-      setBookings(result.items as unknown as Booking[]);
+      const fetchedItems = result.items as unknown as Booking[];
+      setBookings(fetchedItems);
       setTotalPages(result.totalPages);
       setTotalItems(result.totalItems);
+
+      // Perform batch lookup on portal_users collection for player names
+      const phones = Array.from(new Set(fetchedItems.map(b => b.phone).filter(Boolean)));
+      const customerIds = Array.from(new Set(fetchedItems.map(b => b.customer_id).filter(Boolean)));
+
+      if (phones.length > 0 || customerIds.length > 0) {
+        try {
+          const filterParts: string[] = [];
+          if (phones.length > 0) {
+            filterParts.push(`(${phones.map(p => `phone = "${escapePbFilterValue(p)}"`).join(' || ')})`);
+          }
+          if (customerIds.length > 0) {
+            filterParts.push(`(${customerIds.map(id => `id = "${escapePbFilterValue(id)}"`).join(' || ')})`);
+          }
+          const userRecords = await pb.collection('portal_users').getFullList({
+            filter: filterParts.join(' || '),
+            requestKey: null
+          });
+          const newMap: Record<string, string> = {};
+          for (const u of userRecords) {
+            if (u.name && u.name.trim() !== '') {
+              if (u.phone) newMap[u.phone] = u.name;
+              if (u.id) newMap[u.id] = u.name;
+            }
+          }
+          setUserMap(prev => ({ ...prev, ...newMap }));
+        } catch (userErr) {
+          console.warn('Failed to fetch user profiles from portal_users:', userErr);
+        }
+      }
     } catch (error: any) {
       console.error('Error fetching bookings:', error);
       setBookings([]);
@@ -276,6 +308,12 @@ const Bookings = () => {
                       <TableCell className="font-mono text-xs font-semibold py-3 px-4 text-primary hidden lg:table-cell">{booking.booking_reference || '-'}</TableCell>
                       <TableCell className="font-bold py-3 px-2 sm:px-3 md:px-6 max-w-[80px] sm:max-w-[120px] lg:max-w-none truncate text-xs sm:text-sm text-foreground">
                         {(() => {
+                          if (booking.customer_id && userMap[booking.customer_id]) {
+                            return userMap[booking.customer_id];
+                          }
+                          if (booking.phone && userMap[booking.phone]) {
+                            return userMap[booking.phone];
+                          }
                           const expandedCustomerName = booking.expand?.customer_id?.name;
                           if (expandedCustomerName && expandedCustomerName.trim() !== '' && !expandedCustomerName.toLowerCase().startsWith('guest')) {
                             return expandedCustomerName;
@@ -374,6 +412,12 @@ const Bookings = () => {
                    <span className="text-sm font-medium text-muted-foreground">Player Name</span>
                    <span className="font-bold text-foreground text-right truncate max-w-[180px]">
                      {(() => {
+                       if (selectedBooking.customer_id && userMap[selectedBooking.customer_id]) {
+                         return userMap[selectedBooking.customer_id];
+                       }
+                       if (selectedBooking.phone && userMap[selectedBooking.phone]) {
+                         return userMap[selectedBooking.phone];
+                       }
                        const expandedCustomerName = selectedBooking.expand?.customer_id?.name;
                        if (expandedCustomerName && expandedCustomerName.trim() !== '' && !expandedCustomerName.toLowerCase().startsWith('guest')) {
                          return expandedCustomerName;
