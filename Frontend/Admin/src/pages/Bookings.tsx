@@ -115,10 +115,6 @@ const Bookings = () => {
     try {
       const filters: string[] = [];
 
-      if (activeProperty?.id) {
-        filters.push(`(property_id = "${activeProperty.id}" || property_id = "" || property_id = null)`);
-      }
-
       if (debouncedSearch) {
         const safeSearch = escapePbFilterValue(debouncedSearch);
         filters.push(`(name ~ "${safeSearch}" || email ~ "${safeSearch}" || phone ~ "${safeSearch}" || booking_reference ~ "${safeSearch}" || status ~ "${safeSearch}" || station_type ~ "${safeSearch}")`);
@@ -134,28 +130,23 @@ const Bookings = () => {
         filters.push(`status = "${safeStatus}"`);
       }
 
-      const filterStr = filters.join(' && ');
+      const filterStr = filters.length > 0 ? filters.join(' && ') : undefined;
 
-      let result = await pb.collection('bookings').getList(page, 10, {
-        filter: filterStr || undefined,
-        sort: sortOrder,
-        expand: 'assigned_station_id',
-        requestKey: null
-      });
-
-      // Fallback: If strict property_id filter returned zero items, try without property_id filter
-      if (result.items.length === 0 && filterStr.includes('property_id')) {
-        const fallbackFilters = filters.filter(f => !f.includes('property_id'));
-        const fallbackFilterStr = fallbackFilters.join(' && ');
-        const fallbackResult = await pb.collection('bookings').getList(page, 10, {
-          filter: fallbackFilterStr || undefined,
+      let result;
+      try {
+        result = await pb.collection('bookings').getList(page, 10, {
+          filter: filterStr,
           sort: sortOrder,
           expand: 'assigned_station_id',
           requestKey: null
         });
-        if (fallbackResult.items.length > 0) {
-          result = fallbackResult;
-        }
+      } catch (filterErr) {
+        console.warn('Filtered bookings fetch failed, falling back to unfiltered list:', filterErr);
+        result = await pb.collection('bookings').getList(page, 10, {
+          sort: sortOrder,
+          expand: 'assigned_station_id',
+          requestKey: null
+        });
       }
 
       setBookings(result.items as unknown as Booking[]);
@@ -163,6 +154,7 @@ const Bookings = () => {
       setTotalItems(result.totalItems);
     } catch (error: any) {
       console.error('Error fetching bookings:', error);
+      setBookings([]);
     } finally {
       setLoading(false);
     }
