@@ -789,7 +789,7 @@ export default function Book({ setRoute }: BookProps) {
                                 ) : (
                                   <Clock className="h-3.5 w-3.5 shrink-0 text-cyber-purple" />
                                 )}
-                                <span className={isPast ? 'line-through text-gray-400 font-medium' : isDisabled ? 'font-semibold' : ''}>{slot}</span>
+                                <span className={isPast ? 'text-gray-400 font-medium' : isDisabled ? 'font-semibold' : ''}>{slot}</span>
                               </div>
                               {isDisabled && (
                                 <span className={`block text-[9px] font-bold no-underline mt-1 uppercase tracking-wider ${
