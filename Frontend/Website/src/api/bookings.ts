@@ -45,6 +45,14 @@ export const bookingsApi = {
     startDate.setHours(Math.floor(startHour), (startHour % 1) * 60, 0, 0);
     const endDate = new Date(startDate.getTime() + bookingData.durationHours * 3600000);
 
+    let resolvedName = bookingData.customerName;
+    if ((!resolvedName || resolvedName.trim() === '' || resolvedName.startsWith('Guest (')) && pb.authStore.model?.name) {
+      resolvedName = pb.authStore.model.name;
+    }
+    if (!resolvedName || resolvedName.trim() === '') {
+      resolvedName = bookingData.customerPhone ? `Guest (${bookingData.customerPhone})` : 'Gamer Guest';
+    }
+
     const rec = await pb.collection('bookings').create({
       assigned_station_id: conflictCheck.assignedStationId,
       station_type: bookingData.stationId,
@@ -53,7 +61,7 @@ export const bookingsApi = {
       status: 'confirmed',
       total_price: bookingData.totalPrice,
       players: 1,
-      name: bookingData.customerName || (bookingData.customerPhone ? `Guest (${bookingData.customerPhone})` : 'Gamer Guest'),
+      name: resolvedName,
       email: bookingData.customerEmail,
       phone: bookingData.customerPhone,
       booking_reference: randomCode,

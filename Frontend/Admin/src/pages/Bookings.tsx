@@ -276,11 +276,15 @@ const Bookings = () => {
                       <TableCell className="font-mono text-xs font-semibold py-3 px-4 text-primary hidden lg:table-cell">{booking.booking_reference || '-'}</TableCell>
                       <TableCell className="font-bold py-3 px-2 sm:px-3 md:px-6 max-w-[80px] sm:max-w-[120px] lg:max-w-none truncate text-xs sm:text-sm text-foreground">
                         {(() => {
-                          if (booking.name && booking.name.trim() !== '' && booking.name !== 'Gamer Guest') {
+                          const expandedCustomerName = booking.expand?.customer_id?.name;
+                          if (expandedCustomerName && expandedCustomerName.trim() !== '' && !expandedCustomerName.toLowerCase().startsWith('guest')) {
+                            return expandedCustomerName;
+                          }
+                          if (booking.name && booking.name.trim() !== '' && !booking.name.toLowerCase().startsWith('guest') && booking.name !== 'Gamer Guest' && booking.name !== 'Walk-in Guest') {
                             return booking.name;
                           }
-                          if (booking.expand?.customer_id?.name && booking.expand.customer_id.name.trim() !== '') {
-                            return booking.expand.customer_id.name;
+                          if (expandedCustomerName && expandedCustomerName.trim() !== '') {
+                            return expandedCustomerName;
                           }
                           return booking.phone ? `Guest (${booking.phone})` : 'Gamer Guest';
                         })()}
@@ -370,11 +374,15 @@ const Bookings = () => {
                    <span className="text-sm font-medium text-muted-foreground">Player Name</span>
                    <span className="font-bold text-foreground text-right truncate max-w-[180px]">
                      {(() => {
-                       if (selectedBooking.name && selectedBooking.name.trim() !== '' && selectedBooking.name !== 'Gamer Guest') {
+                       const expandedCustomerName = selectedBooking.expand?.customer_id?.name;
+                       if (expandedCustomerName && expandedCustomerName.trim() !== '' && !expandedCustomerName.toLowerCase().startsWith('guest')) {
+                         return expandedCustomerName;
+                       }
+                       if (selectedBooking.name && selectedBooking.name.trim() !== '' && !selectedBooking.name.toLowerCase().startsWith('guest') && selectedBooking.name !== 'Gamer Guest' && selectedBooking.name !== 'Walk-in Guest') {
                          return selectedBooking.name;
                        }
-                       if (selectedBooking.expand?.customer_id?.name && selectedBooking.expand.customer_id.name.trim() !== '') {
-                         return selectedBooking.expand.customer_id.name;
+                       if (expandedCustomerName && expandedCustomerName.trim() !== '') {
+                         return expandedCustomerName;
                        }
                        return selectedBooking.phone ? `Guest (${selectedBooking.phone})` : 'Gamer Guest';
                      })()}
