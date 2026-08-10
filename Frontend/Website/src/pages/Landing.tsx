@@ -393,57 +393,58 @@ export default function Landing({ setRoute }: LandingProps) {
         id="stations" 
         className="pt-10 pb-20 md:pt-12 md:pb-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-b border-cyber-purple/10 overflow-hidden"
       >
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 md:mb-12 gap-6 text-center md:text-left">
-          <div className="flex flex-col items-center md:items-start">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-purple/10 border border-cyber-purple/30 text-cyber-cyan text-xs font-mono uppercase tracking-wider mb-3">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Explore Gaming Zones</span>
-            </div>
-            <h2 className="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-              Ready Player One?
-            </h2>
-            <p className="text-gray-400 max-w-xl mt-2">
-              Explore our elite gaming zones. Select your station, gear up, and jump into the action.
-            </p>
+        <div className="text-center mb-8 md:mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-purple/10 border border-cyber-purple/30 text-cyber-cyan text-xs font-mono uppercase tracking-wider mb-3">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Explore Gaming Zones</span>
           </div>
-
-          {/* Navigation Arrows */}
-          <div className="flex items-center justify-center gap-3 shrink-0 self-center md:self-auto">
-            <button
-              type="button"
-              onClick={() => handleStationsScroll('left')}
-              disabled={!canScrollLeft}
-              className={`p-3.5 rounded-xl border transition-all duration-300 ${
-                canScrollLeft
-                  ? 'bg-cyber-gray border-white/15 text-white hover:border-cyber-cyan hover:bg-cyber-purple/20 hover:text-cyber-cyan shadow-lg shadow-cyber-purple/10 cursor-pointer active:scale-95'
-                  : 'bg-cyber-dark/40 border-white/5 text-gray-600 cursor-not-allowed opacity-40'
-              }`}
-              aria-label="Previous station categories"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleStationsScroll('right')}
-              disabled={!canScrollRight}
-              className={`p-3.5 rounded-xl border transition-all duration-300 ${
-                canScrollRight
-                  ? 'bg-cyber-gray border-white/15 text-white hover:border-cyber-cyan hover:bg-cyber-purple/20 hover:text-cyber-cyan shadow-lg shadow-cyber-purple/10 cursor-pointer active:scale-95'
-                  : 'bg-cyber-dark/40 border-white/5 text-gray-600 cursor-not-allowed opacity-40'
-              }`}
-              aria-label="Next station categories"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
+          <h2 className="font-display text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-3">
+            Ready Player One?
+          </h2>
+          <p className="text-gray-400 max-w-xl mx-auto text-sm sm:text-base">
+            Explore our elite gaming zones. Select your station, gear up, and jump into the action.
+          </p>
         </div>
 
-        {/* Stations Carousel Slider */}
-        <div 
-          ref={stationsScrollRef}
-          onScroll={checkScrollButtons}
-          className="flex items-stretch gap-4 sm:gap-6 overflow-x-auto scrollbar-none scroll-smooth pb-6 pt-2 snap-x snap-mandatory px-0.5"
-        >
+        {/* Stations Carousel Slider with Flanking Floating Controls */}
+        <div className="relative group/carousel">
+          
+          {/* Left Flanking Arrow */}
+          <button
+            type="button"
+            onClick={() => handleStationsScroll('left')}
+            disabled={!canScrollLeft}
+            className={`absolute left-1 sm:-left-3 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full flex items-center justify-center border backdrop-blur-md transition-all duration-300 ${
+              canScrollLeft
+                ? 'bg-cyber-dark/90 border-cyber-purple/50 text-white hover:bg-cyber-purple hover:border-cyber-purple hover:scale-110 shadow-lg shadow-cyber-purple/30 cursor-pointer opacity-90 sm:opacity-75 sm:group-hover/carousel:opacity-100'
+                : 'bg-cyber-dark/40 border-white/5 text-gray-600 cursor-not-allowed opacity-0 pointer-events-none'
+            }`}
+            aria-label="Previous station categories"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+
+          {/* Right Flanking Arrow */}
+          <button
+            type="button"
+            onClick={() => handleStationsScroll('right')}
+            disabled={!canScrollRight}
+            className={`absolute right-1 sm:-right-3 top-1/2 -translate-y-1/2 z-20 h-12 w-12 rounded-full flex items-center justify-center border backdrop-blur-md transition-all duration-300 ${
+              canScrollRight
+                ? 'bg-cyber-dark/90 border-cyber-purple/50 text-white hover:bg-cyber-purple hover:border-cyber-purple hover:scale-110 shadow-lg shadow-cyber-purple/30 cursor-pointer opacity-90 sm:opacity-75 sm:group-hover/carousel:opacity-100'
+                : 'bg-cyber-dark/40 border-white/5 text-gray-600 cursor-not-allowed opacity-0 pointer-events-none'
+            }`}
+            aria-label="Next station categories"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+
+          {/* Carousel Track */}
+          <div 
+            ref={stationsScrollRef}
+            onScroll={checkScrollButtons}
+            className="flex items-stretch gap-4 sm:gap-6 overflow-x-auto scrollbar-none scroll-smooth pb-6 pt-2 snap-x snap-mandatory px-1 sm:px-2"
+          >
           {stationTypes.map((station) => {
             const IconComponent = ICON_COMPONENTS[station.iconName] || Gamepad2;
             
@@ -541,11 +542,11 @@ export default function Landing({ setRoute }: LandingProps) {
                   })()}
 
                 </div>
-
               </div>
             );
           })}
         </div>
+      </div>
 
       </section>
 
