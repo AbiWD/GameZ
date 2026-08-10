@@ -47,12 +47,13 @@ export const bookingsApi = {
 
     const rec = await pb.collection('bookings').create({
       assigned_station_id: conflictCheck.assignedStationId,
+      station_type: bookingData.stationId,
       start_time: startDate.toISOString(),
       end_time: endDate.toISOString(),
       status: 'confirmed',
       total_price: bookingData.totalPrice,
       players: 1,
-      name: bookingData.customerName,
+      name: bookingData.customerName || (bookingData.customerPhone ? `Guest (${bookingData.customerPhone})` : 'Gamer Guest'),
       email: bookingData.customerEmail,
       phone: bookingData.customerPhone,
       booking_reference: randomCode,

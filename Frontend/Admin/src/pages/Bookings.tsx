@@ -267,11 +267,19 @@ const Bookings = () => {
                       onClick={() => setSelectedBooking(booking)}
                     >
                       <TableCell className="font-mono text-xs font-semibold py-3 px-4 text-primary hidden lg:table-cell">{booking.booking_reference || '-'}</TableCell>
-                      <TableCell className="font-bold py-3 px-2 sm:px-3 md:px-6 max-w-[80px] sm:max-w-[120px] lg:max-w-none truncate text-xs sm:text-sm text-foreground">{booking.name}</TableCell>
+                      <TableCell className="font-bold py-3 px-2 sm:px-3 md:px-6 max-w-[80px] sm:max-w-[120px] lg:max-w-none truncate text-xs sm:text-sm text-foreground">
+                        {booking.name && booking.name.trim() !== '' ? booking.name : (booking.phone ? `Guest (${booking.phone})` : 'Gamer Guest')}
+                      </TableCell>
                       <TableCell className="py-3 px-4 text-muted-foreground hidden md:table-cell">{booking.phone}</TableCell>
                       <TableCell className="py-3 px-2 sm:px-3 md:px-6">
-                        <span className="inline-block px-2 py-1 rounded-md border border-primary/20 text-[10px] sm:text-xs font-semibold bg-primary/5 text-primary leading-tight text-center truncate max-w-[70px] sm:max-w-[100px] lg:max-w-none hover:whitespace-normal">
-                          {booking.expand?.assigned_station_id?.station_type || booking.station_type || 'Unknown'}
+                        <span className="inline-block px-2.5 py-1 rounded-md border border-primary/20 text-[10px] sm:text-xs font-semibold bg-primary/5 text-primary leading-tight text-center truncate max-w-[120px] sm:max-w-[160px] lg:max-w-none hover:whitespace-normal">
+                          {(() => {
+                            const assigned = booking.expand?.assigned_station_id;
+                            const typeName = booking.station_type || assigned?.station_type;
+                            const stationNum = assigned?.station_number || assigned?.name;
+                            if (typeName && stationNum) return `${typeName} (${stationNum})`;
+                            return typeName || stationNum || 'Gaming Lounge';
+                          })()}
                         </span>
                       </TableCell>
                       <TableCell className="py-3 px-2 sm:px-3 md:px-6 text-muted-foreground text-[10px] sm:text-sm">
@@ -345,7 +353,9 @@ const Bookings = () => {
               <div className="bg-secondary/30 border border-border rounded-2xl p-5 shadow-sm space-y-3">
                  <div className="flex justify-between items-center border-b border-border pb-3">
                    <span className="text-sm font-medium text-muted-foreground">Player Name</span>
-                   <span className="font-bold text-foreground text-right truncate max-w-[180px]">{selectedBooking.name}</span>
+                   <span className="font-bold text-foreground text-right truncate max-w-[180px]">
+                     {selectedBooking.name && selectedBooking.name.trim() !== '' ? selectedBooking.name : (selectedBooking.phone ? `Guest (${selectedBooking.phone})` : 'Gamer Guest')}
+                   </span>
                  </div>
                  <div className="flex justify-between items-center border-b border-border pb-3">
                    <span className="text-sm font-medium text-muted-foreground">Reference #</span>
@@ -364,7 +374,13 @@ const Bookings = () => {
                  <div className="flex justify-between items-center border-b border-border pb-3">
                    <span className="text-sm font-medium text-muted-foreground">Station</span>
                    <span className="text-xs font-semibold text-primary bg-primary/10 border border-primary/20 py-0.5 px-2.5 rounded-md">
-                     {selectedBooking.expand?.assigned_station_id?.name || selectedBooking.expand?.assigned_station_id?.station_type || selectedBooking.station_type || 'Gaming Console'}
+                     {(() => {
+                       const assigned = selectedBooking.expand?.assigned_station_id;
+                       const typeName = selectedBooking.station_type || assigned?.station_type;
+                       const stationNum = assigned?.station_number || assigned?.name;
+                       if (typeName && stationNum) return `${typeName} (${stationNum})`;
+                       return typeName || stationNum || 'Gaming Lounge';
+                     })()}
                    </span>
                  </div>
                  <div className="flex justify-between items-center border-b border-border pb-3">
