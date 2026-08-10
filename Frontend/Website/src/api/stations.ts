@@ -46,11 +46,9 @@ export const stationsApi = {
           liveAvailability[categoryName] = { total: 0, available: 0 };
         }
         const statusLower = (ps.status || '').toLowerCase();
-        if (statusLower !== 'maintenance') {
-          liveAvailability[categoryName].total += 1;
-          if (statusLower === 'available') {
-            liveAvailability[categoryName].available += 1;
-          }
+        liveAvailability[categoryName].total += 1;
+        if (statusLower === 'available') {
+          liveAvailability[categoryName].available += 1;
         }
       }
     });
@@ -137,22 +135,26 @@ export const stationsApi = {
     const categoryName = staticStation ? staticStation.name : (stTypesRaw.find(s => s.id === categoryId)?.name || categoryId);
     if (!categoryName) return { conflict: true, details: 'Invalid station category.' };
 
-    let physicalStations: any[] = [];
+    let allCategoryStations: any[] = [];
     try {
-      physicalStations = await pb.collection('stations').getFullList({
+      allCategoryStations = await pb.collection('stations').getFullList({
         filter: `station_type = "${categoryName}"`,
         requestKey: null
       });
-      physicalStations = physicalStations.filter(s => s.status === 'active' || s.status === 'available');
     } catch (err) {
       return { conflict: true, details: 'Failed to retrieve available stations.' };
     }
 
-    if (physicalStations.length === 0) {
-      return { conflict: true, details: 'No physical stations available for this category.' };
+    const bookableStations = allCategoryStations.filter(s => s.status !== 'maintenance');
+
+    if (bookableStations.length === 0) {
+      return { conflict: true, details: 'All stations in this category are currently under maintenance.' };
     }
 
-    for (const pStation of physicalStations) {
+    for (const pStation of bookableStations) {
+      const isToday = date === new Date().toISOString().split('T')[0];
+      const isManuallyOccupiedNow = isToday && pStation.status === 'occupied';
+
       const conflictingBookingsForThisStation = existingBookings.filter(b => {
         if (b.status !== 'confirmed') return false;
         if (b.stationId !== pStation.id) return false;
@@ -164,14 +166,14 @@ export const stationsApi = {
         return startHour1 < endHour2 && startHour2 < endHour1;
       });
 
-      if (conflictingBookingsForThisStation.length === 0) {
+      if (!isManuallyOccupiedNow && conflictingBookingsForThisStation.length === 0) {
         return { conflict: false, assignedStationId: pStation.id };
       }
     }
 
     return {
       conflict: true,
-      details: `All ${physicalStations.length} stations in this lounge are fully booked for the selected time.`
+      details: `All ${bookableStations.length} stations in this lounge are fully booked for the selected time.`
     };
   }
 };

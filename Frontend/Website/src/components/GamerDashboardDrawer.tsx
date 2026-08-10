@@ -42,7 +42,7 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
   const extendBookingMutation = useExtendBooking();
   const updateProfileMutation = useUpdateProfile();
   const { data: pricingData } = usePricing();
-  const stationTypes = pricingData?.stTypes || [];
+  const stationTypes = pricingData?.dynamicStationCategories || pricingData?.stTypes || [];
   const physicalStations = pricingData?.pStations || [];
   const { mutateAsync: logout } = useLogout();
   const [activeTab, setActiveTab] = useState<'reservations' | 'profile'>('reservations');
@@ -98,12 +98,22 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
     cancelledBookings;
 
   // Helper to get clean category name from booking record
-  const getStationName = (b: any) => {
-    if (typeof b === 'string') {
-      const s = stationTypes.find((x: any) => x.id === b);
-      return s ? s.name : 'Gaming Console';
+  const getStationName = (stationId: string) => {
+    if (!stationId) return 'Gaming Lounge';
+
+    // 1. Direct match with stationTypes (category ID or name)
+    const catMatch = stationTypes.find((x: any) => x.id === stationId || x.name === stationId);
+    if (catMatch) return catMatch.name;
+
+    // 2. Match via physicalStations
+    const physMatch = physicalStations.find((ps: any) => ps.id === stationId);
+    if (physMatch) {
+      const parentCat = stationTypes.find((x: any) => x.id === physMatch.station_type || x.name === physMatch.station_type);
+      if (parentCat) return parentCat.name;
+      if (physMatch.station_type) return physMatch.station_type;
     }
-    return b?.station_type || 'Gaming Console';
+
+    return 'Gaming Lounge';
   };
 
   const getStationRate = (stationId: string) => {
@@ -297,12 +307,12 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
                           {/* Station Category indicator */}
                           <div className="flex items-start justify-between">
                             <div>
-                              <span className="inline-block text-[9px] font-mono font-bold tracking-widest uppercase text-cyber-cyan px-2 py-0.5 rounded bg-cyber-cyan/10 border border-cyber-cyan/20">
-                                {getStationName(booking.stationId)}
-                              </span>
-                              <h4 className="font-display text-base font-extrabold text-white mt-1">
+                              <h4 className="font-display text-base font-extrabold text-white">
                                 Pass Code: <span className="text-cyber-purple font-mono">{booking.verificationCode}</span>
                               </h4>
+                              <span className="inline-block text-[10px] font-mono font-bold tracking-widest uppercase text-cyber-cyan px-2.5 py-0.5 rounded-full bg-cyber-cyan/10 border border-cyber-cyan/20 mt-1.5">
+                                {getStationName(booking.stationId)}
+                              </span>
                             </div>
                             <span className="font-mono text-base font-extrabold text-cyber-neon">
                               ₹{booking.totalPrice}

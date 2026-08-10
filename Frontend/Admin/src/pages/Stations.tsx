@@ -62,7 +62,7 @@ interface BlackoutPeriod {
   created?: string;
 }
 
-const STATION_STATUS = ['available', 'occupied', 'maintenance'];
+const STATION_STATUS = ['available', 'maintenance'];
 const AVAILABLE_ICONS = ['Gamepad2', 'Monitor', 'Headphones', 'Mouse', 'Keyboard', 'Tv', 'Sofa', 'Coffee', 'Wifi', 'Cpu', 'Speaker'];
 
 const Stations = () => {

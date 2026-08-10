@@ -217,15 +217,77 @@ export default function Book({ setRoute }: BookProps) {
     return { isFullyBlackedOut: false };
   };
 
-  // Automatically clear startTime if selected slot becomes blacked out
+  const isSlotInPast = (slot: string, dateStr: string) => {
+    if (!dateStr) return false;
+    const [yr, mo, dy] = dateStr.split('-').map(Number);
+    const startHour = parseTimeToDecimal(slot);
+    const slotDate = new Date(yr, mo - 1, dy, Math.floor(startHour), (startHour % 1) * 60, 0, 0);
+    const now = new Date();
+    return slotDate <= now;
+  };
+
+  // State to hold live status of each time slot
+  const [slotStatuses, setSlotStatuses] = useState<Record<string, { disabled: boolean; reason?: string; isPast?: boolean; isBooked?: boolean; isBlackedOut?: boolean }>>({});
+
   useEffect(() => {
-    if (startTime) {
-      const info = getSlotBlackoutInfo(startTime);
-      if (info.isBlackedOut) {
-        setStartTime('');
+    if (!selectedStation || !bookingDate) return;
+
+    let isMounted = true;
+    const computeSlotStatuses = async () => {
+      const statuses: Record<string, { disabled: boolean; reason?: string; isPast?: boolean; isBooked?: boolean; isBlackedOut?: boolean }> = {};
+
+      for (const slot of timeSlots) {
+        // 1. Check if slot is in the past
+        if (isSlotInPast(slot, bookingDate)) {
+          statuses[slot] = { disabled: true, reason: 'Time Passed', isPast: true };
+          continue;
+        }
+
+        // 2. Check store blackout
+        const blackoutInfo = getSlotBlackoutInfo(slot);
+        if (blackoutInfo.isBlackedOut) {
+          statuses[slot] = { disabled: true, reason: `Closed: ${blackoutInfo.reason}`, isBlackedOut: true };
+          continue;
+        }
+
+        // 3. Check live slot conflict (occupancy / double booking)
+        try {
+          const conflictCheck = await stationsApi.checkSlotConflict(
+            selectedStation.id,
+            bookingDate,
+            slot,
+            durationHours,
+            bookings
+          );
+
+          if (conflictCheck.conflict) {
+            statuses[slot] = { disabled: true, reason: conflictCheck.details || 'Fully Booked', isBooked: true };
+          } else {
+            statuses[slot] = { disabled: false };
+          }
+        } catch (err) {
+          statuses[slot] = { disabled: false };
+        }
       }
+
+      if (isMounted) {
+        setSlotStatuses(statuses);
+      }
+    };
+
+    computeSlotStatuses();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedStation, bookingDate, durationHours, bookings, blackoutPeriods]);
+
+  // Clear startTime if the selected slot becomes disabled
+  useEffect(() => {
+    if (startTime && slotStatuses[startTime]?.disabled) {
+      setStartTime('');
     }
-  }, [bookingDate, durationHours, blackoutPeriods]);
+  }, [slotStatuses, startTime]);
 
   // Initialize form defaults on load
   useEffect(() => {
@@ -664,36 +726,49 @@ export default function Book({ setRoute }: BookProps) {
                       <div className="grid grid-cols-3 gap-2 max-h-[290px] overflow-y-auto pr-1">
                         {timeSlots.map((slot) => {
                           const isSelected = startTime === slot;
-                          const blackoutInfo = getSlotBlackoutInfo(slot);
-                          const isBlackedOut = blackoutInfo.isBlackedOut;
+                          const status = slotStatuses[slot] || { disabled: false };
+                          const isDisabled = status.disabled;
+                          const isPast = status.isPast;
+                          const isBooked = status.isBooked;
+                          const isBlackedOut = status.isBlackedOut;
 
                           return (
                             <button
                               key={slot}
                               id={`time-slot-${slot.replace(/[\s:]/g, '-')}`}
                               type="button"
-                              disabled={isBlackedOut}
-                              onClick={() => !isBlackedOut && setStartTime(slot)}
+                              disabled={isDisabled}
+                              onClick={() => !isDisabled && setStartTime(slot)}
                               className={`py-2.5 px-2 rounded-xl text-xs font-mono text-center border transition-all ${
-                                isBlackedOut
-                                  ? 'bg-red-950/20 border-red-500/30 text-red-400/60 cursor-not-allowed opacity-50'
+                                isDisabled
+                                  ? isPast
+                                    ? 'bg-cyber-dark/40 border-white/5 text-gray-600 cursor-not-allowed opacity-30'
+                                    : isBlackedOut
+                                    ? 'bg-rose-950/30 border-rose-500/40 text-rose-300 cursor-not-allowed'
+                                    : 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200 cursor-not-allowed shadow-[0_0_15px_rgba(99,102,241,0.1)]'
                                   : isSelected
                                   ? 'bg-cyber-purple border-cyber-purple text-white font-bold shadow-md shadow-cyber-purple/10 cursor-pointer'
                                   : 'bg-cyber-lightgray border-white/5 text-gray-300 hover:border-cyber-purple/40 hover:text-white cursor-pointer'
                               }`}
-                              title={isBlackedOut ? `Closed: ${durationHours}h play duration overlaps blackout starting at ${blackoutInfo.bStartStr} (${blackoutInfo.reason})` : undefined}
+                              title={isDisabled ? status.reason : undefined}
                             >
                               <div className="flex items-center justify-center gap-1">
-                                {isBlackedOut ? (
-                                  <Lock className="h-3 w-3 text-red-400 shrink-0" />
+                                {isDisabled ? (
+                                  <Lock className={`h-3 w-3 shrink-0 ${isPast ? 'text-gray-600' : isBlackedOut ? 'text-rose-400' : 'text-indigo-400'}`} />
                                 ) : (
-                                  <Clock className="h-3.5 w-3.5 shrink-0" />
+                                  <Clock className="h-3.5 w-3.5 shrink-0 text-cyber-purple" />
                                 )}
-                                <span className={isBlackedOut ? 'line-through' : ''}>{slot}</span>
+                                <span className={isPast ? 'line-through text-gray-600' : isDisabled ? 'font-semibold' : ''}>{slot}</span>
                               </div>
-                              {isBlackedOut && (
-                                <span className="block text-[9px] text-red-400 font-semibold no-underline mt-0.5 uppercase tracking-wide">
-                                  Closed
+                              {isDisabled && (
+                                <span className={`block text-[9px] font-bold no-underline mt-1 uppercase tracking-wider ${
+                                  isPast 
+                                    ? 'text-gray-600' 
+                                    : isBlackedOut 
+                                    ? 'text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20' 
+                                    : 'text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-full border border-indigo-500/30'
+                                }`}>
+                                  {isPast ? 'Passed' : isBlackedOut ? 'Closed' : 'Booked'}
                                 </span>
                               )}
                             </button>
