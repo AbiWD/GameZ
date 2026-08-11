@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import Landing from './pages/Landing';
 import Book from './pages/Book';
 import { EmailNotificationBanner } from './components/EmailNotificationBanner';
+import { ResetPasswordModal } from './components/ResetPasswordModal';
 
 export default function App() {
   // Sync router with browser path natively
@@ -81,6 +82,9 @@ export default function App() {
 
       {/* Simulated Email Notification Delivery Banner & Logs Panel */}
       <EmailNotificationBanner />
+
+      {/* Password Reset Modal for token-based link confirmations */}
+      <ResetPasswordModal />
     </div>
   );
 }

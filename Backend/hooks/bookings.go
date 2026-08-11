@@ -474,7 +474,7 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 			subject := fmt.Sprintf("GameZ Booking Cancelled: %s", ref)
 
 			htmlBody := buildCyberEmailHTML(title, subtitle, badgeText, badgeColor, ref, stationName, startTime, durationStr, 0)
-			waText := fmt.Sprintf("⚠️ *GameZ Notice*\n\nYour reservation *#%s* for %s (%s, %s) has been cancelled and refunded.\n\nBook next session: http://localhost:4173", ref, stationName, durationStr, startTime)
+			waText := fmt.Sprintf("⚠️ *GameZ Notice*\n\nYour reservation *#%s* for %s (%s, %s) has been cancelled and refunded.\n\nBook next session: http://localhost:8080", ref, stationName, durationStr, startTime)
 
 			// Emergency Blackout: Send Email immediately in parallel + Enqueue WhatsApp
 			message := &mailer.Message{

@@ -75,7 +75,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleSwitchMode = (newMode: 'login' | 'register' | 'forgot') => {
     setMode(newMode);
-    handleResetForm();
+    // Preserve email value across mode switches (especially for Forgot Password reset)
+    setPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setConfirmPassword('');
+    setError(null);
+    setSuccess(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -151,19 +157,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } catch (err: any) {
       console.error("Auth submit error:", err);
       const rawData = err?.response?.data || {};
-      const fieldErrors = Object.entries(rawData)
-        .map(([field, v]: [string, any]) => `${field.toUpperCase()}: ${v?.message || v}`)
-        .filter(Boolean)
-        .join('. ');
+      const errString = (JSON.stringify(rawData) + ' ' + (err?.message || '')).toLowerCase();
 
-      if (fieldErrors) {
-        setError(fieldErrors);
+      if (errString.includes('email') && (errString.includes('unique') || errString.includes('exists') || errString.includes('already'))) {
+        setError('EMAIL_EXISTS');
+      } else if (errString.includes('phone') && (errString.includes('unique') || errString.includes('exists') || errString.includes('already'))) {
+        setError('PHONE_EXISTS');
+      } else if (errString.includes('password') && (errString.includes('short') || errString.includes('min') || errString.includes('length'))) {
+        setError('Password is too short. Please use at least 8 characters.');
       } else if (err?.status === 500 || err?.message?.includes('Failed to authenticate')) {
         setError('ACCOUNT_NOT_FOUND');
-      } else if (err?.message) {
-        setError(err.message);
       } else {
-        setError('Authentication failed. Please check your credentials and try again.');
+        const fieldErrors = Object.entries(rawData)
+          .map(([field, v]: [string, any]) => {
+            const msg = (v?.message || v || '').toString();
+            if (msg.toLowerCase().includes('must be unique')) {
+              return `${field.charAt(0).toUpperCase() + field.slice(1)} is already registered`;
+            }
+            return `${field.toUpperCase()}: ${msg}`;
+          })
+          .filter(Boolean)
+          .join('. ');
+
+        if (fieldErrors) {
+          setError(fieldErrors);
+        } else if (err?.message) {
+          setError(err.message);
+        } else {
+          setError('Authentication failed. Please check your credentials and try again.');
+        }
       }
     } finally {
       setIsLoading(false);
@@ -234,6 +256,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <p className="text-[11px] text-gray-300 font-sans mt-0.5 leading-relaxed">
                         Please check your credentials or register a new account below.
                       </p>
+                    </div>
+                  ) : error === 'EMAIL_EXISTS' ? (
+                    <div>
+                      <h4 className="font-display text-xs font-bold text-rose-200 uppercase tracking-wider">
+                        Email Already Registered
+                      </h4>
+                      <p className="text-[11px] text-gray-300 font-sans mt-0.5 leading-relaxed mb-2">
+                        An account with this email address already exists. Please log in to your existing account.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleSwitchMode('login')}
+                        className="px-3 py-1 bg-cyber-purple/30 border border-cyber-purple/50 rounded-lg text-xs font-bold text-white hover:bg-cyber-purple/50 transition cursor-pointer"
+                      >
+                        Log In to Existing Account →
+                      </button>
+                    </div>
+                  ) : error === 'PHONE_EXISTS' ? (
+                    <div>
+                      <h4 className="font-display text-xs font-bold text-rose-200 uppercase tracking-wider">
+                        Phone Number Already Registered
+                      </h4>
+                      <p className="text-[11px] text-gray-300 font-sans mt-0.5 leading-relaxed mb-2">
+                        This mobile number is already associated with an account. Please log in or use a different number.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleSwitchMode('login')}
+                        className="px-3 py-1 bg-cyber-purple/30 border border-cyber-purple/50 rounded-lg text-xs font-bold text-white hover:bg-cyber-purple/50 transition cursor-pointer"
+                      >
+                        Log In to Account →
+                      </button>
                     </div>
                   ) : (
                     <p className="text-xs text-rose-200 font-medium leading-relaxed font-sans">

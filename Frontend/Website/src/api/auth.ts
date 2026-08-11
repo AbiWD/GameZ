@@ -96,5 +96,17 @@ export const authApi = {
 
   resetPassword: async (email: string) => {
     await pb.collection('portal_users').requestPasswordReset(email);
+  },
+
+  confirmPasswordReset: async (token: string, password: string, passwordConfirm: string) => {
+    try {
+      await pb.collection('portal_users').confirmPasswordReset(token, password, passwordConfirm);
+    } catch (err: any) {
+      try {
+        await pb.collection('users').confirmPasswordReset(token, password, passwordConfirm);
+      } catch (_) {
+        throw err;
+      }
+    }
   }
 };

@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/pocketbase/pocketbase"
@@ -25,9 +26,15 @@ import (
 var adminDist embed.FS
 
 const (
-	apiURL      = "http://localhost:8090"
-	frontendURL = "http://localhost:4173"
+	apiURL = "http://localhost:8090"
 )
+
+func getFrontendURL() string {
+	if u := os.Getenv("FRONTEND_URL"); u != "" {
+		return strings.TrimRight(u, "/")
+	}
+	return "http://localhost:8080"
+}
 
 func setupS3(app *pocketbase.PocketBase) {
 	if os.Getenv("S3_ENABLED") != "true" {
@@ -92,6 +99,7 @@ func setupSMTP(app *pocketbase.PocketBase) {
 
 func setupEmailTemplates(app *pocketbase.PocketBase) {
 	logger.Info("SYSTEM", "Configuring email templates...")
+	frontendURL := getFrontendURL()
 
 	users, err := app.FindCollectionByNameOrId("portal_users")
 	if err != nil {

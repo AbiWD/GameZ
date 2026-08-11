@@ -36,3 +36,10 @@ export function useUpdateProfile() {
     mutationFn: authApi.updateProfile,
   });
 }
+
+export function useConfirmPasswordReset() {
+  return useMutation({
+    mutationFn: ({ token, password, passwordConfirm }: { token: string; password: string; passwordConfirm: string }) =>
+      authApi.confirmPasswordReset(token, password, passwordConfirm),
+  });
+}

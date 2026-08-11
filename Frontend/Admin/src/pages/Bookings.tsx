@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ChevronRight, ChevronLeft, AlertTriangle, XCircle, Copy, ArrowUpDown, Banknote, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, AlertTriangle, XCircle, Copy, ArrowUpDown, Banknote, CheckCircle2, Clock } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { escapePbFilterValue } from '@/lib/utils';
 import { useProperty } from '@/contexts/PropertyContext';
@@ -125,14 +125,18 @@ const Bookings = () => {
     try {
       const filters: string[] = [];
 
+      if (activeProperty?.id) {
+        filters.push(`property_id = "${escapePbFilterValue(activeProperty.id)}"`);
+      }
+
       if (debouncedSearch) {
         const safeSearch = escapePbFilterValue(debouncedSearch);
-        filters.push(`(name ~ "${safeSearch}" || email ~ "${safeSearch}" || phone ~ "${safeSearch}" || booking_reference ~ "${safeSearch}" || status ~ "${safeSearch}" || station_type ~ "${safeSearch}")`);
+        filters.push(`(customer_name ~ "${safeSearch}" || email ~ "${safeSearch}" || phone ~ "${safeSearch}" || booking_reference ~ "${safeSearch}" || status ~ "${safeSearch}" || assigned_station_id.station_type ~ "${safeSearch}")`);
       }
 
       if (stationFilter && stationFilter !== 'all') {
         const safeStation = escapePbFilterValue(stationFilter);
-        filters.push(`(station_type = "${safeStation}" || assigned_station_id.station_type = "${safeStation}")`);
+        filters.push(`assigned_station_id.station_type ~ "${safeStation}"`);
       }
 
       if (statusFilter && statusFilter !== 'all') {
@@ -151,18 +155,34 @@ const Bookings = () => {
           requestKey: null
         });
       } catch (filterErr) {
-        console.warn('Filtered bookings fetch failed, falling back to unfiltered list:', filterErr);
-        result = await pb.collection('bookings').getList(page, 10, {
+        console.warn('PocketBase server filter fallback triggered:', filterErr);
+        const fallbackFilter = activeProperty?.id ? `property_id = "${escapePbFilterValue(activeProperty.id)}"` : undefined;
+        result = await pb.collection('bookings').getList(1, 100, {
+          filter: fallbackFilter,
           sort: sortOrder,
           expand: 'assigned_station_id,customer_id',
           requestKey: null
         });
       }
 
-      const fetchedItems = result.items as unknown as Booking[];
+      let fetchedItems = result.items as unknown as Booking[];
+
+      // Client-side post-filter safeguard (guarantees station & status dropdowns ALWAYS filter 100% accurately)
+      if (stationFilter && stationFilter !== 'all') {
+        fetchedItems = fetchedItems.filter(b => {
+          const assigned = b.expand?.assigned_station_id;
+          const stType = b.station_type || assigned?.station_type || assigned?.name;
+          return stType && stType.toLowerCase().includes(stationFilter.toLowerCase());
+        });
+      }
+
+      if (statusFilter && statusFilter !== 'all') {
+        fetchedItems = fetchedItems.filter(b => (b.status || 'pending').toLowerCase() === statusFilter.toLowerCase());
+      }
+
       setBookings(fetchedItems);
       setTotalPages(result.totalPages);
-      setTotalItems(result.totalItems);
+      setTotalItems(fetchedItems.length);
 
       // Perform batch lookup on portal_users collection for player names
       const phones = Array.from(new Set(fetchedItems.map(b => b.phone).filter(Boolean)));
@@ -481,24 +501,52 @@ const Bookings = () => {
                    </span>
                  </div>
                  <div className="flex justify-between items-center border-b border-border pb-3">
-                    <span className="text-sm font-medium text-muted-foreground">Payment Method</span>
-                    <span className="font-semibold text-foreground text-xs bg-secondary border border-border px-2.5 py-1 rounded-md flex items-center gap-1.5">
-                      <Banknote className="w-3.5 h-3.5 text-emerald-500" />
+                    <span className="text-sm font-medium text-muted-foreground">Payment Status</span>
+                    <span>
                       {(() => {
+                        const isPaid = selectedBooking.payment_status === 'paid' || selectedBooking.status === 'completed';
+                        const isCancelled = selectedBooking.status === 'cancelled';
                         const mode = (selectedBooking.payment_mode || selectedBooking.payment_method || '').toLowerCase();
-                        if (mode === 'cash') return 'Cash Collected at Desk';
-                        if (mode === 'upi') return 'UPI / QR Code at Desk';
-                        if (mode === 'card') return 'Card Reader at Desk';
-                        return mode ? mode.toUpperCase() : 'Cash Collected at Desk';
+
+                        if (isCancelled) {
+                          return (
+                            <span className="text-muted-foreground bg-secondary border-border border px-2.5 py-1 rounded-md text-xs font-semibold">
+                              Cancelled (No Payment)
+                            </span>
+                          );
+                        }
+
+                        if (isPaid) {
+                          let label = 'Paid';
+                          if (mode === 'cash') label = 'Cash Collected';
+                          else if (mode === 'upi') label = 'Paid via UPI';
+                          else if (mode === 'card') label = 'Paid via Card';
+
+                          return (
+                            <span className="text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20 border px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              {label}
+                            </span>
+                          );
+                        }
+
+                        // Future / Pending check-in session
+                        return (
+                          <span className="text-amber-500 dark:text-amber-400 bg-amber-500/10 border-amber-500/20 border px-2.5 py-1 rounded-md text-xs font-semibold flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 animate-pulse" />
+                            Pay at Front Desk
+                          </span>
+                        );
                       })()}
                     </span>
                   </div>
-                 <div className="flex justify-between items-center pb-1 pt-1">
+                  <div className="flex justify-between items-center pb-1 pt-1">
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-muted-foreground">Total Price</span>
-                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
-                        <CheckCircle2 className="w-3 h-3" />
-                        {selectedBooking.status === 'completed' || selectedBooking.payment_status === 'paid' ? 'Payment Completed' : 'Pay at Front Desk'}
+                      <span className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                        {selectedBooking.payment_status === 'paid' || selectedBooking.status === 'completed' 
+                          ? 'Settlement Complete' 
+                          : 'Due at Front Desk upon Arrival'}
                       </span>
                     </div>
                    <span className="font-bold text-lg text-foreground">₹{selectedBooking.total_price}</span>

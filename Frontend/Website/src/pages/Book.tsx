@@ -934,7 +934,7 @@ export default function Book({ setRoute }: BookProps) {
                 {!currentUser ? (
                   <div className="text-center py-8 max-w-md mx-auto space-y-6">
                     <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-cyber-purple/10 text-cyber-purple border border-cyber-purple/30 mb-2">
-                      <Lock className="h-8 w-8 animate-pulse" />
+                      <LockIcon className="h-8 w-8 animate-pulse" />
                     </div>
 
                     <div className="space-y-2">
