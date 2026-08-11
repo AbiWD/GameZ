@@ -95,7 +95,27 @@ export const authApi = {
   },
 
   resetPassword: async (email: string) => {
-    await pb.collection('portal_users').requestPasswordReset(email);
+    const cleanEmail = email.trim().toLowerCase();
+    
+    // Trigger reset password for both portal_users and users collections
+    let sent = false;
+    try {
+      await pb.collection('portal_users').requestPasswordReset(cleanEmail);
+      sent = true;
+    } catch (err: any) {
+      console.warn("portal_users reset error:", err);
+    }
+
+    try {
+      await pb.collection('users').requestPasswordReset(cleanEmail);
+      sent = true;
+    } catch (err: any) {
+      console.warn("users reset error:", err);
+    }
+
+    if (!sent) {
+      throw new Error("Unable to dispatch password recovery email. Please check your email address.");
+    }
   },
 
   confirmPasswordReset: async (token: string, password: string, passwordConfirm: string) => {

@@ -314,6 +314,16 @@ func setupEmailTemplates(app *pocketbase.PocketBase) {
 	settings := app.Settings()
 	settings.Meta.AppName = "GameZ"
 	settings.Meta.AppURL = frontendURL
+	if settings.Meta.SenderAddress == "" || settings.Meta.SenderAddress == "support@example.com" {
+		if from := os.Getenv("SMTP_FROM"); from != "" {
+			settings.Meta.SenderAddress = from
+		} else {
+			settings.Meta.SenderAddress = "support@gamezcafe.in"
+		}
+	}
+	if settings.Meta.SenderName == "" {
+		settings.Meta.SenderName = "GameZ"
+	}
 	if err := app.Save(settings); err != nil {
 		logger.Errorf("SYSTEM", "Meta settings failed: %v", err)
 	}
