@@ -18,10 +18,11 @@ import {
   Sparkles,
   RefreshCw,
   Info,
-  Lock,
   Zap,
   AlertTriangle,
   UserCheck,
+  Flame,
+  Lock as LockIcon,
   X
 } from 'lucide-react';
 import { Station, Booking } from '../types';
@@ -472,7 +473,22 @@ export default function Book({ setRoute }: BookProps) {
 
         <div className="w-full max-w-4xl bg-cyber-gray border border-white/5 rounded-2xl p-6 sm:p-10 shadow-2xl relative z-10">
           
-          {/* PROGRESS STEP INDICATOR (Hide in Confirmed Receipt) */}
+          {/* Top Close Button for Step 5 */}
+          {step === 5 && (
+            <div className="flex justify-end mb-2">
+              <button
+                type="button"
+                id="close-booking-wizard-step5-btn"
+                onClick={() => setRoute('/')}
+                className="flex items-center justify-center p-2 rounded-xl bg-cyber-lightgray border border-white/10 text-gray-400 hover:text-white hover:border-cyber-purple/50 hover:bg-cyber-purple/10 transition-all duration-200 cursor-pointer shadow-sm active:scale-95"
+                aria-label="Close booking tab"
+              >
+                <X className="h-4 w-4 text-gray-400 group-hover:text-white" />
+              </button>
+            </div>
+          )}
+
+          {/* PROGRESS STEP INDICATOR (Steps 1 to 4) */}
           {step < 5 && (
             <div className="mb-8">
               <div className="flex items-center justify-between text-xs font-mono text-gray-500 mb-4">
@@ -485,10 +501,9 @@ export default function Book({ setRoute }: BookProps) {
                   type="button"
                   id="close-booking-wizard-btn"
                   onClick={() => setRoute('/')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyber-lightgray border border-white/10 text-gray-400 hover:text-white hover:border-cyber-purple/50 hover:bg-cyber-purple/10 transition-all duration-200 cursor-pointer shadow-sm active:scale-95"
+                  className="flex items-center justify-center p-2 rounded-xl bg-cyber-lightgray border border-white/10 text-gray-400 hover:text-white hover:border-cyber-purple/50 hover:bg-cyber-purple/10 transition-all duration-200 cursor-pointer shadow-sm active:scale-95"
                   aria-label="Close booking tab"
                 >
-                  <span className="text-xs font-sans font-medium">Close</span>
                   <X className="h-4 w-4 text-gray-400 group-hover:text-white" />
                 </button>
               </div>
@@ -525,7 +540,6 @@ export default function Book({ setRoute }: BookProps) {
                   </button>
                   <div>
                     <h1 className="font-display text-2xl sm:text-3xl font-extrabold text-white">Select a Gaming Station</h1>
-                    <p className="text-xs sm:text-sm text-gray-400">Secure real-time slots at our premium gaming lounge on MG Road, Mangaluru.</p>
                   </div>
                 </div>
 
@@ -627,7 +641,7 @@ export default function Book({ setRoute }: BookProps) {
                       {/* Date Selector */}
                       <div className="relative">
                         <label className="block text-xs font-mono uppercase text-gray-400 mb-2 font-semibold">
-                          Select Date (Today to 30 Days out)
+                          Select Date
                         </label>
                         <div className="relative">
                           <CalendarIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cyber-purple" />
@@ -679,31 +693,65 @@ export default function Book({ setRoute }: BookProps) {
                         )}
                       </div>
 
-                      {/* Duration Slider */}
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <label htmlFor="duration-input" className="block text-xs font-mono uppercase text-gray-400 font-semibold">
+                      {/* Duration Selector */}
+                      <div className="space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-mono uppercase text-gray-400 font-semibold">
                             Play Duration
                           </label>
-                          <span className="font-mono text-xs text-cyber-cyan font-bold">{durationHours} Hours</span>
-                        </div>
-                        <div className="space-y-2">
-                          <input
-                            id="duration-input"
-                            type="range"
-                            min="1"
-                            max="4"
-                            step="1"
-                            value={durationHours}
-                            onChange={(e) => setDurationHours(Number(e.target.value))}
-                            className="w-full h-1.5 bg-cyber-dark rounded-lg appearance-none cursor-pointer accent-cyber-purple"
-                          />
-                          <div className="flex items-center justify-between text-[10px] font-mono text-gray-500">
-                            <span>1 Hour</span>
-                            <span>2 Hours</span>
-                            <span>3 Hours</span>
-                            <span>4 Hours (Max)</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={durationHours <= 1}
+                              onClick={() => setDurationHours(prev => Math.max(1, prev - 1))}
+                              className="w-6 h-6 rounded-lg bg-cyber-dark border border-white/10 text-gray-300 hover:text-white hover:border-cyber-purple/50 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center font-bold text-xs cursor-pointer transition active:scale-95"
+                            >
+                              −
+                            </button>
+                            <span className="font-mono text-xs text-cyber-cyan font-bold min-w-[55px] text-center">{durationHours} {durationHours === 1 ? 'Hour' : 'Hours'}</span>
+                            <button
+                              type="button"
+                              disabled={durationHours >= 4}
+                              onClick={() => setDurationHours(prev => Math.min(4, prev + 1))}
+                              className="w-6 h-6 rounded-lg bg-cyber-dark border border-white/10 text-gray-300 hover:text-white hover:border-cyber-purple/50 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center font-bold text-xs cursor-pointer transition active:scale-95"
+                            >
+                              +
+                            </button>
                           </div>
+                        </div>
+
+                        {/* Duration Preset Chips */}
+                        <div className="grid grid-cols-4 gap-2 pt-1">
+                          {[
+                            { hrs: 1, label: '1 Hour' },
+                            { hrs: 2, label: '2 Hours', isPopular: true },
+                            { hrs: 3, label: '3 Hours' },
+                            { hrs: 4, label: '4 Hours (Max)' }
+                          ].map((opt) => {
+                            const isSelected = durationHours === opt.hrs;
+                            const isPopular = opt.isPopular;
+                            return (
+                              <button
+                                key={opt.hrs}
+                                type="button"
+                                onClick={() => setDurationHours(opt.hrs)}
+                                className={`relative py-3.5 px-1.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
+                                  isSelected
+                                    ? 'bg-cyber-purple/25 border-cyber-purple text-white font-bold shadow-[0_0_20px_rgba(139,92,246,0.35)] scale-[1.02]'
+                                    : isPopular
+                                    ? 'bg-[#1a1130] border-cyber-purple/70 text-purple-200 shadow-[0_0_12px_rgba(139,92,246,0.2)] hover:border-cyber-purple hover:text-white'
+                                    : 'bg-cyber-dark/60 border-white/10 text-gray-400 hover:border-cyber-purple/40 hover:text-white'
+                                }`}
+                              >
+                                {isPopular && (
+                                  <div className="absolute -top-2.5 px-2 py-0.5 bg-[#22133e] border border-cyber-purple/60 rounded-full shadow-md flex items-center justify-center">
+                                    <Flame className="w-3 h-3 text-cyber-pink fill-cyber-pink/30 animate-pulse" />
+                                  </div>
+                                )}
+                                <span className="text-[11px] font-mono font-semibold">{opt.label}</span>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 
@@ -714,6 +762,23 @@ export default function Book({ setRoute }: BookProps) {
                           <span className="text-gray-400">Station Rate ({durationHours}h)</span>
                           <span className="text-white font-mono">₹{getStationRate(selectedStation)} × {durationHours}</span>
                         </div>
+                        {startTime && (
+                          <div className="border-t border-white/5 pt-2 text-xs flex items-center justify-between text-gray-300">
+                            <span className="font-mono text-gray-400">Scheduled Time:</span>
+                            <span className="font-mono text-cyber-cyan font-semibold">
+                              {startTime} ➔ {(() => {
+                                const startHour = parseTimeToDecimal(startTime);
+                                const endHour = startHour + durationHours;
+                                const h = Math.floor(endHour) % 24;
+                                const m = (endHour % 1) * 60;
+                                const period = h >= 12 ? 'PM' : 'AM';
+                                const displayH = h % 12 === 0 ? 12 : h % 12;
+                                const displayM = String(m).padStart(2, '0');
+                                return `${String(displayH).padStart(2, '0')}:${displayM} ${period}`;
+                              })()}
+                            </span>
+                          </div>
+                        )}
                         <div className="border-t border-white/5 pt-3 flex items-center justify-between font-bold">
                           <span className="text-white font-display">Estimated Total</span>
                           <span className="text-cyber-neon font-mono text-lg">₹{getStationRate(selectedStation) * durationHours}</span>
@@ -785,7 +850,7 @@ export default function Book({ setRoute }: BookProps) {
                             >
                               <div className="flex items-center justify-center gap-1">
                                 {isDisabled ? (
-                                  <Lock className={`h-3 w-3 shrink-0 ${isPast ? 'text-gray-400' : isBlackedOut ? 'text-rose-400' : 'text-indigo-400'}`} />
+                                  <LockIcon className={`h-3 w-3 shrink-0 ${isPast ? 'text-gray-400' : isBlackedOut ? 'text-rose-400' : 'text-indigo-400'}`} />
                                 ) : (
                                   <Clock className="h-3.5 w-3.5 shrink-0 text-cyber-purple" />
                                 )}
@@ -832,8 +897,9 @@ export default function Book({ setRoute }: BookProps) {
                       id="step-2-reset-btn"
                       type="button"
                       onClick={handleCancelOrReset}
-                      className="px-6 py-3 text-xs font-display font-semibold text-gray-400 hover:text-white transition-colors focus:outline-none"
+                      className="px-5 py-3 bg-cyber-lightgray hover:bg-white/10 border border-white/10 text-xs font-display font-bold text-gray-300 hover:text-white rounded-xl transition focus:outline-none focus:ring-2 focus:ring-cyber-purple cursor-pointer flex items-center gap-2 active:scale-95 shadow-sm"
                     >
+                      <ArrowLeft className="h-4 w-4 text-gray-400" />
                       Change Station
                     </button>
                     <button
@@ -957,80 +1023,67 @@ export default function Book({ setRoute }: BookProps) {
                             </div>
                           </div>
 
-                          {/* Full Name */}
-                          <div>
-                            <label htmlFor="customer-name-input" className="block text-xs font-mono uppercase text-gray-400 mb-2 font-semibold">
-                              Your Full Name
-                            </label>
-                            <div className="relative">
-                              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cyber-purple" />
-                              <input
-                                id="customer-name-input"
-                                type="text"
-                                required
-                                disabled
-                                placeholder="e.g. Abhilash Bangera"
-                                value={customerName}
-                                className="w-full pl-10 pr-4 py-3 bg-cyber-lightgray border border-white/5 rounded-xl text-sm text-gray-400 cursor-not-allowed"
-                              />
+                          <div className="space-y-4 text-left">
+                            
+                            <div>
+                              <label htmlFor="customer-name-input" className="block text-xs font-mono uppercase text-gray-400 mb-2 font-semibold">
+                                Your Full Name
+                              </label>
+                              <div className="relative">
+                                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cyber-purple" />
+                                <input
+                                  id="customer-name-input"
+                                  type="text"
+                                  required
+                                  disabled
+                                  placeholder="e.g. Luke Hobbs"
+                                  value={customerName}
+                                  className="w-full pl-10 pr-4 py-3 bg-cyber-lightgray border border-white/5 rounded-xl text-sm text-gray-400 cursor-not-allowed font-sans"
+                                />
+                              </div>
                             </div>
-                          </div>
 
-                          {/* Email Address */}
-                          <div>
-                            <label htmlFor="customer-email-input" className="block text-xs font-mono uppercase text-gray-400 mb-2 font-semibold">
-                              Email Address (For Confirmation Details)
-                            </label>
-                            <div className="relative">
-                              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cyber-purple" />
-                              <input
-                                id="customer-email-input"
-                                type="email"
-                                required
-                                disabled
-                                placeholder="e.g. name@domain.com"
-                                value={customerEmail}
-                                className="w-full pl-10 pr-4 py-3 bg-cyber-lightgray border border-white/5 rounded-xl text-sm text-gray-400 cursor-not-allowed font-sans"
-                              />
+                            <div>
+                              <label htmlFor="customer-email-input" className="block text-xs font-mono uppercase text-gray-400 mb-2 font-semibold">
+                                Email Address (For confirmation details)
+                              </label>
+                              <div className="relative">
+                                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cyber-purple" />
+                                <input
+                                  id="customer-email-input"
+                                  type="email"
+                                  required
+                                  disabled
+                                  placeholder="e.g. name@domain.com"
+                                  value={customerEmail}
+                                  className="w-full pl-10 pr-4 py-3 bg-cyber-lightgray border border-white/5 rounded-xl text-sm text-gray-400 cursor-not-allowed font-sans"
+                                />
+                              </div>
                             </div>
-                          </div>
 
-                          {/* Mobile Number */}
-                          <div>
-                            <label htmlFor="customer-phone-input" className="block text-xs font-mono uppercase text-gray-400 mb-2 font-semibold">
-                              Mobile Phone Number (For SMS Lock updates)
-                            </label>
-                            <div className="relative">
-                              <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cyber-purple" />
-                              <input
-                                id="customer-phone-input"
-                                type="tel"
-                                required
-                                placeholder="10-digit phone (e.g. 9876543210)"
-                                value={customerPhone}
-                                onChange={(e) => setCustomerPhone(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 bg-cyber-lightgray border border-white/5 rounded-xl text-sm text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple font-mono"
-                              />
+                            <div>
+                              <label htmlFor="customer-phone-input" className="block text-xs font-mono uppercase text-gray-400 mb-2 font-semibold">
+                                Mobile Phone Number (For SMS Lock updates)
+                              </label>
+                              <div className="relative">
+                                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cyber-purple" />
+                                <input
+                                  id="customer-phone-input"
+                                  type="tel"
+                                  required
+                                  placeholder="10-digit phone (e.g. 9876543210)"
+                                  value={customerPhone}
+                                  onChange={(e) => setCustomerPhone(e.target.value)}
+                                  className="w-full pl-10 pr-4 py-3 bg-cyber-lightgray border border-white/5 rounded-xl text-sm text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple font-mono"
+                                />
+                              </div>
+                              <span className="block text-[10px] text-gray-500 font-mono mt-1 text-left">
+                                * Enter 10-digit mobile number if empty. Standard +91 Indian network validation applies.
+                              </span>
                             </div>
-                            <span className="block text-[10px] text-gray-500 font-mono mt-1 text-left">
-                              * Enter 10-digit mobile number if empty. Standard +91 Indian network validation applies.
-                            </span>
-                          </div>
-
-                          {/* Cancel / Reset under left column inputs */}
-                          <div className="pt-2">
-                            <button
-                              id="step-3-reset-btn"
-                              type="button"
-                              onClick={handleCancelOrReset}
-                              className="text-xs font-display font-semibold text-gray-500 hover:text-white transition-colors focus:outline-none flex items-center gap-1"
-                            >
-                              ← Cancel / Reset
-                            </button>
                           </div>
                         </div>
 
-                        {/* Right Column: Static Receipt Summary Card */}
                         <div className="p-5 bg-cyber-dark/60 border border-white/5 rounded-xl space-y-3.5 text-left flex flex-col justify-between">
                           <div className="space-y-3">
                             <h3 className="font-display font-bold text-sm text-white uppercase tracking-wider border-b border-white/5 pb-2 flex items-center gap-1">
@@ -1065,7 +1118,6 @@ export default function Book({ setRoute }: BookProps) {
                               <span className="text-white font-mono">₹{getStationRate(selectedStation)}/hr</span>
                             </div>
 
-                            {/* MINI BOOKING & CANCELLATION POLICY */}
                             <div className="p-3 rounded-xl bg-cyber-lightgray/50 border border-cyber-purple/20 text-[10.5px] space-y-1 text-gray-300">
                               <div className="flex items-center gap-1 font-bold text-cyber-purple uppercase tracking-wider text-[9.5px]">
                                 <ShieldAlert className="w-3.5 h-3.5 text-cyber-cyan" />
@@ -1083,20 +1135,29 @@ export default function Book({ setRoute }: BookProps) {
                               <span className="font-mono text-lg">₹{getStationRate(selectedStation) * durationHours}</span>
                             </div>
                           </div>
-
-                          {/* Primary Submit Action directly inside summary column */}
-                          <button
-                            id="step-3-submit-btn"
-                            type="submit"
-                            className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-cyber-purple to-cyber-cyan text-white font-display font-bold text-sm tracking-wide rounded-xl shadow-lg transition hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-cyber-cyan cursor-pointer mt-2"
-                          >
-                            Secure Hold Lock
-                            <ArrowRight className="h-4.5 w-4.5" />
-                          </button>
                         </div>
-
                       </div>
 
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-white/5">
+                        <button
+                          id="step-3-reset-btn"
+                          type="button"
+                          onClick={handleCancelOrReset}
+                          className="w-full sm:w-auto px-5 py-3 bg-cyber-lightgray hover:bg-white/10 border border-white/10 text-xs font-display font-bold text-gray-300 hover:text-white rounded-xl transition focus:outline-none focus:ring-2 focus:ring-cyber-purple cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+                        >
+                          <ArrowLeft className="h-4 w-4 text-gray-400" />
+                          Cancel / Reset
+                        </button>
+
+                        <button
+                          id="step-3-submit-btn"
+                          type="submit"
+                          className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-cyber-purple to-cyber-cyan text-white font-display font-bold text-sm tracking-wide rounded-xl shadow-lg transition hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-cyber-cyan cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+                        >
+                          Secure Hold Lock
+                          <ArrowRight className="h-4.5 w-4.5" />
+                        </button>
+                      </div>
                     </form>
                   </>
                 )}
@@ -1163,8 +1224,9 @@ export default function Book({ setRoute }: BookProps) {
                         id="step-4-cancel-btn"
                         onClick={handleCancelOrReset}
                         disabled={isSubmitting}
-                        className="px-5 py-3 text-xs font-display font-semibold text-gray-400 hover:text-white transition focus:outline-none disabled:opacity-50"
+                        className="px-5 py-3 bg-cyber-lightgray hover:bg-white/10 border border-white/10 text-xs font-display font-bold text-gray-300 hover:text-white rounded-xl transition focus:outline-none focus:ring-2 focus:ring-cyber-purple cursor-pointer flex items-center gap-2 active:scale-95 shadow-sm disabled:opacity-50"
                       >
+                        <XCircle className="h-4 w-4 text-gray-400" />
                         Release Hold
                       </button>
                       <button
@@ -1300,30 +1362,21 @@ export default function Book({ setRoute }: BookProps) {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
                   <button
-                    id="receipt-print-action"
-                    onClick={() => alert(`Print pass code structured data sent for desk authentication: ${confirmedBooking.verificationCode}`)}
-                    className="w-full sm:flex-1 py-3 bg-cyber-lightgray hover:bg-white/5 border border-white/10 text-xs font-display font-bold text-white rounded-xl transition focus:outline-none focus:ring-2 focus:ring-cyber-purple cursor-pointer"
+                    id="receipt-home-btn"
+                    onClick={() => setRoute('/')}
+                    className="w-full sm:flex-1 h-14 bg-cyber-lightgray hover:bg-white/10 border border-white/10 text-sm font-display font-bold text-white rounded-xl transition focus:outline-none focus:ring-2 focus:ring-cyber-purple cursor-pointer flex items-center justify-center gap-2.5 active:scale-95 shadow-md"
                   >
-                    Print / Save Pass Code
+                    <ArrowLeft className="h-4.5 w-4.5 text-gray-300" />
+                    Return to Home Page
                   </button>
                   <button
                     id="receipt-done-action"
                     onClick={handleCancelOrReset}
-                    className="w-full sm:flex-1 py-3 bg-cyber-purple hover:bg-cyber-purple/80 text-xs font-display font-bold text-white rounded-xl shadow-md transition focus:outline-none focus:ring-2 focus:ring-cyber-purple cursor-pointer"
+                    className="w-full sm:flex-1 h-14 bg-cyber-purple hover:bg-cyber-purple/80 text-sm font-display font-bold text-white rounded-xl shadow-lg shadow-cyber-purple/20 transition focus:outline-none focus:ring-2 focus:ring-cyber-purple cursor-pointer flex items-center justify-center gap-2.5 active:scale-95"
                   >
                     Book Another Station
-                  </button>
-                </div>
-
-                <div className="text-center">
-                  <button
-                    id="receipt-home-action"
-                    onClick={() => setRoute('/')}
-                    className="text-xs font-mono text-gray-500 hover:text-gray-300 hover:underline focus:outline-none"
-                  >
-                    Return to Main Lobby Home Page
                   </button>
                 </div>
 

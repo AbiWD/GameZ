@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ChevronRight, ChevronLeft, AlertTriangle, XCircle, Copy, ArrowUpDown } from 'lucide-react';
+import { ChevronRight, ChevronLeft, AlertTriangle, XCircle, Copy, ArrowUpDown, Banknote, CheckCircle2 } from 'lucide-react';
 import { formatInTimeZone } from 'date-fns-tz';
 import { escapePbFilterValue } from '@/lib/utils';
 import { useProperty } from '@/contexts/PropertyContext';
@@ -57,6 +57,8 @@ interface Booking {
   created: string;
   status: string;
   payment_status: string;
+  payment_mode?: string;
+  payment_method?: string;
 }
 
 const Bookings = () => {
@@ -478,8 +480,27 @@ const Bookings = () => {
                      )}
                    </span>
                  </div>
+                 <div className="flex justify-between items-center border-b border-border pb-3">
+                    <span className="text-sm font-medium text-muted-foreground">Payment Method</span>
+                    <span className="font-semibold text-foreground text-xs bg-secondary border border-border px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                      <Banknote className="w-3.5 h-3.5 text-emerald-500" />
+                      {(() => {
+                        const mode = (selectedBooking.payment_mode || selectedBooking.payment_method || '').toLowerCase();
+                        if (mode === 'cash') return 'Cash Collected at Desk';
+                        if (mode === 'upi') return 'UPI / QR Code at Desk';
+                        if (mode === 'card') return 'Card Reader at Desk';
+                        return mode ? mode.toUpperCase() : 'Cash Collected at Desk';
+                      })()}
+                    </span>
+                  </div>
                  <div className="flex justify-between items-center pb-1 pt-1">
-                   <span className="text-sm font-medium text-muted-foreground">Total Price</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-muted-foreground">Total Price</span>
+                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                        <CheckCircle2 className="w-3 h-3" />
+                        {selectedBooking.status === 'completed' || selectedBooking.payment_status === 'paid' ? 'Payment Completed' : 'Pay at Front Desk'}
+                      </span>
+                    </div>
                    <span className="font-bold text-lg text-foreground">₹{selectedBooking.total_price}</span>
                  </div>
               </div>

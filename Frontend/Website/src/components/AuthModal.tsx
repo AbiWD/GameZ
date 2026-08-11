@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Lock, User, Phone, CheckCircle2, ShieldAlert, Sparkles, RefreshCw } from 'lucide-react';
+import { X, Mail, Lock, User, Phone, CheckCircle2, ShieldAlert, Sparkles, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { useLogin, useGoogleLogin, useRegister, useResetPassword } from '../hooks/useAuth';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -25,6 +25,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // Forms state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -119,8 +121,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           setIsLoading(false);
           return;
         }
-        if (phone.replace(/\D/g, '').length < 10) {
-          setError('Please enter a valid 10-digit mobile number.');
+        if (phone.replace(/\D/g, '').length !== 10) {
+          setError('Please enter a valid 10-digit mobile phone number.');
           setIsLoading(false);
           return;
         }
@@ -191,7 +193,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             className="relative w-full max-w-md bg-cyber-gray border border-cyber-purple/30 rounded-3xl p-6 sm:p-8 shadow-[0_20px_60px_rgba(139,92,246,0.15)] overflow-hidden text-center"
           >
             {/* Glowing top line */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyber-purple via-cyber-cyan to-cyber-pink" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyber-purple via-cyber-cyan to-cyber-purple" />
             
             {/* Background design elements */}
             <div className="absolute -top-12 -right-12 h-24 w-24 rounded-full bg-cyber-purple/10 blur-xl pointer-events-none" />
@@ -205,11 +207,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <X className="h-4 w-4" />
             </button>
 
-            {/* Icon / Brand branding */}
-            <div className="flex items-center gap-2 mb-6">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-cyber-purple to-cyber-cyan text-white shadow-md">
-                <Sparkles className="h-4 w-4" />
-              </div>
+            {/* Brand branding */}
+            <div className="flex items-center justify-start gap-2 mb-6">
               <span className="font-display text-sm font-bold tracking-widest text-white uppercase">
                 Gamer Portal Access
               </span>
@@ -262,7 +261,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {mode === 'login' && (
                 <>
                   <div className="text-left mb-2">
-                    <h2 className="font-display text-xl font-extrabold text-white">Welcome Back, Player!</h2>
+                    <h2 className="font-display text-xl font-extrabold text-white">Welcome Player!</h2>
                     <p className="text-xs text-gray-400 mt-1">Authenticate your credentials to access saved slots and active desks.</p>
                   </div>
 
@@ -298,7 +297,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <input
                         type="email"
                         required
-                        placeholder="e.g. abhilashbangera97@gmail.com"
+                        placeholder="e.g. gamer@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full pl-9 pr-4 py-2.5 bg-cyber-lightgray border border-white/5 rounded-xl text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple"
@@ -323,13 +322,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cyber-purple" />
                       <input
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         required
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2.5 bg-cyber-lightgray border border-white/5 rounded-xl text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple"
+                        className="w-full pl-9 pr-10 py-2.5 bg-cyber-lightgray border border-white/5 rounded-xl text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition focus:outline-none cursor-pointer"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-400 hover:text-cyber-cyan" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400 hover:text-cyber-cyan" />
+                        )}
+                      </button>
                     </div>
                   </div>
 
@@ -349,7 +360,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </button>
 
                   <div className="text-center pt-4 border-t border-white/5 text-xs text-gray-400">
-                    Need an active gaming pass?{' '}
+                    Don't have Gamer account?{' '}
                     <button
                       type="button"
                       onClick={() => handleSwitchMode('register')}
@@ -400,7 +411,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Abhilash Bangera"
+                        placeholder="e.g. Carl Johnson"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         className="w-full pl-9 pr-4 py-2.5 bg-cyber-lightgray border border-white/5 rounded-xl text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple"
@@ -418,7 +429,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <input
                         type="email"
                         required
-                        placeholder="e.g. customer@gmail.com"
+                        placeholder="e.g. cj@gmail.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full pl-9 pr-4 py-2.5 bg-cyber-lightgray border border-white/5 rounded-xl text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple"
@@ -436,9 +447,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <input
                         type="tel"
                         required
+                        maxLength={10}
+                        inputMode="numeric"
                         placeholder="e.g. 9876543210"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                         className="w-full pl-9 pr-4 py-2.5 bg-cyber-lightgray border border-white/5 rounded-xl text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple font-mono"
                       />
                     </div>
@@ -450,27 +463,47 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1.5 font-bold">
                         Password
                       </label>
-                      <input
-                        type="password"
-                        required
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-cyber-lightgray border border-white/5 rounded-xl text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          required
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full pl-3 pr-8 py-2.5 bg-cyber-lightgray border border-white/5 rounded-xl text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition focus:outline-none cursor-pointer"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOff className="h-3.5 w-3.5 text-gray-400 hover:text-cyber-cyan" /> : <Eye className="h-3.5 w-3.5 text-gray-400 hover:text-cyber-cyan" />}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1.5 font-bold">
                         Confirm
                       </label>
-                      <input
-                        type="password"
-                        required
-                        placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-cyber-lightgray border border-white/5 rounded-xl text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          required
+                          placeholder="••••••••"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full pl-3 pr-8 py-2.5 bg-cyber-lightgray border border-white/5 rounded-xl text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition focus:outline-none cursor-pointer"
+                          aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-3.5 w-3.5 text-gray-400 hover:text-cyber-cyan" /> : <Eye className="h-3.5 w-3.5 text-gray-400 hover:text-cyber-cyan" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -504,22 +537,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               {mode === 'forgot' && (
                 <>
-                  <div className="text-left mb-2">
-                    <h2 className="font-display text-xl font-extrabold text-white">Password Recovery</h2>
-                    <p className="text-xs text-gray-400 mt-1">Submit your registered email address below, and our server will dispatch a simulated password reset PIN.</p>
+                  <div className="text-left mb-7">
+                    <h2 className="font-display text-xl font-extrabold text-white">Reset Your Password</h2>
+                    <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">Enter your registered email address below and we'll send you instructions to reset your password.</p>
                   </div>
 
                   {/* Email Input */}
                   <div>
                     <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1.5 font-bold">
-                      Gamer Email Address
+                      Registered Email Address
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-cyber-purple" />
                       <input
                         type="email"
                         required
-                        placeholder="e.g. abhilashbangera97@gmail.com"
+                        placeholder="e.g. gamer@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full pl-9 pr-4 py-2.5 bg-cyber-lightgray border border-white/5 rounded-xl text-xs text-white placeholder-gray-500 focus:border-cyber-purple focus:outline-none focus:ring-1 focus:ring-cyber-purple"
