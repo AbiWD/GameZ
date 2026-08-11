@@ -791,15 +791,13 @@ export default function Book({ setRoute }: BookProps) {
                                 )}
                                 <span className={isPast ? 'text-gray-400 font-medium' : isDisabled ? 'font-semibold' : ''}>{slot}</span>
                               </div>
-                              {isDisabled && (
+                              {isDisabled && !isPast && (
                                 <span className={`block text-[9px] font-bold no-underline mt-1 uppercase tracking-wider ${
-                                  isPast 
-                                    ? 'text-gray-400 bg-white/5 px-1.5 py-0.5 rounded border border-white/10' 
-                                    : isBlackedOut 
+                                  isBlackedOut 
                                     ? 'text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20' 
                                     : 'text-indigo-300 bg-indigo-500/15 px-2 py-0.5 rounded-full border border-indigo-500/30'
                                 }`}>
-                                  {isPast ? 'Passed' : isBlackedOut ? 'Closed' : 'Booked'}
+                                  {isBlackedOut ? 'Closed' : 'Booked'}
                                 </span>
                               )}
                             </button>
