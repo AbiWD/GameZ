@@ -161,6 +161,25 @@ export default function Book({ setRoute }: BookProps) {
     return `${year}-${month}-${day}`;
   };
 
+  // Store Closing Hour Helper (12:00 AM Midnight Sun-Thu, 02:00 AM Fri-Sat)
+  const getStoreClosingHour = (dateStr: string): number => {
+    if (!dateStr) return 24;
+    const [yr, mo, dy] = dateStr.split('-').map(Number);
+    const date = new Date(yr, mo - 1, dy);
+    const dayOfWeek = date.getDay(); // 0 = Sun, 5 = Fri, 6 = Sat
+    if (dayOfWeek === 5 || dayOfWeek === 6) return 26; // 02:00 AM next day
+    return 24; // 12:00 AM Midnight
+  };
+
+  const getMaxAllowedDuration = (startTimeSlot: string, dateStr: string): number => {
+    if (!startTimeSlot) return 4;
+    const startHour = parseTimeToDecimal(startTimeSlot);
+    const closingHour = getStoreClosingHour(dateStr);
+    const remaining = closingHour - startHour;
+    if (remaining <= 0) return 0;
+    return Math.min(4, Math.floor(remaining));
+  };
+
   // Safe time slots for Mangaluru cafe (11:00 AM to 11:00 PM)
   const timeSlots = [
     '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM',
@@ -175,6 +194,16 @@ export default function Book({ setRoute }: BookProps) {
       .then(setBlackoutPeriods)
       .catch(() => setBlackoutPeriods([]));
   }, []);
+
+  // Auto-adjust duration if current selection exceeds remaining store operating hours
+  useEffect(() => {
+    if (startTime && bookingDate) {
+      const maxAllowed = getMaxAllowedDuration(startTime, bookingDate);
+      if (maxAllowed > 0 && durationHours > maxAllowed) {
+        setDurationHours(maxAllowed);
+      }
+    }
+  }, [startTime, bookingDate]);
 
   const getSlotBlackoutInfo = (slot: string) => {
     if (!bookingDate || !blackoutPeriods.length) return { isBlackedOut: false };
@@ -262,7 +291,16 @@ export default function Book({ setRoute }: BookProps) {
           continue;
         }
 
-        // 2. Check store blackout
+        // 2. Check store closing time
+        const startHourDecimal = parseTimeToDecimal(slot);
+        const storeClosing = getStoreClosingHour(bookingDate);
+        if (startHourDecimal + 1 > storeClosing) {
+          const closingLabel = storeClosing === 26 ? 'Closed (2 AM)' : 'Closed (Midnight)';
+          statuses[slot] = { disabled: true, reason: closingLabel, isBlackedOut: true };
+          continue;
+        }
+
+        // 3. Check store blackout
         const blackoutInfo = getSlotBlackoutInfo(slot);
         if (blackoutInfo.isBlackedOut) {
           statuses[slot] = { disabled: true, reason: `Closed: ${blackoutInfo.reason}`, isBlackedOut: true };
@@ -711,8 +749,8 @@ export default function Book({ setRoute }: BookProps) {
                             <span className="font-mono text-xs text-cyber-cyan font-bold min-w-[55px] text-center">{durationHours} {durationHours === 1 ? 'Hour' : 'Hours'}</span>
                             <button
                               type="button"
-                              disabled={durationHours >= 4}
-                              onClick={() => setDurationHours(prev => Math.min(4, prev + 1))}
+                              disabled={durationHours >= (startTime ? getMaxAllowedDuration(startTime, bookingDate) : 4)}
+                              onClick={() => setDurationHours(prev => Math.min(startTime ? getMaxAllowedDuration(startTime, bookingDate) : 4, prev + 1))}
                               className="w-6 h-6 rounded-lg bg-cyber-dark border border-white/10 text-gray-300 hover:text-white hover:border-cyber-purple/50 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center font-bold text-xs cursor-pointer transition active:scale-95"
                             >
                               +
@@ -730,25 +768,37 @@ export default function Book({ setRoute }: BookProps) {
                           ].map((opt) => {
                             const isSelected = durationHours === opt.hrs;
                             const isPopular = opt.isPopular;
+                            const maxAllowed = startTime ? getMaxAllowedDuration(startTime, bookingDate) : 4;
+                            const isExceedingClosing = startTime ? opt.hrs > maxAllowed : false;
+                            const storeClosing = getStoreClosingHour(bookingDate);
+                            const closingLabel = storeClosing === 26 ? '2 AM' : '12 AM';
+
                             return (
                               <button
                                 key={opt.hrs}
                                 type="button"
-                                onClick={() => setDurationHours(opt.hrs)}
-                                className={`relative py-3.5 px-1.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center ${
-                                  isSelected
-                                    ? 'bg-cyber-purple/25 border-cyber-purple text-white font-bold shadow-[0_0_20px_rgba(139,92,246,0.35)] scale-[1.02]'
+                                disabled={isExceedingClosing}
+                                onClick={() => !isExceedingClosing && setDurationHours(opt.hrs)}
+                                title={isExceedingClosing ? `Exceeds store closing time (${closingLabel})` : undefined}
+                                className={`relative py-3.5 px-1.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center ${
+                                  isExceedingClosing
+                                    ? 'bg-cyber-dark/30 border-white/5 text-gray-600 cursor-not-allowed opacity-40'
+                                    : isSelected
+                                    ? 'bg-cyber-purple/25 border-cyber-purple text-white font-bold shadow-[0_0_20px_rgba(139,92,246,0.35)] scale-[1.02] cursor-pointer'
                                     : isPopular
-                                    ? 'bg-[#1a1130] border-cyber-purple/70 text-purple-200 shadow-[0_0_12px_rgba(139,92,246,0.2)] hover:border-cyber-purple hover:text-white'
-                                    : 'bg-cyber-dark/60 border-white/10 text-gray-400 hover:border-cyber-purple/40 hover:text-white'
+                                    ? 'bg-[#1a1130] border-cyber-purple/70 text-purple-200 shadow-[0_0_12px_rgba(139,92,246,0.2)] hover:border-cyber-purple hover:text-white cursor-pointer'
+                                    : 'bg-cyber-dark/60 border-white/10 text-gray-400 hover:border-cyber-purple/40 hover:text-white cursor-pointer'
                                 }`}
                               >
-                                {isPopular && (
+                                {isPopular && !isExceedingClosing && (
                                   <div className="absolute -top-2.5 px-2 py-0.5 bg-[#22133e] border border-cyber-purple/60 rounded-full shadow-md flex items-center justify-center">
                                     <Flame className="w-3 h-3 text-cyber-pink fill-cyber-pink/30 animate-pulse" />
                                   </div>
                                 )}
                                 <span className="text-[11px] font-mono font-semibold">{opt.label}</span>
+                                {isExceedingClosing && (
+                                  <span className="text-[8px] font-mono text-red-400 font-bold uppercase mt-0.5">Past {closingLabel}</span>
+                                )}
                               </button>
                             );
                           })}

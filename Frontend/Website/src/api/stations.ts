@@ -111,6 +111,21 @@ export const stationsApi = {
     const startHour1 = parseTimeToDecimal(time);
     const endHour1 = startHour1 + duration;
     
+    // Store Closing Limit Check (12:00 AM Midnight Sun-Thu, 02:00 AM Fri-Sat)
+    if (date) {
+      const [yr, mo, dy] = date.split('-').map(Number);
+      const dayOfWeek = new Date(yr, mo - 1, dy).getDay();
+      const closingHour = (dayOfWeek === 5 || dayOfWeek === 6) ? 26 : 24; // 26 = 2 AM Fri/Sat, 24 = 12 AM Sun-Thu
+
+      if (endHour1 > closingHour) {
+        const closingLabel = (dayOfWeek === 5 || dayOfWeek === 6) ? '02:00 AM' : '12:00 AM Midnight';
+        return { 
+          conflict: true, 
+          details: `Store closes at ${closingLabel}. Booking cannot extend beyond closing time.` 
+        };
+      }
+    }
+    
     const reqStart = new Date(date);
     reqStart.setHours(Math.floor(startHour1), (startHour1 % 1) * 60, 0, 0);
     const reqEnd = new Date(reqStart.getTime() + duration * 3600000);
