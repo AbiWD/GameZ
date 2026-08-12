@@ -131,12 +131,12 @@ const Bookings = () => {
 
       if (debouncedSearch) {
         const safeSearch = escapePbFilterValue(debouncedSearch);
-        filters.push(`(customer_name ~ "${safeSearch}" || email ~ "${safeSearch}" || phone ~ "${safeSearch}" || booking_reference ~ "${safeSearch}" || status ~ "${safeSearch}" || assigned_station_id.station_type ~ "${safeSearch}")`);
+        filters.push(`(customer_name ~ "${safeSearch}" || email ~ "${safeSearch}" || phone ~ "${safeSearch}" || booking_reference ~ "${safeSearch}" || status ~ "${safeSearch}" || station_type ~ "${safeSearch}")`);
       }
 
       if (stationFilter && stationFilter !== 'all') {
         const safeStation = escapePbFilterValue(stationFilter);
-        filters.push(`assigned_station_id.station_type ~ "${safeStation}"`);
+        filters.push(`(station_type ~ "${safeStation}" || station_type_id ~ "${safeStation}")`);
       }
 
       if (statusFilter && statusFilter !== 'all') {
