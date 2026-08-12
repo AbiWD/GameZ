@@ -92,6 +92,23 @@ func RegisterBookingHooks(app *pocketbase.PocketBase) {
 		// Calculate total price purely on the server
 		startTime := record.GetDateTime("start_time").Time()
 		endTime := record.GetDateTime("end_time").Time()
+		
+		// Validate Store Closing Hours (12:00 AM Midnight for ALL days)
+		loc, errLoc := time.LoadLocation("Asia/Kolkata")
+		if errLoc == nil && loc != nil {
+			startTimeIST := startTime.In(loc)
+			endTimeIST := endTime.In(loc)
+			
+			endHourDecimal := float64(endTimeIST.Hour()) + float64(endTimeIST.Minute())/60.0
+			if endTimeIST.Day() != startTimeIST.Day() {
+				endHourDecimal += 24.0
+			}
+			
+			if endHourDecimal > 24.01 {
+				return apis.NewBadRequestError("Store closes at 12:00 AM Midnight. Booking cannot extend beyond closing time.", nil)
+			}
+		}
+
 		durationHours := endTime.Sub(startTime).Hours()
 		if durationHours <= 0 {
 			durationHours = 1

@@ -161,14 +161,9 @@ export default function Book({ setRoute }: BookProps) {
     return `${year}-${month}-${day}`;
   };
 
-  // Store Closing Hour Helper (12:00 AM Midnight Sun-Thu, 02:00 AM Fri-Sat)
-  const getStoreClosingHour = (dateStr: string): number => {
-    if (!dateStr) return 24;
-    const [yr, mo, dy] = dateStr.split('-').map(Number);
-    const date = new Date(yr, mo - 1, dy);
-    const dayOfWeek = date.getDay(); // 0 = Sun, 5 = Fri, 6 = Sat
-    if (dayOfWeek === 5 || dayOfWeek === 6) return 26; // 02:00 AM next day
-    return 24; // 12:00 AM Midnight
+  // Store Closing Hour Helper (Closes daily at 12:00 AM Midnight for all days)
+  const getStoreClosingHour = (dateStr?: string): number => {
+    return 24; // 12:00 AM Midnight every day
   };
 
   const getMaxAllowedDuration = (startTimeSlot: string, dateStr: string): number => {
@@ -295,8 +290,7 @@ export default function Book({ setRoute }: BookProps) {
         const startHourDecimal = parseTimeToDecimal(slot);
         const storeClosing = getStoreClosingHour(bookingDate);
         if (startHourDecimal + 1 > storeClosing) {
-          const closingLabel = storeClosing === 26 ? 'Closed (2 AM)' : 'Closed (Midnight)';
-          statuses[slot] = { disabled: true, reason: closingLabel, isBlackedOut: true };
+          statuses[slot] = { disabled: true, reason: 'Closed (Midnight)', isBlackedOut: true };
           continue;
         }
 
@@ -936,7 +930,7 @@ export default function Book({ setRoute }: BookProps) {
                       )}
 
                       <span className="block text-[10px] text-gray-500 font-mono mt-3 text-right">
-                        * Cafe closes daily by Midnight (Friday/Sat: 2 AM)
+                        * Cafe closes daily by Midnight
                       </span>
                     </div>
 
