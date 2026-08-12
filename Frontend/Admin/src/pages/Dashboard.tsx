@@ -385,7 +385,11 @@ const Dashboard = () => {
       const startMs = new Date(record.start_time).getTime();
       
       if (newEndMs < startMs + 60000) {
-        alert("Cannot reduce session duration below 1 minute from start time.");
+        toast({
+          title: "Minimum Duration Limit",
+          description: "Cannot reduce session duration below 1 minute from start time.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -403,10 +407,19 @@ const Dashboard = () => {
       const label = minutes > 0 ? `+${durationLabel} (+₹${costDelta})` : `−${durationLabel} (−₹${costDelta})`;
       setLastAdjustmentDelta(label);
 
+      toast({
+        title: minutes > 0 ? "Session Extended" : "Session Reduced",
+        description: `Adjusted duration by ${label}`,
+      });
+
       fetchDashboardData();
     } catch(e) {
       console.error(e);
-      alert("Failed to adjust session time");
+      toast({
+        title: "Adjustment Failed",
+        description: "Failed to adjust session time. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -1109,76 +1122,93 @@ const Dashboard = () => {
                   </div>
 
                   {/* ADJUST DURATION STEPPER (Fixed sessions) */}
-                  {!isOpenTimer && (
-                    <div className="space-y-3 p-4 rounded-2xl bg-secondary/30 border border-border">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                          Adjust duration
-                        </Label>
-                        
-                        {/* Unit Selector Toggle Pills */}
-                        <div className="flex items-center p-1 bg-background rounded-xl border border-border">
-                          <button
-                            type="button"
-                            onClick={() => setDurationStep(30)}
-                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                              durationStep === 30
-                                ? 'bg-secondary text-foreground shadow-sm border border-border'
-                                : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                          >
-                            30 min
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDurationStep(60)}
-                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                              durationStep === 60
-                                ? 'bg-secondary text-foreground shadow-sm border border-border'
-                                : 'text-muted-foreground hover:text-foreground'
-                            }`}
-                          >
-                            1 hour
-                          </button>
-                        </div>
-                      </div>
+                  {!isOpenTimer && (() => {
+                    const endMs = new Date(booking.end_time).getTime();
+                    const startMs = new Date(booking.start_time).getTime();
+                    const canSubtract = (endMs - durationStep * 60000) >= (startMs + 60000);
 
-                      {/* Single - / + Stepper Row */}
-                      <div className="grid grid-cols-3 gap-3 items-center">
-                        <Button
-                          variant="outline"
-                          className="h-14 rounded-2xl border-border text-foreground hover:bg-secondary font-black text-2xl transition-all active:scale-95 cursor-pointer shadow-sm"
-                          onClick={() => extendSession(booking.id, -durationStep)}
-                          title={`Remove ${durationStep} minutes`}
-                        >
-                          −
-                        </Button>
-
-                        <div className="text-center flex flex-col justify-center">
-                          {lastAdjustmentDelta ? (
-                            <span className={`text-sm font-extrabold font-mono tracking-tight animate-fade-in ${
-                              lastAdjustmentDelta.startsWith('+') ? 'text-emerald-500' : 'text-rose-500'
-                            }`}>
-                              {lastAdjustmentDelta}
-                            </span>
-                          ) : (
-                            <span className="text-sm font-bold text-muted-foreground">
-                              No change
-                            </span>
-                          )}
+                    return (
+                      <div className="space-y-3 p-4 rounded-2xl bg-secondary/30 border border-border">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                            Adjust duration
+                          </Label>
+                          
+                          {/* Unit Selector Toggle Pills */}
+                          <div className="flex items-center p-1 bg-background rounded-xl border border-border">
+                            <button
+                              type="button"
+                              onClick={() => setDurationStep(30)}
+                              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                                durationStep === 30
+                                  ? 'bg-secondary text-foreground shadow-sm border border-border'
+                                  : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                            >
+                              30 min
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDurationStep(60)}
+                              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                                durationStep === 60
+                                  ? 'bg-secondary text-foreground shadow-sm border border-border'
+                                  : 'text-muted-foreground hover:text-foreground'
+                              }`}
+                            >
+                              1 hour
+                            </button>
+                          </div>
                         </div>
 
-                        <Button
-                          variant="outline"
-                          className="h-14 rounded-2xl border-border text-foreground hover:bg-secondary font-black text-2xl transition-all active:scale-95 cursor-pointer shadow-sm"
-                          onClick={() => extendSession(booking.id, durationStep)}
-                          title={`Add ${durationStep} minutes`}
-                        >
-                          +
-                        </Button>
+                        {/* Single - / + Stepper Row */}
+                        <div className="grid grid-cols-3 gap-3 items-center">
+                          <Button
+                            variant="outline"
+                            disabled={!canSubtract}
+                            className={`h-14 rounded-2xl border-border font-black text-2xl transition-all shadow-sm ${
+                              !canSubtract 
+                                ? 'opacity-30 cursor-not-allowed bg-muted/20 border-border/40 text-muted-foreground' 
+                                : 'text-foreground hover:bg-secondary active:scale-95 cursor-pointer'
+                            }`}
+                            onClick={() => canSubtract && extendSession(booking.id, -durationStep)}
+                            title={!canSubtract ? `Cannot reduce session below 1 min from start time` : `Remove ${durationStep} minutes`}
+                          >
+                            −
+                          </Button>
+
+                          <div className="text-center flex flex-col justify-center">
+                            {lastAdjustmentDelta ? (
+                              <span className={`text-sm font-extrabold font-mono tracking-tight animate-fade-in ${
+                                lastAdjustmentDelta.startsWith('+') ? 'text-emerald-500' : 'text-rose-500'
+                              }`}>
+                                {lastAdjustmentDelta}
+                              </span>
+                            ) : (
+                              <span className="text-sm font-bold text-muted-foreground">
+                                No change
+                              </span>
+                            )}
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            className="h-14 rounded-2xl border-border text-foreground hover:bg-secondary font-black text-2xl transition-all active:scale-95 cursor-pointer shadow-sm"
+                            onClick={() => extendSession(booking.id, durationStep)}
+                            title={`Add ${durationStep} minutes`}
+                          >
+                            +
+                          </Button>
+                        </div>
+
+                        {!canSubtract && (
+                          <p className="text-[10px] text-center font-mono text-amber-500/80 font-medium pt-1">
+                            Min session limit reached ({durationStep === 60 ? '1 hour' : '30 min'} deduction disabled)
+                          </p>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* BILLING & PAYMENT SELECTOR */}
                   <div className="space-y-4 pt-2">
