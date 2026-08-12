@@ -379,7 +379,15 @@ const Dashboard = () => {
   const extendSession = async (bookingId: string, minutes: number) => {
     try {
       const record = await pb.collection('bookings').getOne(bookingId);
-      const newEnd = new Date(new Date(record.end_time).getTime() + minutes * 60000).toISOString();
+      const newEndMs = new Date(record.end_time).getTime() + minutes * 60000;
+      const startMs = new Date(record.start_time).getTime();
+      
+      if (newEndMs < startMs + 60000) {
+        alert("Cannot reduce session duration below 1 minute from start time.");
+        return;
+      }
+
+      const newEnd = new Date(newEndMs).toISOString();
       await pb.collection('bookings').update(bookingId, { end_time: newEnd });
       
       if (selectedSession && selectedSession.booking.id === bookingId) {
@@ -388,7 +396,7 @@ const Dashboard = () => {
       fetchDashboardData();
     } catch(e) {
       console.error(e);
-      alert("Failed to extend session");
+      alert("Failed to adjust session time");
     }
   };
 
@@ -1090,16 +1098,41 @@ const Dashboard = () => {
                     )}
                   </div>
 
-                  {/* EXTEND ACTIONS (Fixed sessions) */}
+                  {/* ADJUST DURATION ACTIONS (Fixed sessions) */}
                   {!isOpenTimer && (
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Quick Session Extension</Label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <Button variant="outline" className="h-12 rounded-xl text-sm font-bold bg-background shadow-sm hover:border-primary hover:text-primary transition-all active:scale-95 cursor-pointer" onClick={() => extendSession(booking.id, 30)}>
-                          + 30 Mins (₹{(station.price_per_hour || 100) / 2})
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Adjust Session Duration</Label>
+                        <span className="text-[10px] text-muted-foreground font-mono">Add or remove time</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button 
+                          variant="outline" 
+                          className="h-11 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all active:scale-95 cursor-pointer" 
+                          onClick={() => extendSession(booking.id, 30)}
+                        >
+                          + 30 Mins (+₹{(station.price_per_hour || 100) / 2})
                         </Button>
-                        <Button variant="outline" className="h-12 rounded-xl text-sm font-bold bg-background shadow-sm hover:border-primary hover:text-primary transition-all active:scale-95 cursor-pointer" onClick={() => extendSession(booking.id, 60)}>
-                          + 1 Hour (₹{station.price_per_hour || 100})
+                        <Button 
+                          variant="outline" 
+                          className="h-11 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all active:scale-95 cursor-pointer" 
+                          onClick={() => extendSession(booking.id, 60)}
+                        >
+                          + 1 Hour (+₹{station.price_per_hour || 100})
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="h-11 rounded-xl text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/20 hover:border-rose-500/50 transition-all active:scale-95 cursor-pointer" 
+                          onClick={() => extendSession(booking.id, -30)}
+                        >
+                          - 30 Mins (-₹{(station.price_per_hour || 100) / 2})
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="h-11 rounded-xl text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/20 hover:border-rose-500/50 transition-all active:scale-95 cursor-pointer" 
+                          onClick={() => extendSession(booking.id, -60)}
+                        >
+                          - 1 Hour (-₹{station.price_per_hour || 100})
                         </Button>
                       </div>
                     </div>
