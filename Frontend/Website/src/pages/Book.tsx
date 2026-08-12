@@ -472,10 +472,11 @@ export default function Book({ setRoute }: BookProps) {
       setStep(5);
       
       // Dispatch virtual email
+      const refCode = booking.verificationCode || (booking as any).booking_reference || (booking as any).bookingReference || '';
       dispatchEmailNotification(
         customerEmail,
-        `Booking Confirmed: ${booking.booking_reference}`,
-        `We have reserved your slot for ${durationHours} hours starting at ${startTime} on ${bookingDate}. See you soon!`
+        `Booking Confirmed: ${refCode}`,
+        `Hi ${customerName}, your reservation (${refCode}) for ${selectedStation.name} has been confirmed for ${durationHours} ${durationHours === 1 ? 'hour' : 'hours'} starting at ${startTime} on ${bookingDate}. Total due at cafe desk: ₹${getStationRate(selectedStation) * durationHours}. See you soon!`
       );
     } catch (err: any) {
       setBookingError(err.message || 'Failed to complete booking.');
@@ -1142,7 +1143,7 @@ export default function Book({ setRoute }: BookProps) {
                               </div>
                               
                               <div className="flex flex-col">
-                                <span className="text-gray-500 uppercase font-mono tracking-wide text-[9px]">Date & Commute</span>
+                                <span className="text-gray-500 uppercase font-mono tracking-wide text-[9px]">Date</span>
                                 <span className="text-white font-mono font-medium mt-0.5">{bookingDate}</span>
                               </div>
 
@@ -1198,7 +1199,7 @@ export default function Book({ setRoute }: BookProps) {
                           type="submit"
                           className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-cyber-purple to-cyber-cyan text-white font-display font-bold text-sm tracking-wide rounded-xl shadow-lg transition hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-cyber-cyan cursor-pointer flex items-center justify-center gap-2 active:scale-95"
                         >
-                          Secure Hold Lock
+                          Confirm Booking
                           <ArrowRight className="h-4.5 w-4.5" />
                         </button>
                       </div>

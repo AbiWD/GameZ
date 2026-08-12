@@ -70,6 +70,7 @@ export const bookingsApi = {
       total_price: bookingData.totalPrice,
       players: 1,
       name: resolvedName,
+      customer_name: resolvedName,
       email: bookingData.customerEmail,
       phone: bookingData.customerPhone,
       booking_reference: randomCode,

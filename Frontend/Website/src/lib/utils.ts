@@ -30,11 +30,13 @@ export function mapPbToBooking(pbRec: any): Booking {
   const diffMs = endObj.getTime() - startObj.getTime();
   const durationHours = diffMs / 3600000;
   
+  const resolvedName = pbRec.customer_name || pbRec.name || pbRec.customerName || (pbRec.phone ? `Guest (${pbRec.phone})` : 'Gamer Guest');
+
   return {
     id: pbRec.id,
-    customerName: pbRec.name || 'Unknown',
-    customerEmail: pbRec.email || '',
-    customerPhone: pbRec.phone || '',
+    customerName: resolvedName,
+    customerEmail: pbRec.email || pbRec.customerEmail || '',
+    customerPhone: pbRec.phone || pbRec.customerPhone || '',
     stationId: pbRec.assigned_station_id,
     bookingDate: dateStr,
     startTime: timeStr,

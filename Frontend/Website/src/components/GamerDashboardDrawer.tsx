@@ -333,7 +333,7 @@ export const GamerDashboardDrawer: React.FC<GamerDashboardDrawerProps> = ({
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-400">
                               <Hourglass className="h-3.5 w-3.5 text-cyber-purple shrink-0" />
-                              <span>{booking.durationHours} hours total</span>
+                              <span>{booking.durationHours} {booking.durationHours === 1 ? 'hour' : 'hours'} total</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-400">
                               <ShieldCheck className={`h-3.5 w-3.5 shrink-0 ${booking.status === 'confirmed' ? 'text-cyber-neon' : booking.status === 'held' ? 'text-amber-400' : 'text-red-400'}`} />
