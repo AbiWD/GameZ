@@ -5,7 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import pb from '@/lib/pocketbase';
-import { IndianRupee, Users, Calendar, Gamepad2, Play, Clock, ArrowRight, LayoutGrid, LayoutTemplate, Activity, CreditCard, Banknote, Smartphone, Star, ArrowDownUp, GripHorizontal, CalendarX } from 'lucide-react';
+import { IndianRupee, Users, Calendar, Gamepad2, Play, Clock, ArrowRight, LayoutGrid, LayoutTemplate, Activity, CreditCard, Banknote, Smartphone, Star, ArrowDownUp, GripHorizontal, CalendarX, Phone, Mail, UserCheck, Ticket } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from 'react-router-dom';
@@ -965,7 +965,7 @@ const Dashboard = () => {
 
       {/* POS Active Session Panel */}
       <Sheet open={!!selectedSession} onOpenChange={(open) => !open && setSelectedSession(null)}>
-        <SheetContent className="sm:max-w-md w-full bg-card border-border p-0 flex flex-col h-full overflow-hidden">
+        <SheetContent className="sm:max-w-md w-full bg-card border-l border-border p-0 flex flex-col h-full overflow-hidden shadow-2xl">
           {selectedSession && (() => {
             const { station, booking } = selectedSession;
             const isOpenTimer = booking.booking_reference?.startsWith('OT-') || false;
@@ -978,95 +978,179 @@ const Dashboard = () => {
             const elapsedMins = Math.max(0, Math.floor((currentTime.getTime() - new Date(booking.start_time).getTime()) / 60000));
             const remainingMins = Math.floor((new Date(booking.end_time).getTime() - currentTime.getTime()) / 60000);
 
+            const customerNameResolved = (booking as any).customer_name || booking.name || (booking.phone ? `Guest (${booking.phone})` : 'Walk-in Player');
+            const phoneResolved = booking.phone || (booking as any).customerPhone || '';
+            const emailResolved = booking.email || (booking as any).customerEmail || '';
+            const refCode = booking.booking_reference || booking.id.substring(0, 8).toUpperCase();
+            const stationCategory = station.station_type || (station as any).type || 'Gaming Station';
+
             return (
               <>
-                <SheetHeader className="p-6 bg-secondary/30 border-b border-border">
-                  <SheetTitle className="text-2xl font-bold flex items-center justify-between">
-                    Station {station.station_number}
+                {/* Header */}
+                <SheetHeader className="p-5 bg-gradient-to-r from-primary/10 via-secondary/40 to-background border-b border-border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-primary/15 text-primary border border-primary/20">
+                          {stationCategory}
+                        </span>
+                        {refCode && (
+                          <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
+                            <Ticket className="w-3 h-3 text-primary/70" /> #{refCode}
+                          </span>
+                        )}
+                      </div>
+                      <SheetTitle className="text-2xl font-black tracking-tight text-foreground mt-1 flex items-center gap-2">
+                        Station {station.station_number || station.name}
+                      </SheetTitle>
+                    </div>
+
                     {isOpenTimer ? (
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 font-bold tracking-wider uppercase animate-pulse">Open Timer</span>
+                      <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-extrabold tracking-wider uppercase flex items-center gap-1.5 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Open Timer
+                      </span>
                     ) : (
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 font-bold tracking-wider uppercase">Fixed Duration</span>
+                      <span className="text-[10px] px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 font-extrabold tracking-wider uppercase flex items-center gap-1.5">
+                        <Clock className="w-3 h-3" /> Fixed Duration
+                      </span>
                     )}
-                  </SheetTitle>
-                  <SheetDescription className="text-base text-foreground font-medium">
-                    {booking.name || 'Walk-in Player'} • {booking.players} Guests
-                  </SheetDescription>
+                  </div>
                 </SheetHeader>
 
-                <div className="p-6 flex-1 overflow-y-auto space-y-8">
-                  {/* Timer Display */}
-                  <div className="flex flex-col items-center justify-center p-6 bg-secondary rounded-[32px] border border-border shadow-sm">
+                <div className="p-5 flex-1 overflow-y-auto space-y-6">
+                  
+                  {/* RICH CUSTOMER DETAILS CARD */}
+                  <div className="p-4 rounded-2xl bg-secondary/40 border border-border space-y-3 relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-muted-foreground">Customer Profile</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center gap-1">
+                        <UserCheck className="w-3 h-3" /> Gamer Info
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-purple-600 text-white font-extrabold text-lg flex items-center justify-center shadow-md shrink-0">
+                        {customerNameResolved.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="space-y-0.5 min-w-0 flex-1">
+                        <h4 className="font-bold text-foreground text-base truncate">{customerNameResolved}</h4>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                          {phoneResolved && (
+                            <a href={`tel:${phoneResolved}`} className="flex items-center gap-1 hover:text-primary transition-colors font-mono">
+                              <Phone className="w-3 h-3 text-primary" /> {phoneResolved}
+                            </a>
+                          )}
+                          {emailResolved && (
+                            <span className="flex items-center gap-1 truncate max-w-[180px]">
+                              <Mail className="w-3 h-3 text-primary shrink-0" /> {emailResolved}
+                            </span>
+                          )}
+                          {!phoneResolved && !emailResolved && (
+                            <span className="text-xs text-muted-foreground italic">No contact specified</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-border/60 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-[10px] text-muted-foreground font-mono uppercase">Party Size</span>
+                        <span className="block font-semibold text-foreground">{booking.players || 1} Player{(booking.players || 1) > 1 ? 's' : ''}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-muted-foreground font-mono uppercase">Hourly Rate</span>
+                        <span className="block font-semibold text-primary">₹{station.price_per_hour || 100}/hr</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* LIVE TIMER WIDGET */}
+                  <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-b from-secondary/60 to-secondary/30 rounded-3xl border border-border shadow-sm relative overflow-hidden">
+                    <div className="absolute top-3 right-3">
+                      <Activity className="w-4 h-4 text-primary animate-pulse" />
+                    </div>
                     {isOpenTimer ? (
                       <>
-                        <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Elapsed Time</span>
+                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-primary" /> Elapsed Playing Time
+                        </span>
                         <span className="text-5xl font-black text-foreground tabular-nums tracking-tight">
-                          {Math.floor(elapsedMins / 60)}h {elapsedMins % 60}m
+                          {Math.floor(elapsedMins / 60)}h {String(elapsedMins % 60).padStart(2, '0')}m
                         </span>
                       </>
                     ) : (
                       <>
-                        <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">Time Remaining</span>
-                        <span className={`text-5xl font-black tabular-nums tracking-tight ${remainingMins < 10 ? 'text-red-500' : 'text-foreground'}`}>
-                          {remainingMins > 0 ? `${Math.floor(remainingMins / 60)}h ${remainingMins % 60}m` : 'TIME UP'}
+                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5 text-primary" /> Time Remaining
+                        </span>
+                        <span className={`text-5xl font-black tabular-nums tracking-tight ${remainingMins < 10 ? 'text-red-500 animate-pulse' : 'text-foreground'}`}>
+                          {remainingMins > 0 ? `${Math.floor(remainingMins / 60)}h ${String(remainingMins % 60).padStart(2, '0')}m` : 'TIME UP'}
                         </span>
                       </>
                     )}
                   </div>
 
-                  {/* Extend Actions (Fixed only) */}
+                  {/* EXTEND ACTIONS (Fixed sessions) */}
                   {!isOpenTimer && (
-                    <div className="space-y-3">
-                      <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Quick Extend</Label>
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Quick Session Extension</Label>
                       <div className="grid grid-cols-2 gap-3">
-                        <Button variant="outline" className="h-14 rounded-2xl text-base font-bold bg-background shadow-sm hover:border-primary hover:text-primary transition-colors" onClick={() => extendSession(booking.id, 30)}>
-                          + 30 Minutes
+                        <Button variant="outline" className="h-12 rounded-xl text-sm font-bold bg-background shadow-sm hover:border-primary hover:text-primary transition-all active:scale-95 cursor-pointer" onClick={() => extendSession(booking.id, 30)}>
+                          + 30 Mins (₹{(station.price_per_hour || 100) / 2})
                         </Button>
-                        <Button variant="outline" className="h-14 rounded-2xl text-base font-bold bg-background shadow-sm hover:border-primary hover:text-primary transition-colors" onClick={() => extendSession(booking.id, 60)}>
-                          + 1 Hour
+                        <Button variant="outline" className="h-12 rounded-xl text-sm font-bold bg-background shadow-sm hover:border-primary hover:text-primary transition-all active:scale-95 cursor-pointer" onClick={() => extendSession(booking.id, 60)}>
+                          + 1 Hour (₹{station.price_per_hour || 100})
                         </Button>
                       </div>
                     </div>
                   )}
 
-                  {/* Payment Section */}
-                  <div className="space-y-4 pt-4 border-t border-border">
-                     <Label className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Checkout & Payment</Label>
-                     
-                     <div className="flex items-center justify-between p-5 bg-primary/10 rounded-2xl border border-primary/20">
-                        <span className="font-bold text-primary text-lg">Total Due</span>
-                        <span className="text-3xl font-black text-primary">₹{Math.round(runningCost)}</span>
-                     </div>
+                  {/* BILLING & PAYMENT SELECTOR */}
+                  <div className="space-y-4 pt-2">
+                    <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Checkout & Payment Settlement</Label>
+                    
+                    <div className="flex items-center justify-between p-4 bg-primary/10 rounded-2xl border border-primary/20 shadow-sm">
+                      <div>
+                        <span className="text-xs text-muted-foreground uppercase font-mono tracking-wider block">Total Outstanding Due</span>
+                        <span className="text-xs text-primary font-semibold">Includes play session & taxes</span>
+                      </div>
+                      <span className="text-3xl font-black text-primary font-mono">₹{Math.round(runningCost)}</span>
+                    </div>
 
-                     <div className="grid grid-cols-3 gap-3 mt-4">
-                        <button 
-                          className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all ${paymentMode === 'upi' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:bg-secondary'}`}
-                          onClick={() => setPaymentMode('upi')}
-                        >
-                          <Smartphone className="w-6 h-6" />
-                          <span className="text-sm font-bold">UPI</span>
-                        </button>
-                        <button 
-                          className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all ${paymentMode === 'cash' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:bg-secondary'}`}
-                          onClick={() => setPaymentMode('cash')}
-                        >
-                          <Banknote className="w-6 h-6" />
-                          <span className="text-sm font-bold">Cash</span>
-                        </button>
-                        <button 
-                          className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 transition-all ${paymentMode === 'card' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:bg-secondary'}`}
-                          onClick={() => setPaymentMode('card')}
-                        >
-                          <CreditCard className="w-6 h-6" />
-                          <span className="text-sm font-bold">Card</span>
-                        </button>
-                     </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <button 
+                        type="button"
+                        className={`flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${paymentMode === 'upi' ? 'border-primary bg-primary/10 text-primary font-bold shadow-md shadow-primary/10 scale-[1.02]' : 'border-border bg-background text-muted-foreground hover:bg-secondary'}`}
+                        onClick={() => setPaymentMode('upi')}
+                      >
+                        <Smartphone className="w-5 h-5" />
+                        <span className="text-xs">UPI</span>
+                      </button>
+                      <button 
+                        type="button"
+                        className={`flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${paymentMode === 'cash' ? 'border-primary bg-primary/10 text-primary font-bold shadow-md shadow-primary/10 scale-[1.02]' : 'border-border bg-background text-muted-foreground hover:bg-secondary'}`}
+                        onClick={() => setPaymentMode('cash')}
+                      >
+                        <Banknote className="w-5 h-5" />
+                        <span className="text-xs">Cash</span>
+                      </button>
+                      <button 
+                        type="button"
+                        className={`flex flex-col items-center justify-center gap-2 p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${paymentMode === 'card' ? 'border-primary bg-primary/10 text-primary font-bold shadow-md shadow-primary/10 scale-[1.02]' : 'border-border bg-background text-muted-foreground hover:bg-secondary'}`}
+                        onClick={() => setPaymentMode('card')}
+                      >
+                        <CreditCard className="w-5 h-5" />
+                        <span className="text-xs">Card</span>
+                      </button>
+                    </div>
                   </div>
+
                 </div>
 
-                <div className="p-6 border-t border-border bg-background">
+                {/* ACTION FOOTER */}
+                <div className="p-5 border-t border-border bg-background shadow-lg">
                   <Button 
-                    className="w-full h-16 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-xl shadow-lg"
+                    className="w-full h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold text-lg shadow-lg active:scale-98 transition-all cursor-pointer"
                     onClick={() => endSession(booking.id, paymentMode)}
                   >
                     Collect ₹{Math.round(runningCost)} & End Session
