@@ -162,66 +162,17 @@ const Bookings = () => {
   const fetchBookings = async () => {
     setLoading(true);
     try {
-      const filters: string[] = [];
-
-      if (activeProperty?.id) {
-        const safeProp = escapePbFilterValue(activeProperty.id);
-        filters.push(`(property_id = "${safeProp}" || property_id = "" || property_id = null || property_id = "20fml0zc3egjxy4")`);
-      }
-
-      if (statusFilter && statusFilter !== 'all') {
-        const safeStatus = escapePbFilterValue(statusFilter);
-        filters.push(`status = "${safeStatus}"`);
-      }
-
-      if (stationFilter && stationFilter !== 'all') {
-        const norm = stationFilter.toLowerCase();
-        if (norm.includes('pool') || norm.includes('8ball') || norm.includes('pol')) {
-          filters.push(`(assigned_station_id.name ~ "POL" || assigned_station_id.station_type ~ "Pool" || station_type ~ "Pool" || station_type ~ "8ball")`);
-        } else if (norm.includes('snooker') || norm.includes('snk')) {
-          filters.push(`(assigned_station_id.name ~ "SNK" || assigned_station_id.station_type ~ "Snooker" || station_type ~ "snooker")`);
-        } else if (norm.includes('carrom') || norm.includes('car')) {
-          filters.push(`(assigned_station_id.name ~ "CAR" || assigned_station_id.station_type ~ "Carrom" || station_type ~ "carrom")`);
-        } else if (norm.includes('vr')) {
-          filters.push(`(assigned_station_id.name ~ "VR" || assigned_station_id.station_type ~ "VR" || station_type ~ "vr")`);
-        } else if (norm.includes('ps5') || norm.includes('playstation')) {
-          filters.push(`(assigned_station_id.name ~ "PS" || assigned_station_id.station_type ~ "PS5" || station_type ~ "PS5" || station_type ~ "playstation" || station_type = "")`);
-        }
-      }
-
-      const filterStr = filters.length > 0 ? filters.join(' && ') : undefined;
-
       let fetchedItems: Booking[] = [];
+
       try {
         const list = await pb.collection('bookings').getFullList({
-          filter: filterStr,
           sort: sortOrder,
           expand: 'assigned_station_id,customer_id',
           requestKey: null
         });
         fetchedItems = list as unknown as Booking[];
-      } catch (filterErr) {
-        console.warn('PocketBase server filter fallback triggered:', filterErr);
-        const list = await pb.collection('bookings').getFullList({
-          sort: sortOrder,
-          expand: 'assigned_station_id,customer_id',
-          requestKey: null
-        });
-        fetchedItems = list as unknown as Booking[];
-      }
-
-      // Safeguard: If strict filter returned zero items, perform fallback fetch without property constraint
-      if (fetchedItems.length === 0 && (activeProperty?.id || stationFilter !== 'all')) {
-        try {
-          const fallbackRes = await pb.collection('bookings').getFullList({
-            sort: sortOrder,
-            expand: 'assigned_station_id,customer_id',
-            requestKey: null
-          });
-          if (fallbackRes.length > 0) {
-            fetchedItems = fallbackRes as unknown as Booking[];
-          }
-        } catch (e) {}
+      } catch (err) {
+        console.error('PocketBase fetch bookings error:', err);
       }
 
       // Helper function to match station filter against booking record (handles slugs, full names, and relation names)
@@ -286,7 +237,7 @@ const Bookings = () => {
       }
 
       setBookings(fetchedItems);
-      setTotalPages(result.totalPages);
+      setTotalPages(Math.ceil(fetchedItems.length / 50) || 1);
       setTotalItems(fetchedItems.length);
 
       // Perform batch lookup on portal_users collection for player names
