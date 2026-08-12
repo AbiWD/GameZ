@@ -94,7 +94,11 @@ export const getBookingStationCategory = (booking: Booking): string => {
     return 'PlayStation 5 Lounge';
   }
 
-  return 'PlayStation 5 Lounge';
+  if (assigned?.station_type && assigned.station_type.trim() !== '') {
+    return assigned.station_type;
+  }
+
+  return booking.station_type || 'PlayStation 5 Lounge';
 };
 
 const Bookings = () => {
