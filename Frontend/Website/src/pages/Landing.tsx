@@ -73,7 +73,7 @@ export default function Landing({ setRoute }: LandingProps) {
 
   const stationsScrollRef = React.useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   const handleStationsScroll = (direction: 'left' | 'right') => {
     if (stationsScrollRef.current) {
@@ -82,13 +82,23 @@ export default function Landing({ setRoute }: LandingProps) {
     }
   };
 
-  const checkScrollButtons = () => {
+  const checkScrollButtons = React.useCallback(() => {
     if (stationsScrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = stationsScrollRef.current;
       setCanScrollLeft(scrollLeft > 10);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+      setCanScrollRight(scrollWidth > clientWidth + 10 && scrollLeft < scrollWidth - clientWidth - 10);
     }
-  };
+  }, []);
+
+  React.useEffect(() => {
+    checkScrollButtons();
+    const timer = setTimeout(checkScrollButtons, 150);
+    window.addEventListener('resize', checkScrollButtons);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', checkScrollButtons);
+    };
+  }, [checkScrollButtons, stationTypes]);
 
   const CAROUSEL_GAMES = [
     {

@@ -106,9 +106,8 @@ const Bookings = () => {
     const loadStationTypes = async () => {
       try {
         let types: any[] = [];
-        const propertyFilter = activeProperty?.id ? `property_id = "${activeProperty.id}"` : undefined;
         try {
-          types = await pb.collection('station_types').getFullList({ filter: propertyFilter, requestKey: null });
+          types = await pb.collection('station_types').getFullList({ requestKey: null });
         } catch (err) {
           types = await pb.collection('station_types').getFullList({ requestKey: null });
         }
@@ -126,7 +125,8 @@ const Bookings = () => {
       const filters: string[] = [];
 
       if (activeProperty?.id) {
-        filters.push(`property_id = "${escapePbFilterValue(activeProperty.id)}"`);
+        const safeProp = escapePbFilterValue(activeProperty.id);
+        filters.push(`(property_id = "${safeProp}" || property_id = "" || property_id = null || property_id = "20fml0zc3egjxy4")`);
       }
 
       if (debouncedSearch) {
@@ -156,13 +156,25 @@ const Bookings = () => {
         });
       } catch (filterErr) {
         console.warn('PocketBase server filter fallback triggered:', filterErr);
-        const fallbackFilter = activeProperty?.id ? `property_id = "${escapePbFilterValue(activeProperty.id)}"` : undefined;
         result = await pb.collection('bookings').getList(1, 100, {
-          filter: fallbackFilter,
           sort: sortOrder,
           expand: 'assigned_station_id,customer_id',
           requestKey: null
         });
+      }
+
+      // Safeguard: If strict filter returned zero items, perform fallback fetch without property constraint
+      if (result.totalItems === 0 && !debouncedSearch && stationFilter === 'all' && statusFilter === 'all') {
+        try {
+          const fallbackRes = await pb.collection('bookings').getList(page, 10, {
+            sort: sortOrder,
+            expand: 'assigned_station_id,customer_id',
+            requestKey: null
+          });
+          if (fallbackRes.totalItems > 0) {
+            result = fallbackRes;
+          }
+        } catch (e) {}
       }
 
       let fetchedItems = result.items as unknown as Booking[];

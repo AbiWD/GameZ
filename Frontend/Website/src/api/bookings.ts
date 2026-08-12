@@ -53,6 +53,14 @@ export const bookingsApi = {
       resolvedName = bookingData.customerPhone ? `Guest (${bookingData.customerPhone})` : 'Gamer Guest';
     }
 
+    let activePropertyId = '';
+    try {
+      const activeProp = await pb.collection('properties').getFirstListItem('is_active = true', { requestKey: null });
+      if (activeProp) {
+        activePropertyId = activeProp.id;
+      }
+    } catch (e) {}
+
     const rec = await pb.collection('bookings').create({
       assigned_station_id: conflictCheck.assignedStationId,
       station_type: bookingData.stationId,
@@ -66,7 +74,7 @@ export const bookingsApi = {
       phone: bookingData.customerPhone,
       booking_reference: randomCode,
       customer_id: pb.authStore.model?.id,
-      property_id: '20fml0zc3egjxy4'
+      ...(activePropertyId ? { property_id: activePropertyId } : {})
     });
     
     return mapPbToBooking(rec);
