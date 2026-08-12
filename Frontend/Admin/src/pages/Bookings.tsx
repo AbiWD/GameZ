@@ -174,40 +174,55 @@ const Bookings = () => {
         filters.push(`status = "${safeStatus}"`);
       }
 
+      if (stationFilter && stationFilter !== 'all') {
+        const norm = stationFilter.toLowerCase();
+        if (norm.includes('pool') || norm.includes('8ball') || norm.includes('pol')) {
+          filters.push(`(assigned_station_id.name ~ "POL" || assigned_station_id.station_type ~ "Pool" || station_type ~ "Pool" || station_type ~ "8ball")`);
+        } else if (norm.includes('snooker') || norm.includes('snk')) {
+          filters.push(`(assigned_station_id.name ~ "SNK" || assigned_station_id.station_type ~ "Snooker" || station_type ~ "snooker")`);
+        } else if (norm.includes('carrom') || norm.includes('car')) {
+          filters.push(`(assigned_station_id.name ~ "CAR" || assigned_station_id.station_type ~ "Carrom" || station_type ~ "carrom")`);
+        } else if (norm.includes('vr')) {
+          filters.push(`(assigned_station_id.name ~ "VR" || assigned_station_id.station_type ~ "VR" || station_type ~ "vr")`);
+        } else if (norm.includes('ps5') || norm.includes('playstation')) {
+          filters.push(`(assigned_station_id.name ~ "PS" || assigned_station_id.station_type ~ "PS5" || station_type ~ "PS5" || station_type ~ "playstation" || station_type = "")`);
+        }
+      }
+
       const filterStr = filters.length > 0 ? filters.join(' && ') : undefined;
 
-      let result;
+      let fetchedItems: Booking[] = [];
       try {
-        result = await pb.collection('bookings').getList(1, 200, {
+        const list = await pb.collection('bookings').getFullList({
           filter: filterStr,
           sort: sortOrder,
           expand: 'assigned_station_id,customer_id',
           requestKey: null
         });
+        fetchedItems = list as unknown as Booking[];
       } catch (filterErr) {
         console.warn('PocketBase server filter fallback triggered:', filterErr);
-        result = await pb.collection('bookings').getList(1, 200, {
+        const list = await pb.collection('bookings').getFullList({
           sort: sortOrder,
           expand: 'assigned_station_id,customer_id',
           requestKey: null
         });
+        fetchedItems = list as unknown as Booking[];
       }
 
       // Safeguard: If strict filter returned zero items, perform fallback fetch without property constraint
-      if (result.totalItems === 0) {
+      if (fetchedItems.length === 0 && (activeProperty?.id || stationFilter !== 'all')) {
         try {
-          const fallbackRes = await pb.collection('bookings').getList(1, 200, {
+          const fallbackRes = await pb.collection('bookings').getFullList({
             sort: sortOrder,
             expand: 'assigned_station_id,customer_id',
             requestKey: null
           });
-          if (fallbackRes.totalItems > 0) {
-            result = fallbackRes;
+          if (fallbackRes.length > 0) {
+            fetchedItems = fallbackRes as unknown as Booking[];
           }
         } catch (e) {}
       }
-
-      let fetchedItems = result.items as unknown as Booking[];
 
       // Helper function to match station filter against booking record (handles slugs, full names, and relation names)
       const isStationTypeMatch = (booking: Booking, filter: string): boolean => {
