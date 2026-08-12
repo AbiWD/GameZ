@@ -129,16 +129,6 @@ const Bookings = () => {
         filters.push(`(property_id = "${safeProp}" || property_id = "" || property_id = null || property_id = "20fml0zc3egjxy4")`);
       }
 
-      if (debouncedSearch) {
-        const safeSearch = escapePbFilterValue(debouncedSearch);
-        filters.push(`(customer_name ~ "${safeSearch}" || email ~ "${safeSearch}" || phone ~ "${safeSearch}" || booking_reference ~ "${safeSearch}" || status ~ "${safeSearch}" || station_type ~ "${safeSearch}")`);
-      }
-
-      if (stationFilter && stationFilter !== 'all') {
-        const safeStation = escapePbFilterValue(stationFilter);
-        filters.push(`(station_type ~ "${safeStation}" || station_type_id ~ "${safeStation}")`);
-      }
-
       if (statusFilter && statusFilter !== 'all') {
         const safeStatus = escapePbFilterValue(statusFilter);
         filters.push(`status = "${safeStatus}"`);
@@ -148,7 +138,7 @@ const Bookings = () => {
 
       let result;
       try {
-        result = await pb.collection('bookings').getList(page, 10, {
+        result = await pb.collection('bookings').getList(1, 200, {
           filter: filterStr,
           sort: sortOrder,
           expand: 'assigned_station_id,customer_id',
@@ -156,7 +146,7 @@ const Bookings = () => {
         });
       } catch (filterErr) {
         console.warn('PocketBase server filter fallback triggered:', filterErr);
-        result = await pb.collection('bookings').getList(1, 100, {
+        result = await pb.collection('bookings').getList(1, 200, {
           sort: sortOrder,
           expand: 'assigned_station_id,customer_id',
           requestKey: null
@@ -164,9 +154,9 @@ const Bookings = () => {
       }
 
       // Safeguard: If strict filter returned zero items, perform fallback fetch without property constraint
-      if (result.totalItems === 0 && !debouncedSearch && stationFilter === 'all' && statusFilter === 'all') {
+      if (result.totalItems === 0) {
         try {
-          const fallbackRes = await pb.collection('bookings').getList(page, 10, {
+          const fallbackRes = await pb.collection('bookings').getList(1, 200, {
             sort: sortOrder,
             expand: 'assigned_station_id,customer_id',
             requestKey: null
@@ -179,17 +169,41 @@ const Bookings = () => {
 
       let fetchedItems = result.items as unknown as Booking[];
 
-      // Client-side post-filter safeguard (guarantees station & status dropdowns ALWAYS filter 100% accurately)
+      // 1. Station Dropdown Filter
       if (stationFilter && stationFilter !== 'all') {
         fetchedItems = fetchedItems.filter(b => {
           const assigned = b.expand?.assigned_station_id;
-          const stType = b.station_type || assigned?.station_type || assigned?.name;
-          return stType && stType.toLowerCase().includes(stationFilter.toLowerCase());
+          const stType = b.station_type || (b as any).station_type_id || assigned?.station_type || assigned?.name || '';
+          return stType.toLowerCase().includes(stationFilter.toLowerCase());
         });
       }
 
+      // 2. Status Dropdown Filter
       if (statusFilter && statusFilter !== 'all') {
         fetchedItems = fetchedItems.filter(b => (b.status || 'pending').toLowerCase() === statusFilter.toLowerCase());
+      }
+
+      // 3. Search Box Filter (Matches Name, Phone, Ref #, Email, Station, or Status)
+      if (debouncedSearch) {
+        const query = debouncedSearch.toLowerCase().trim();
+        fetchedItems = fetchedItems.filter(b => {
+          const ref = (b.booking_reference || (b as any).bookingReference || '').toLowerCase();
+          const name = ((b as any).customer_name || b.name || (b as any).customerName || '').toLowerCase();
+          const email = (b.email || (b as any).customerEmail || '').toLowerCase();
+          const phone = (b.phone || (b as any).customerPhone || '').toLowerCase();
+          const status = (b.status || '').toLowerCase();
+          const assigned = b.expand?.assigned_station_id;
+          const station = (b.station_type || assigned?.name || assigned?.station_type || '').toLowerCase();
+
+          return (
+            ref.includes(query) ||
+            name.includes(query) ||
+            email.includes(query) ||
+            phone.includes(query) ||
+            status.includes(query) ||
+            station.includes(query)
+          );
+        });
       }
 
       setBookings(fetchedItems);
