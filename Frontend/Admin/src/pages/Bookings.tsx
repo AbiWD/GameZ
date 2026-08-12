@@ -61,6 +61,47 @@ interface Booking {
   payment_method?: string;
 }
 
+export const getBookingStationCategory = (booking: Booking): string => {
+  const assigned = booking.expand?.assigned_station_id;
+  const rawType = (booking.station_type || (booking as any).station_type_id || '').toLowerCase();
+  const assignedType = (assigned?.station_type || '').toLowerCase();
+  const assignedName = (assigned?.name || assigned?.station_number || '').toLowerCase();
+
+  const combined = `${rawType} ${assignedType} ${assignedName}`.replace(/[^a-z0-9]/g, '');
+
+  if (
+    combined.includes('ps5') ||
+    combined.includes('playstation') ||
+    combined.includes('ps0') ||
+    combined.includes('ps1') ||
+    combined.includes('ps2') ||
+    combined.includes('ps3') ||
+    combined.includes('ps4') ||
+    rawType === '' ||
+    combined.includes('gaminglounge')
+  ) {
+    return 'PlayStation 5 Lounge';
+  }
+
+  if (combined.includes('8ball') || combined.includes('pool') || combined.includes('pol') || combined.includes('8bl')) {
+    return '8 Balls Pool';
+  }
+
+  if (combined.includes('snooker') || combined.includes('snk')) {
+    return 'Snooker';
+  }
+
+  if (combined.includes('carrom') || combined.includes('car')) {
+    return 'Carrom Arena';
+  }
+
+  if (combined.includes('vr')) {
+    return 'VR Games';
+  }
+
+  return booking.station_type || assigned?.station_type || assigned?.name || 'Gaming Lounge';
+};
+
 const Bookings = () => {
   const { activeProperty } = useProperty();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -172,36 +213,25 @@ const Bookings = () => {
       // Helper function to match station filter against booking record (handles slugs, full names, and relation names)
       const isStationTypeMatch = (booking: Booking, filter: string): boolean => {
         if (!filter || filter === 'all') return true;
-        const target = filter.toLowerCase().replace(/[^a-z0-9]/g, '');
-        if (!target) return true;
+        
+        const category = getBookingStationCategory(booking);
+        const normCategory = category.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const normFilter = filter.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-        const assigned = booking.expand?.assigned_station_id;
-        const rawType = (booking.station_type || (booking as any).station_type_id || '').toLowerCase();
-        const rawTypeClean = rawType.replace(/[^a-z0-9]/g, '');
-        const assignedType = (assigned?.station_type || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const assignedName = (assigned?.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
-        if (rawTypeClean !== '') {
-          if (rawTypeClean === target || rawTypeClean.includes(target) || target.includes(rawTypeClean)) return true;
-        }
-        if (assignedType !== '') {
-          if (assignedType === target || assignedType.includes(target) || target.includes(assignedType)) return true;
-        }
-        if (assignedName !== '') {
-          if (assignedName === target || assignedName.includes(target) || target.includes(assignedName)) return true;
+        if (normCategory === normFilter || normCategory.includes(normFilter) || normFilter.includes(normCategory)) {
+          return true;
         }
 
-        if (target.includes('ps5') || target.includes('playstation')) {
-          if (rawTypeClean.includes('ps5') || rawTypeClean.includes('playstation') || assignedType.includes('ps5') || assignedName.includes('ps5') || rawTypeClean === 'ps5lounge') return true;
+        // Equivalent keyword matching for PS5 / PlayStation
+        if ((normFilter.includes('ps5') || normFilter.includes('playstation')) &&
+            (normCategory.includes('ps5') || normCategory.includes('playstation'))) {
+          return true;
         }
-        if (target.includes('8ball') || target.includes('pool')) {
-          if (rawTypeClean.includes('8ball') || rawTypeClean.includes('pool') || assignedType.includes('pool') || assignedName.includes('pool')) return true;
-        }
-        if (target.includes('snooker')) {
-          if (rawTypeClean.includes('snooker') || assignedType.includes('snooker') || assignedName.includes('snooker')) return true;
-        }
-        if (target.includes('carrom')) {
-          if (rawTypeClean.includes('carrom') || assignedType.includes('carrom') || assignedName.includes('carrom')) return true;
+
+        // Equivalent keyword matching for Pool / 8ball
+        if ((normFilter.includes('pool') || normFilter.includes('8ball')) &&
+            (normCategory.includes('pool') || normCategory.includes('8ball'))) {
+          return true;
         }
 
         return false;
@@ -414,21 +444,10 @@ const Bookings = () => {
                       <TableCell className="py-3 px-2 sm:px-3 md:px-6">
                         <span className="inline-block px-2.5 py-1 rounded-md border border-primary/20 text-[10px] sm:text-xs font-semibold bg-primary/5 text-primary leading-tight text-center truncate max-w-[120px] sm:max-w-[160px] lg:max-w-none hover:whitespace-normal">
                           {(() => {
+                            const typeName = getBookingStationCategory(booking);
                             const assigned = booking.expand?.assigned_station_id;
-                            let typeName = booking.station_type || (booking as any).station_type_id || assigned?.station_type || assigned?.name || '';
-                            const typeClean = typeName.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-                            if (typeClean.includes('ps5') || typeClean.includes('playstation') || typeClean === '' || typeClean === 'gaminglounge') {
-                              typeName = 'PlayStation 5 Lounge';
-                            } else if (typeClean.includes('8ball') || typeClean.includes('pool')) {
-                              typeName = '8 Balls Pool';
-                            } else if (typeClean.includes('snooker')) {
-                              typeName = 'Snooker';
-                            } else if (typeClean.includes('carrom')) {
-                              typeName = 'Carrom Arena';
-                            }
-
                             const stationNum = assigned?.station_number || assigned?.name;
+
                             if (stationNum && !stationNum.toLowerCase().includes(typeName.toLowerCase())) {
                               return `${typeName} (${stationNum})`;
                             }
