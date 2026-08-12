@@ -63,43 +63,38 @@ interface Booking {
 
 export const getBookingStationCategory = (booking: Booking): string => {
   const assigned = booking.expand?.assigned_station_id;
-  const rawType = (booking.station_type || (booking as any).station_type_id || '').toLowerCase();
-  const assignedType = (assigned?.station_type || '').toLowerCase();
   const assignedName = (assigned?.name || assigned?.station_number || '').toLowerCase();
+  const assignedType = (assigned?.station_type || '').toLowerCase();
+  const rawType = (booking.station_type || (booking as any).station_type_id || '').toLowerCase();
 
-  const combined = `${rawType} ${assignedType} ${assignedName}`.replace(/[^a-z0-9]/g, '');
+  const combined = `${assignedName} ${assignedType} ${rawType}`.toLowerCase();
 
-  if (
-    combined.includes('ps5') ||
-    combined.includes('playstation') ||
-    combined.includes('ps0') ||
-    combined.includes('ps1') ||
-    combined.includes('ps2') ||
-    combined.includes('ps3') ||
-    combined.includes('ps4') ||
-    rawType === '' ||
-    combined.includes('gaminglounge')
-  ) {
-    return 'PlayStation 5 Lounge';
-  }
-
-  if (combined.includes('8ball') || combined.includes('pool') || combined.includes('pol') || combined.includes('8bl')) {
+  // 1. Check Pool
+  if (combined.includes('pol') || combined.includes('pool') || combined.includes('8ball') || combined.includes('8bl')) {
     return '8 Balls Pool';
   }
 
-  if (combined.includes('snooker') || combined.includes('snk')) {
+  // 2. Check Snooker
+  if (combined.includes('snk') || combined.includes('snooker')) {
     return 'Snooker';
   }
 
-  if (combined.includes('carrom') || combined.includes('car')) {
+  // 3. Check Carrom
+  if (combined.includes('car') || combined.includes('carrom')) {
     return 'Carrom Arena';
   }
 
+  // 4. Check VR
   if (combined.includes('vr')) {
     return 'VR Games';
   }
 
-  return booking.station_type || assigned?.station_type || assigned?.name || 'Gaming Lounge';
+  // 5. Check PlayStation / PS5
+  if (combined.includes('ps') || combined.includes('playstation')) {
+    return 'PlayStation 5 Lounge';
+  }
+
+  return 'PlayStation 5 Lounge';
 };
 
 const Bookings = () => {
