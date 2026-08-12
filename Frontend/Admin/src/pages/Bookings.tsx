@@ -169,13 +169,40 @@ const Bookings = () => {
 
       let fetchedItems = result.items as unknown as Booking[];
 
+      // Helper function to match station filter against booking record (handles slugs, full names, and relation names)
+      const isStationTypeMatch = (booking: Booking, filter: string): boolean => {
+        if (!filter || filter === 'all') return true;
+        const target = filter.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const assigned = booking.expand?.assigned_station_id;
+        const rawType = (booking.station_type || (booking as any).station_type_id || '').toLowerCase();
+        const rawTypeClean = rawType.replace(/[^a-z0-9]/g, '');
+        const assignedType = (assigned?.station_type || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const assignedName = (assigned?.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        if (rawTypeClean === target || assignedType === target || assignedName === target) return true;
+        if (rawTypeClean.includes(target) || target.includes(rawTypeClean)) return true;
+        if (assignedType.includes(target) || target.includes(assignedType)) return true;
+        if (assignedName.includes(target) || target.includes(assignedName)) return true;
+
+        if ((target.includes('ps5') || target.includes('playstation')) && (rawTypeClean.includes('ps5') || rawTypeClean.includes('playstation') || assignedType.includes('ps5') || assignedName.includes('ps5') || rawTypeClean === '' || rawTypeClean === 'gaminglounge')) {
+          return true;
+        }
+        if ((target.includes('8ball') || target.includes('pool')) && (rawTypeClean.includes('8ball') || rawTypeClean.includes('pool') || assignedType.includes('pool') || assignedName.includes('pool'))) {
+          return true;
+        }
+        if (target.includes('snooker') && (rawTypeClean.includes('snooker') || assignedType.includes('snooker') || assignedName.includes('snooker'))) {
+          return true;
+        }
+        if (target.includes('carrom') && (rawTypeClean.includes('carrom') || assignedType.includes('carrom') || assignedName.includes('carrom'))) {
+          return true;
+        }
+
+        return false;
+      };
+
       // 1. Station Dropdown Filter
       if (stationFilter && stationFilter !== 'all') {
-        fetchedItems = fetchedItems.filter(b => {
-          const assigned = b.expand?.assigned_station_id;
-          const stType = b.station_type || (b as any).station_type_id || assigned?.station_type || assigned?.name || '';
-          return stType.toLowerCase().includes(stationFilter.toLowerCase());
-        });
+        fetchedItems = fetchedItems.filter(b => isStationTypeMatch(b, stationFilter));
       }
 
       // 2. Status Dropdown Filter
@@ -201,7 +228,8 @@ const Bookings = () => {
             email.includes(query) ||
             phone.includes(query) ||
             status.includes(query) ||
-            station.includes(query)
+            station.includes(query) ||
+            isStationTypeMatch(b, query)
           );
         });
       }
@@ -380,10 +408,24 @@ const Bookings = () => {
                         <span className="inline-block px-2.5 py-1 rounded-md border border-primary/20 text-[10px] sm:text-xs font-semibold bg-primary/5 text-primary leading-tight text-center truncate max-w-[120px] sm:max-w-[160px] lg:max-w-none hover:whitespace-normal">
                           {(() => {
                             const assigned = booking.expand?.assigned_station_id;
-                            const typeName = booking.station_type || assigned?.station_type;
+                            let typeName = booking.station_type || (booking as any).station_type_id || assigned?.station_type || assigned?.name || '';
+                            const typeClean = typeName.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+                            if (typeClean.includes('ps5') || typeClean.includes('playstation') || typeClean === '' || typeClean === 'gaminglounge') {
+                              typeName = 'PlayStation 5 Lounge';
+                            } else if (typeClean.includes('8ball') || typeClean.includes('pool')) {
+                              typeName = '8 Balls Pool';
+                            } else if (typeClean.includes('snooker')) {
+                              typeName = 'Snooker';
+                            } else if (typeClean.includes('carrom')) {
+                              typeName = 'Carrom Arena';
+                            }
+
                             const stationNum = assigned?.station_number || assigned?.name;
-                            if (typeName && stationNum) return `${typeName} (${stationNum})`;
-                            return typeName || stationNum || 'Gaming Lounge';
+                            if (stationNum && !stationNum.toLowerCase().includes(typeName.toLowerCase())) {
+                              return `${typeName} (${stationNum})`;
+                            }
+                            return typeName;
                           })()}
                         </span>
                       </TableCell>
