@@ -121,6 +121,8 @@ const Dashboard = () => {
   // POS State
   const [selectedSession, setSelectedSession] = useState<{station: Station, booking: Booking} | null>(null);
   const [paymentMode, setPaymentMode] = useState<string>('upi');
+  const [durationStep, setDurationStep] = useState<30 | 60>(30);
+  const [lastAdjustmentDelta, setLastAdjustmentDelta] = useState<string | null>(null);
 
   // Auto-refresh the dashboard every minute to update remaining times
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -393,6 +395,14 @@ const Dashboard = () => {
       if (selectedSession && selectedSession.booking.id === bookingId) {
           setSelectedSession({...selectedSession, booking: {...selectedSession.booking, end_time: newEnd}});
       }
+
+      const pricePerHr = selectedSession?.station.price_per_hour || 100;
+      const costDelta = Math.round((Math.abs(minutes) / 60) * pricePerHr);
+      const absMins = Math.abs(minutes);
+      const durationLabel = absMins >= 60 ? `${absMins / 60}h` : `${absMins}m`;
+      const label = minutes > 0 ? `+${durationLabel} (+₹${costDelta})` : `−${durationLabel} (−₹${costDelta})`;
+      setLastAdjustmentDelta(label);
+
       fetchDashboardData();
     } catch(e) {
       console.error(e);
@@ -1018,8 +1028,8 @@ const Dashboard = () => {
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Open Timer
                       </span>
                     ) : (
-                      <span className="text-[10px] px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 font-extrabold tracking-wider uppercase flex items-center gap-1.5">
-                        <Clock className="w-3 h-3" /> Fixed Duration
+                      <span className="text-xs font-mono text-muted-foreground font-medium flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-muted-foreground" /> Fixed duration
                       </span>
                     )}
                   </div>
@@ -1098,41 +1108,73 @@ const Dashboard = () => {
                     )}
                   </div>
 
-                  {/* ADJUST DURATION ACTIONS (Fixed sessions) */}
+                  {/* ADJUST DURATION STEPPER (Fixed sessions) */}
                   {!isOpenTimer && (
-                    <div className="space-y-2">
+                    <div className="space-y-3 p-4 rounded-2xl bg-secondary/30 border border-border">
                       <div className="flex items-center justify-between">
-                        <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Adjust Session Duration</Label>
-                        <span className="text-[10px] text-muted-foreground font-mono">Add or remove time</span>
+                        <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                          Adjust duration
+                        </Label>
+                        
+                        {/* Unit Selector Toggle Pills */}
+                        <div className="flex items-center p-1 bg-background rounded-xl border border-border">
+                          <button
+                            type="button"
+                            onClick={() => setDurationStep(30)}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                              durationStep === 30
+                                ? 'bg-secondary text-foreground shadow-sm border border-border'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            30 min
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDurationStep(60)}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                              durationStep === 60
+                                ? 'bg-secondary text-foreground shadow-sm border border-border'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            1 hour
+                          </button>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button 
-                          variant="outline" 
-                          className="h-11 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all active:scale-95 cursor-pointer" 
-                          onClick={() => extendSession(booking.id, 30)}
+
+                      {/* Single - / + Stepper Row */}
+                      <div className="grid grid-cols-3 gap-3 items-center">
+                        <Button
+                          variant="outline"
+                          className="h-14 rounded-2xl border-border text-foreground hover:bg-secondary font-black text-2xl transition-all active:scale-95 cursor-pointer shadow-sm"
+                          onClick={() => extendSession(booking.id, -durationStep)}
+                          title={`Remove ${durationStep} minutes`}
                         >
-                          + 30 Mins (+₹{(station.price_per_hour || 100) / 2})
+                          −
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          className="h-11 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all active:scale-95 cursor-pointer" 
-                          onClick={() => extendSession(booking.id, 60)}
+
+                        <div className="text-center flex flex-col justify-center">
+                          {lastAdjustmentDelta ? (
+                            <span className={`text-sm font-extrabold font-mono tracking-tight animate-fade-in ${
+                              lastAdjustmentDelta.startsWith('+') ? 'text-emerald-500' : 'text-rose-500'
+                            }`}>
+                              {lastAdjustmentDelta}
+                            </span>
+                          ) : (
+                            <span className="text-sm font-bold text-muted-foreground">
+                              No change
+                            </span>
+                          )}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          className="h-14 rounded-2xl border-border text-foreground hover:bg-secondary font-black text-2xl transition-all active:scale-95 cursor-pointer shadow-sm"
+                          onClick={() => extendSession(booking.id, durationStep)}
+                          title={`Add ${durationStep} minutes`}
                         >
-                          + 1 Hour (+₹{station.price_per_hour || 100})
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          className="h-11 rounded-xl text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/20 hover:border-rose-500/50 transition-all active:scale-95 cursor-pointer" 
-                          onClick={() => extendSession(booking.id, -30)}
-                        >
-                          - 30 Mins (-₹{(station.price_per_hour || 100) / 2})
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          className="h-11 rounded-xl text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/20 hover:border-rose-500/50 transition-all active:scale-95 cursor-pointer" 
-                          onClick={() => extendSession(booking.id, -60)}
-                        >
-                          - 1 Hour (-₹{station.price_per_hour || 100})
+                          +
                         </Button>
                       </div>
                     </div>
