@@ -173,28 +173,35 @@ const Bookings = () => {
       const isStationTypeMatch = (booking: Booking, filter: string): boolean => {
         if (!filter || filter === 'all') return true;
         const target = filter.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!target) return true;
+
         const assigned = booking.expand?.assigned_station_id;
         const rawType = (booking.station_type || (booking as any).station_type_id || '').toLowerCase();
         const rawTypeClean = rawType.replace(/[^a-z0-9]/g, '');
         const assignedType = (assigned?.station_type || '').toLowerCase().replace(/[^a-z0-9]/g, '');
         const assignedName = (assigned?.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-        if (rawTypeClean === target || assignedType === target || assignedName === target) return true;
-        if (rawTypeClean.includes(target) || target.includes(rawTypeClean)) return true;
-        if (assignedType.includes(target) || target.includes(assignedType)) return true;
-        if (assignedName.includes(target) || target.includes(assignedName)) return true;
+        if (rawTypeClean !== '') {
+          if (rawTypeClean === target || rawTypeClean.includes(target) || target.includes(rawTypeClean)) return true;
+        }
+        if (assignedType !== '') {
+          if (assignedType === target || assignedType.includes(target) || target.includes(assignedType)) return true;
+        }
+        if (assignedName !== '') {
+          if (assignedName === target || assignedName.includes(target) || target.includes(assignedName)) return true;
+        }
 
-        if ((target.includes('ps5') || target.includes('playstation')) && (rawTypeClean.includes('ps5') || rawTypeClean.includes('playstation') || assignedType.includes('ps5') || assignedName.includes('ps5') || rawTypeClean === '' || rawTypeClean === 'gaminglounge')) {
-          return true;
+        if (target.includes('ps5') || target.includes('playstation')) {
+          if (rawTypeClean.includes('ps5') || rawTypeClean.includes('playstation') || assignedType.includes('ps5') || assignedName.includes('ps5') || rawTypeClean === 'ps5lounge') return true;
         }
-        if ((target.includes('8ball') || target.includes('pool')) && (rawTypeClean.includes('8ball') || rawTypeClean.includes('pool') || assignedType.includes('pool') || assignedName.includes('pool'))) {
-          return true;
+        if (target.includes('8ball') || target.includes('pool')) {
+          if (rawTypeClean.includes('8ball') || rawTypeClean.includes('pool') || assignedType.includes('pool') || assignedName.includes('pool')) return true;
         }
-        if (target.includes('snooker') && (rawTypeClean.includes('snooker') || assignedType.includes('snooker') || assignedName.includes('snooker'))) {
-          return true;
+        if (target.includes('snooker')) {
+          if (rawTypeClean.includes('snooker') || assignedType.includes('snooker') || assignedName.includes('snooker')) return true;
         }
-        if (target.includes('carrom') && (rawTypeClean.includes('carrom') || assignedType.includes('carrom') || assignedName.includes('carrom'))) {
-          return true;
+        if (target.includes('carrom')) {
+          if (rawTypeClean.includes('carrom') || assignedType.includes('carrom') || assignedName.includes('carrom')) return true;
         }
 
         return false;
