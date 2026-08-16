@@ -56,7 +56,7 @@ const navigationSections = [
   {
     label: 'Store Operations',
     items: [
-      { title: 'Blackouts / Closures', url: '/admin/blackouts', icon: CalendarX },
+      { title: 'Blackouts', url: '/admin/blackouts', icon: CalendarX },
     ]
   }
 ];

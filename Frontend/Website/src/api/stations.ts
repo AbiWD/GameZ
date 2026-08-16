@@ -75,7 +75,11 @@ export const stationsApi = {
       // 3. Resolve PocketBase image file URL or theme fallback
       let imageUrl = '';
       if (st.image) {
-        imageUrl = pb.files.getURL(st, st.image);
+        try {
+          imageUrl = pb.files.getUrl(st, st.image);
+        } catch (e) {
+          imageUrl = '';
+        }
       }
       if (!imageUrl) {
         imageUrl = '/images/gaming-placeholder.jpg';

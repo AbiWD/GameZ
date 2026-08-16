@@ -167,7 +167,7 @@ const Bookings = () => {
       try {
         const list = await pb.collection('bookings').getFullList({
           sort: sortOrder,
-          expand: 'assigned_station_id,customer_id',
+          expand: 'assigned_station_id',
           requestKey: null
         });
         fetchedItems = list as unknown as Booking[];

@@ -576,7 +576,13 @@ export default function Book({ setRoute }: BookProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                <div className={`pt-2 ${
+                  stationTypes.length === 1
+                    ? 'flex justify-center max-w-lg mx-auto w-full'
+                    : stationTypes.length === 2
+                    ? 'flex flex-wrap justify-center gap-6 max-w-4xl mx-auto w-full'
+                    : 'grid grid-cols-1 md:grid-cols-3 gap-6'
+                }`}>
                   {stationTypes.map((station) => {
                     const IconComp = ICON_COMPONENTS[station.iconName] || Gamepad2;
                     

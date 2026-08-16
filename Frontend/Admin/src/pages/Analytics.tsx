@@ -393,17 +393,6 @@ export default function Analytics() {
                   <SelectItem value="all_time">All Time</SelectItem>
                 </SelectContent>
              </Select>
-             <Select value={selectedPropId} onValueChange={setSelectedPropId}>
-                <SelectTrigger className="w-[160px] bg-card border-border rounded-xl">
-                  <SelectValue placeholder="Property" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Properties</SelectItem>
-                  {properties.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-             </Select>
           </div>
         </div>
 

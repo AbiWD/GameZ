@@ -26,24 +26,6 @@ export const STATIONS: Station[] = [
     imageUrl: '/images/gaming-placeholder.jpg'
   },
   {
-    id: 'championship-snooker',
-    name: 'Championship Snooker',
-    ratePerHour: 400,
-    iconName: 'CircleDot',
-    description: 'Professional-grade tournament snooker tables with high-spec billiard lighting, premium slate, and imported cues.',
-    features: [
-      'Tournament-spec English Slate Tables',
-      'Imported West of England cloth',
-      'Ash wood cues (various weights)',
-      'Shadowless overhead tournament lighting',
-      'Spacious viewing sofas'
-    ],
-    totalSlots: 2,
-    availableNow: 1,
-    imagePlaceholder: 'Tournament Snooker Arena — Coming Soon',
-    imageUrl: '/images/gaming-placeholder.jpg'
-  },
-  {
     id: 'premium-carrom',
     name: 'Premium Carrom Arena',
     ratePerHour: 100,

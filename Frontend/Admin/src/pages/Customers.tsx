@@ -55,7 +55,7 @@ const Customers = () => {
   const [totalItems, setTotalItems] = useState(0);
 
   // Metrics state
-  const [stats, setStats] = useState({ total: 0, vipCount: 0, regularCount: 0, totalRevenue: 0 });
+  const [stats, setStats] = useState({ total: 0, vipCount: 0, bannedCount: 0, regularCount: 0, totalRevenue: 0 });
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [customerBookings, setCustomerBookings] = useState<Booking[]>([]);
@@ -81,7 +81,7 @@ const Customers = () => {
     fetchCustomers();
   }, [page, debouncedSearch, statusFilter]);
 
-  // Fetch overall statistics once on mount
+  // Fetch overall statistics once on mount & whenever page refreshes
   useEffect(() => {
     fetchStats();
   }, []);
@@ -90,10 +90,14 @@ const Customers = () => {
     try {
       const allRecords = await pb.collection('portal_users').getFullList({ requestKey: null });
       const total = allRecords.length;
-      const vipCount = allRecords.filter(c => c.status === 'vip').length;
-      const regularCount = allRecords.filter(c => c.status === 'regular' || !c.status).length;
+      const vipCount = allRecords.filter(c => (c.status || '').toLowerCase() === 'vip').length;
+      const bannedCount = allRecords.filter(c => (c.status || '').toLowerCase() === 'banned').length;
+      const regularCount = allRecords.filter(c => {
+        const st = (c.status || '').toLowerCase();
+        return st === 'regular' || (!st && st !== 'vip' && st !== 'banned');
+      }).length;
       const totalRevenue = allRecords.reduce((sum, c) => sum + (c.total_spent || 0), 0);
-      setStats({ total, vipCount, regularCount, totalRevenue });
+      setStats({ total, vipCount, bannedCount, regularCount, totalRevenue });
     } catch (e) {
       console.error('Failed to fetch stats:', e);
     }
@@ -179,6 +183,7 @@ const Customers = () => {
       });
       setCustomers(customers.map(c => c.id === selectedCustomer.id ? { ...c, status: newStatus, notes } : c));
       setSelectedCustomer({ ...selectedCustomer, status: newStatus, notes });
+      fetchStats();
       toast({
         title: 'Status Updated',
         description: `Customer account marked as ${newStatus.toUpperCase()}`
@@ -282,7 +287,7 @@ const Customers = () => {
                     statusFilter === 'banned' ? 'bg-destructive text-destructive-foreground shadow-sm' : 'text-muted-foreground hover:text-destructive'
                   }`}
                 >
-                  Banned ({stats.total - stats.vipCount - stats.regularCount})
+                  Banned ({stats.bannedCount})
                 </button>
               </div>
             </div>

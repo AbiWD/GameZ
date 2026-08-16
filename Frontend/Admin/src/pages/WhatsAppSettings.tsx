@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { MessageSquare, QrCode, CheckCircle2, AlertTriangle, RefreshCw, Send, LogOut, ShieldCheck, Smartphone, Zap } from 'lucide-react';
+import { MessageSquare, QrCode, CheckCircle2, AlertTriangle, RefreshCw, Send, LogOut, ShieldCheck, Smartphone, Zap, Building2 } from 'lucide-react';
 import pb from '@/lib/pocketbase';
 
 const WhatsAppLogo = ({ className = "h-6 w-6" }: { className?: string }) => (
@@ -193,6 +193,23 @@ export default function WhatsAppSettings() {
           </Button>
         </div>
 
+        {/* Strict WhatsApp Business Warning Callout */}
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 sm:p-5 shadow-sm">
+          <div className="space-y-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-amber-700 dark:text-amber-400 text-sm sm:text-base tracking-tight">
+                Mandatory Requirement: WhatsApp Business Account Only
+              </h3>
+              <Badge variant="outline" className="border-amber-500/40 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider bg-amber-500/10">
+                Official Business Policy
+              </Badge>
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              Please pair <strong className="text-foreground font-semibold">only your lounge's official WhatsApp Business account</strong>. Personal WhatsApp accounts must not be connected to prevent automated dispatch rate limits, spam flags, and Meta terms non-compliance.
+            </p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Status & QR Scanner Card */}
           <Card className="border-border/50 bg-card/60 backdrop-blur-xl">
@@ -268,9 +285,6 @@ export default function WhatsAppSettings() {
                       <div className="text-center space-y-2 w-full">
                         <p className="text-sm font-semibold flex items-center justify-center gap-1 text-primary">
                           <QrCode className="h-4 w-4" /> Scan with WhatsApp Linked Devices
-                        </p>
-                        <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                          Open WhatsApp → Menu/Settings → Linked Devices → Link a Device
                         </p>
                         <div className="pt-1 flex flex-wrap items-center justify-center gap-2">
                           <Button variant="outline" size="sm" onClick={handleGenerateQr} className="text-xs">

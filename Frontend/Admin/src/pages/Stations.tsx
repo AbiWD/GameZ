@@ -648,7 +648,7 @@ interface ConflictingBooking {
           </div>
         </div>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-          <TabsList ref={tabsListRef} className="bg-secondary/50 border border-border flex w-full overflow-x-auto whitespace-nowrap scrollbar-hide justify-start h-auto rounded-2xl p-1.5 scroll-smooth px-8 sm:px-1.5 gap-1">
+          <TabsList ref={tabsListRef} className="bg-secondary/50 border border-border flex w-full overflow-x-auto whitespace-nowrap scrollbar-hide no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden justify-start h-auto rounded-2xl p-1.5 scroll-smooth px-8 sm:px-1.5 gap-1">
             <TabsTrigger value="inventory" data-tab-value="inventory" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-xl py-2.5 px-5 shrink-0 transition-all">
               <ConsoleIcon className="w-4 h-4 mr-2" />
               Individual Units

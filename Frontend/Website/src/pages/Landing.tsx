@@ -86,9 +86,10 @@ export default function Landing({ setRoute }: LandingProps) {
     if (stationsScrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = stationsScrollRef.current;
       setCanScrollLeft(scrollLeft > 10);
-      setCanScrollRight(scrollWidth > clientWidth + 10 && scrollLeft < scrollWidth - clientWidth - 10);
+      const isDesktopCentered = stationTypes.length <= 3 && typeof window !== 'undefined' && window.innerWidth >= 1024;
+      setCanScrollRight(!isDesktopCentered && scrollWidth > clientWidth + 10 && scrollLeft < scrollWidth - clientWidth - 10);
     }
-  }, []);
+  }, [stationTypes]);
 
   React.useEffect(() => {
     checkScrollButtons();
@@ -453,7 +454,9 @@ export default function Landing({ setRoute }: LandingProps) {
           <div 
             ref={stationsScrollRef}
             onScroll={checkScrollButtons}
-            className="flex items-stretch gap-4 sm:gap-6 overflow-x-auto scrollbar-none scroll-smooth pb-6 pt-2 snap-x snap-mandatory px-1 sm:px-2"
+            className={`flex items-stretch gap-4 sm:gap-6 overflow-x-auto scrollbar-none scroll-smooth pb-6 pt-2 snap-x snap-mandatory px-1 sm:px-2 ${
+              stationTypes.length <= 2 ? 'justify-center' : 'justify-start md:justify-center'
+            }`}
           >
           {stationTypes.map((station) => {
             const IconComponent = ICON_COMPONENTS[station.iconName] || Gamepad2;
@@ -461,7 +464,11 @@ export default function Landing({ setRoute }: LandingProps) {
             return (
               <div
                 key={station.id}
-                className="group flex flex-col bg-cyber-gray border border-white/5 rounded-2xl overflow-hidden shadow-xl hover:border-cyber-purple/40 hover:shadow-cyber-purple/5 transition-all duration-300 w-[84vw] sm:w-[320px] md:w-[340px] shrink-0 snap-start"
+                className={`group flex flex-col bg-cyber-gray border border-white/5 rounded-2xl overflow-hidden shadow-xl hover:border-cyber-purple/40 hover:shadow-cyber-purple/5 transition-all duration-300 shrink-0 snap-start ${
+                  stationTypes.length === 1
+                    ? 'w-[90vw] sm:w-[420px] md:w-[460px] max-w-lg'
+                    : 'w-[84vw] sm:w-[320px] md:w-[340px]'
+                }`}
               >
                 
                 {/* Visual Image / Placeholder container */}
